@@ -60,7 +60,7 @@ fun PermissionExplanationDialog(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "Welcome to Overlay Pets!",
+                        text = "Welcome to [App Name]!",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
@@ -69,7 +69,7 @@ fun PermissionExplanationDialog(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "To bring your cute pets to life on your screen, we need a few permissions:",
+                        text = "To bring your cute characters to life on your status bar, we need a few permissions:",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -81,7 +81,7 @@ fun PermissionExplanationDialog(
                     PermissionExplanationItem(
                         icon = Lucide.View,
                         title = "Overlay Permission",
-                        description = "Allows your pets to appear on top of other apps and walk around your screen cutely."
+                        description = "Allows your pets to appear on top of other apps and walk around your status bar cutely."
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))

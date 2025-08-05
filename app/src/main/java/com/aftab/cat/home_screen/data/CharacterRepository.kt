@@ -1,6 +1,7 @@
 package com.aftab.cat.home_screen.data
 
 import android.content.SharedPreferences
+import android.util.Log
 import com.aftab.cat.R
 import com.aftab.cat.home_screen.data.model.CharacterCategory
 import com.aftab.cat.home_screen.data.model.Characters
@@ -24,7 +25,7 @@ class CharacterRepository @Inject constructor(
     private val defaultCharacters = listOf(
         Characters(
             id = "walking_cat",
-            name = "Walking Cat",
+            name = "Cat",
             category = CharacterCategory.ANIMALS,
             frameIds = listOf(
                 R.drawable.cat_walk_01,
@@ -40,8 +41,25 @@ class CharacterRepository @Inject constructor(
             animationDelay = 100L
         ),
         Characters(
+            id = "blu_cat",
+            name = "Blu",
+            category = CharacterCategory.ANIMALS,
+            frameIds = listOf(
+                R.drawable.blu_walk_01,
+                R.drawable.blu_walk_02,
+                R.drawable.blu_walk_03,
+                R.drawable.blu_walk_04,
+                R.drawable.blu_walk_05,
+                R.drawable.blu_walk_06,
+            ),
+            width = 18,
+            height = 18,
+            speed = 3,
+            animationDelay = 100L
+        ),
+        Characters(
             id = "walking_dog",
-            name = "Walking Dog",
+            name = "Dog",
             category = CharacterCategory.ANIMALS,
             frameIds = listOf(
                 R.drawable.dog_walk_01,
@@ -50,6 +68,120 @@ class CharacterRepository @Inject constructor(
                 R.drawable.dog_walk_04,
                 R.drawable.dog_walk_05,
                 R.drawable.dog_walk_06
+            ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
+            id = "walking_gangster",
+            name = "Gangster",
+            category = CharacterCategory.CARTOON,
+            frameIds = listOf(
+                R.drawable.gangsters_walk_01,
+                R.drawable.gangsters_walk_02,
+                R.drawable.gangsters_walk_03,
+                R.drawable.gangsters_walk_04,
+                R.drawable.gangsters_walk_05,
+                R.drawable.gangsters_walk_06,
+                R.drawable.gangsters_walk_07,
+                R.drawable.gangsters_walk_08,
+                R.drawable.gangsters_walk_09,
+                R.drawable.gangsters_walk_10,
+            ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
+            id = "walking_banana",
+            name = "Banana Man",
+            category = CharacterCategory.CARTOON,
+            frameIds = listOf(
+                R.drawable.banana_walk_01,
+                R.drawable.banana_walk_02,
+                R.drawable.banana_walk_03,
+                R.drawable.banana_walk_04,
+                R.drawable.banana_walk_05,
+                R.drawable.banana_walk_06,
+                R.drawable.banana_walk_07,
+                R.drawable.banana_walk_08,
+                R.drawable.banana_walk_09,
+                R.drawable.banana_walk_10,
+
+            ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
+            id = "walking_jerry",
+            name = "Jerry",
+            category = CharacterCategory.CARTOON,
+            frameIds = listOf(
+                R.drawable.jerry_03,
+                R.drawable.jerry_04,
+                R.drawable.jerry_05,
+                R.drawable.jerry_06,
+                R.drawable.jerry_08,
+                R.drawable.jerry_10,
+                R.drawable.jerry_12,
+                R.drawable.jerry_14,
+                ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
+            id = "jumping_pikachu",
+            name = "Jumping Pikachu",
+            category = CharacterCategory.ANIME,
+            frameIds = listOf(
+                R.drawable.pikachu_01,
+                R.drawable.pikachu_02,
+                R.drawable.pikachu_03,
+                R.drawable.pikachu_04,
+                R.drawable.pikachu_05,
+                R.drawable.pikachu_06,
+                R.drawable.pikachu_07,
+                R.drawable.pikachu_08,
+            ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
+            id = "morty_walking",
+            name = "Morty",
+            category = CharacterCategory.CARTOON,
+            frameIds = listOf(
+                R.drawable.morty_01,
+                R.drawable.morty_02,
+                R.drawable.morty_03,
+                R.drawable.morty_04,
+            ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
+            id = "peter_walking",
+            name = "Peter",
+            category = CharacterCategory.CARTOON,
+            frameIds = listOf(
+                R.drawable.peter_01,
+                R.drawable.peter_02,
+                R.drawable.peter_03,
+                R.drawable.peter_04,
+                R.drawable.peter_05,
+                R.drawable.peter_06,
+                R.drawable.peter_07,
             ),
             width = 18,
             height = 18,
@@ -85,7 +217,9 @@ class CharacterRepository @Inject constructor(
     }
 
     fun getAllCharacters(): List<Characters> {
-        return loadCharacters().values.toList()
+        val characters = loadCharacters().values.toList()
+        Log.d("CharacterRepo", "Loaded ${characters.size} characters: ${characters.map { it.name }}")
+        return characters
     }
 
     fun getCharacterById(id: String): Characters? {

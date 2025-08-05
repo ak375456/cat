@@ -1,15 +1,11 @@
 package com.aftab.cat.character_screen.presentation
 
-import android.content.Context
-import android.content.Intent
-import androidx.core.content.ContextCompat
 import com.aftab.cat.home_screen.data.CharacterRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aftab.cat.SimpleOverlayManager
 import com.aftab.cat.home_screen.data.model.Characters
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -19,7 +15,6 @@ import javax.inject.Inject
 class CharacterSettingsViewModel @Inject constructor(
     private val characterRepository: CharacterRepository,
     private val overlayManager: SimpleOverlayManager,
-    @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _character = MutableStateFlow<Characters?>(null)

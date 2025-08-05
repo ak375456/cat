@@ -136,7 +136,7 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "To use your pets, please grant the required permissions in Settings.",
+                                text = "To use your characters, please grant the required permissions in Settings.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )

@@ -44,12 +44,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import android.content.Intent
 import androidx.compose.material.icons.filled.Close
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -60,7 +57,6 @@ fun CharacterSettingsScreen(
     isCharacterRunning: Boolean = false, // Pass this from the calling screen
     viewModel: CharacterSettingsViewModel = hiltViewModel()
 ) {
-    val context = LocalContext.current
     val character by viewModel.character.collectAsState()
     val speed by viewModel.speed.collectAsState()
     val width by viewModel.width.collectAsState()
