@@ -2,13 +2,9 @@ package com.aftab.cat.home_screen.presentation
 
 import android.Manifest
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,9 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.aftab.cat.UniversalOverlayService
+import com.aftab.cat.componenets.PermissionExplanationDialog
 import com.aftab.cat.home_screen.presentation.components.AnimatedCharacterPreviewCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,20 +30,46 @@ fun HomeScreen(
     val context = LocalContext.current
     val characters by viewModel.allCharacters.collectAsState()
     var expandedCharacterId by remember { mutableStateOf<String?>(null) }
-
     val runningCharacters by viewModel.runningCharacters.collectAsState()
+    val showPermissionDialog by viewModel.showPermissionDialog.collectAsState()
 
-    // Permission states and launchers
+    // Check permissions
     var hasOverlayPermission by remember { mutableStateOf(checkOverlayPermission(context)) }
-    var hasNotificationPermission by remember { mutableStateOf(checkNotificationPermission(context)) }
+    var hasNotificationPermission by remember {
+        mutableStateOf(checkNotificationPermission(context))
+    }
 
-    val overlayPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { hasOverlayPermission = checkOverlayPermission(context) }
 
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted -> hasNotificationPermission = isGranted }
+
+    // Initialize dialog state
+    LaunchedEffect(Unit) {
+        viewModel.initializeDialogState(context)
+    }
+
+    // Bind to service and sync state
+    LaunchedEffect(Unit) {
+        viewModel.bindToService(context)
+    }
+
+    LaunchedEffect(hasOverlayPermission, hasNotificationPermission) {
+        if (hasOverlayPermission && hasNotificationPermission) {
+            viewModel.syncWithService()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.unbindFromService(context)
+        }
+    }
+
+    // Permission explanation dialog
+    PermissionExplanationDialog(
+        showDialog = showPermissionDialog,
+        onDismiss = { viewModel.dismissPermissionDialog() },
+        onDontShowAgain = { viewModel.setDontShowPermissionDialogAgain() },
+        onContinue = { viewModel.dismissPermissionDialog() }
+    )
 
     Scaffold(
         topBar = {
@@ -77,9 +98,10 @@ fun HomeScreen(
                     },
                     onUseCharacter = {
                         if (hasOverlayPermission && hasNotificationPermission) {
-                            startOverlayService(context, character.id)
-                            // Update the ViewModel state to track this character as running
-                            viewModel.startCharacter(character.id)
+                            viewModel.startCharacter(context, character)
+                        } else {
+                            // Show a snackbar or navigate to settings
+                            onNavigateToSettings()
                         }
                         expandedCharacterId = null
                     },
@@ -89,89 +111,47 @@ fun HomeScreen(
                     },
                     isCharacterRunning = isRunning,
                     onStopCharacter = {
-                        // Stop the character service
-                        stopCharacterOverlay(context, character.id)
-                        // Update the ViewModel state
-                        viewModel.stopCharacter(character.id)
+                        viewModel.stopCharacter(context, character.id)
                     },
                     canUseCharacter = hasOverlayPermission && hasNotificationPermission
                 )
             }
 
-            item {
-                Column(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Permission status card
-                    Card(modifier = Modifier.fillMaxWidth()) {
+            // Show a simple message if permissions are missing
+            if (!hasOverlayPermission || !hasNotificationPermission) {
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = "Permissions",
+                                text = "⚠️ Permissions Required",
                                 style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(bottom = 8.dp)
+                                color = MaterialTheme.colorScheme.error
                             )
-                            PermissionStatusRow("Overlay Permission", hasOverlayPermission)
-                            PermissionStatusRow("Notification Permission", hasNotificationPermission)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "To use your pets, please grant the required permissions in Settings.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = onNavigateToSettings,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Go to Settings")
+                            }
                         }
-                    }
-
-                    // Permission buttons
-                    if (!hasOverlayPermission) {
-                        Button(
-                            onClick = { requestOverlayPermission(context, overlayPermissionLauncher) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Grant Overlay Permission") }
-                    }
-
-                    if (!hasNotificationPermission) {
-                        Button(
-                            onClick = { requestNotificationPermission(notificationPermissionLauncher) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Grant Notification Permission") }
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            stopOverlayService(context)
-                            // Clear all running characters from ViewModel state
-                            viewModel.clearAllRunningCharacters()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Stop All Overlays")
-                    }
-
-                    if (!hasOverlayPermission || !hasNotificationPermission) {
-                        Text(
-                            text = "Please grant all permissions to use the overlay",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun PermissionStatusRow(
-    permissionName: String,
-    isGranted: Boolean
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(text = permissionName)
-        Text(
-            text = if (isGranted) "✅ Granted" else "❌ Required",
-            color = if (isGranted)
-                MaterialTheme.colorScheme.primary
-            else
-                MaterialTheme.colorScheme.error
-        )
     }
 }
 
@@ -186,45 +166,6 @@ private fun checkNotificationPermission(context: Context): Boolean {
             Manifest.permission.POST_NOTIFICATIONS
         ) == PackageManager.PERMISSION_GRANTED
     } else {
-        true
+        true // Not required for older versions
     }
-}
-
-private fun requestOverlayPermission(
-    context: Context,
-    launcher: ActivityResultLauncher<Intent>
-) {
-    val intent = Intent(
-        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-        "package:${context.packageName}".toUri()
-    )
-    launcher.launch(intent)
-}
-
-private fun requestNotificationPermission(
-    launcher: ActivityResultLauncher<String>
-) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-    }
-}
-
-private fun startOverlayService(context: Context, characterId: String) {
-    val serviceIntent = Intent(context, UniversalOverlayService::class.java).apply {
-        putExtra("character_id", characterId)
-    }
-    ContextCompat.startForegroundService(context, serviceIntent)
-}
-
-private fun stopCharacterOverlay(context: Context, characterId: String) {
-    val serviceIntent = Intent(context, UniversalOverlayService::class.java).apply {
-        action = "STOP"
-        putExtra("character_id", characterId)
-    }
-    ContextCompat.startForegroundService(context, serviceIntent)
-}
-
-private fun stopOverlayService(context: Context) {
-    val serviceIntent = Intent(context, UniversalOverlayService::class.java)
-    context.stopService(serviceIntent)
 }

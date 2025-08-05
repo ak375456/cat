@@ -3,10 +3,10 @@ package com.aftab.cat.character_screen.presentation
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
-import com.aftab.cat.UniversalOverlayService
 import com.aftab.cat.home_screen.data.CharacterRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aftab.cat.SimpleOverlayManager
 import com.aftab.cat.home_screen.data.model.Characters
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -18,6 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class CharacterSettingsViewModel @Inject constructor(
     private val characterRepository: CharacterRepository,
+    private val overlayManager: SimpleOverlayManager,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -126,11 +127,7 @@ class CharacterSettingsViewModel @Inject constructor(
 
     private fun sendLiveUpdateToService(character: Characters) {
         try {
-            val serviceIntent = Intent(context, UniversalOverlayService::class.java).apply {
-                action = "UPDATE_SETTINGS"
-                putExtra("character_id", character.id)
-            }
-            ContextCompat.startForegroundService(context, serviceIntent)
+            overlayManager.updateCharacterSettings(character.id, character)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -156,6 +153,25 @@ class CharacterSettingsViewModel @Inject constructor(
             }
         }
     }
+
+    fun startCharacterTest() {
+        viewModelScope.launch {
+            _character.value?.let { character ->
+                overlayManager.addCharacter(character)
+                _isCharacterRunning.value = true
+            }
+        }
+    }
+
+    fun stopCharacterTest() {
+        viewModelScope.launch {
+            _character.value?.let { character ->
+                overlayManager.removeCharacter(character.id)
+                _isCharacterRunning.value = false
+            }
+        }
+    }
+
 
     fun resetToDefaults() {
         viewModelScope.launch {

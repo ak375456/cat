@@ -1,6 +1,9 @@
 package com.aftab.cat.home_screen.data.model
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
 data class Characters(
     val id: String,
     val name: String,
@@ -13,7 +16,7 @@ data class Characters(
     val previewHeight: Int = 80,
     val speed: Int = 3, // pixels per frame
     val animationDelay: Long = 100L // milliseconds
-)
+) : Parcelable
 
 enum class CharacterCategory(val displayName: String) {
     ANIMALS("Animals"),

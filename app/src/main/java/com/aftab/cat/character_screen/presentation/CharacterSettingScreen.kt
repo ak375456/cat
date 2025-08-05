@@ -51,7 +51,6 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.content.Intent
 import androidx.compose.material.icons.filled.Close
-import com.aftab.cat.UniversalOverlayService
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -166,15 +165,8 @@ fun CharacterSettingsScreen(
                         )
                         Button(
                             onClick = {
-                                // Start character for testing
-                                character?.let {
-                                    viewModel.saveSettings() // Save current settings first
-                                    val serviceIntent = Intent(context, UniversalOverlayService::class.java).apply {
-                                        putExtra("character_id", it.id)
-                                    }
-                                    ContextCompat.startForegroundService(context, serviceIntent)
-                                    viewModel.setCharacterRunning(true)
-                                }
+                                viewModel.saveSettings() // Save current settings first
+                                viewModel.startCharacterTest()
                             },
                             enabled = character != null,
                             modifier = Modifier.fillMaxWidth()
@@ -192,14 +184,7 @@ fun CharacterSettingsScreen(
                 // Stop Test Button
                 OutlinedButton(
                     onClick = {
-                        character?.let {
-                            val serviceIntent = Intent(context, UniversalOverlayService::class.java).apply {
-                                action = "STOP"
-                                putExtra("character_id", it.id)
-                            }
-                            ContextCompat.startForegroundService(context, serviceIntent)
-                            viewModel.setCharacterRunning(false)
-                        }
+                        viewModel.stopCharacterTest()
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(
