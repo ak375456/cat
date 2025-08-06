@@ -9,6 +9,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -28,6 +29,21 @@ import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aftab.cat.componenets.PermissionExplanationDialog
 import com.aftab.cat.home_screen.presentation.HomeViewModel
+import com.aftab.cat.ui.theme.ButtonPrimary
+import com.aftab.cat.ui.theme.CardBackground
+import com.aftab.cat.ui.theme.ContainerHigh
+import com.aftab.cat.ui.theme.Error
+import com.aftab.cat.ui.theme.IconSecondary
+import com.aftab.cat.ui.theme.OnButtonPrimary
+import com.aftab.cat.ui.theme.OnCard
+import com.aftab.cat.ui.theme.OnContainer
+import com.aftab.cat.ui.theme.OnSurface
+import com.aftab.cat.ui.theme.OnSurfaceVariant
+import com.aftab.cat.ui.theme.OnTopBar
+import com.aftab.cat.ui.theme.OutlinePrimary
+import com.aftab.cat.ui.theme.Primary
+import com.aftab.cat.ui.theme.Success
+import com.aftab.cat.ui.theme.TopBarBackground
 import com.composables.icons.lucide.Cat
 import com.composables.icons.lucide.CircleStop
 import com.composables.icons.lucide.Cross
@@ -73,12 +89,19 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text("Settings", color = OnTopBar) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = OnTopBar
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = TopBarBackground
+                )
             )
         }
     ) { innerPadding ->
@@ -95,8 +118,8 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = if (hasOverlayPermission && hasNotificationPermission)
-                        MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.errorContainer
+                        ContainerHigh
+                    else Error.copy(alpha = 0.2f)
                 )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -110,15 +133,16 @@ fun SettingsScreen(
                             else Icons.Default.Warning,
                             contentDescription = null,
                             tint = if (hasOverlayPermission && hasNotificationPermission)
-                                MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.error,
+                                Success
+                            else Error,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Permission Status",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            color = OnContainer
                         )
                     }
 
@@ -139,19 +163,25 @@ fun SettingsScreen(
                         Text(
                             text = "⚠️ Some permissions are missing. Your pets may not work properly without all required permissions.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
+                            color = Error
                         )
                     }
                 }
             }
 
             // Permission Actions Card
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = CardBackground
+                )
+            ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Permission Management",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
+                        color = OnCard,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
@@ -161,7 +191,8 @@ fun SettingsScreen(
                             onClick = { requestOverlayPermission(context, overlayPermissionLauncher) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
+                                containerColor = ButtonPrimary,
+                                contentColor = OnButtonPrimary
                             )
                         ) {
                             Icon(
@@ -176,7 +207,11 @@ fun SettingsScreen(
                     } else {
                         OutlinedButton(
                             onClick = { openOverlaySettings(context) },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = OnSurface
+                            ),
+                            border = BorderStroke(1.dp, OutlinePrimary)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
@@ -197,7 +232,8 @@ fun SettingsScreen(
                             },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
+                                containerColor = ButtonPrimary,
+                                contentColor = OnButtonPrimary
                             )
                         ) {
                             Icon(
@@ -214,7 +250,11 @@ fun SettingsScreen(
                     // General App Settings Button
                     OutlinedButton(
                         onClick = { openAppSettings(context) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = OnSurface
+                        ),
+                        border = BorderStroke(1.dp, OutlinePrimary)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -230,7 +270,10 @@ fun SettingsScreen(
                     // Permission Explanation Button
                     TextButton(
                         onClick = { viewModel.showPermissionDialogManually() },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = Primary
+                        )
                     ) {
                         Icon(
                             imageVector = Icons.Default.Info,
@@ -244,12 +287,18 @@ fun SettingsScreen(
             }
 
             // App Control Card
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = CardBackground
+                )
+            ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "App Controls",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
+                        color = OnCard,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
@@ -259,8 +308,9 @@ fun SettingsScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
+                            contentColor = Error
+                        ),
+                        border = BorderStroke(1.dp, Error)
                     ) {
                         Icon(
                             imageVector = Lucide.CircleStop,
@@ -274,7 +324,12 @@ fun SettingsScreen(
             }
 
             // About Card
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = CardBackground
+                )
+            ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -283,20 +338,21 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Lucide.Cat,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = Primary,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "About [App Name]",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            color = OnCard
                         )
                     }
                     Text(
                         text = "[App Name] brings cute animated characters to your status bar that walk around while you use other apps. We prioritize your privacy and comply with all Google Play policies.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = OnSurfaceVariant
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -307,14 +363,14 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Lucide.User,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = Primary,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Privacy-focused • No data collection • Google Play compliant",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
+                            color = Primary
                         )
                     }
                 }
@@ -339,12 +395,13 @@ private fun PermissionStatusRow(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = IconSecondary
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = permissionName,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                color = OnSurface
             )
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -352,16 +409,13 @@ private fun PermissionStatusRow(
                 imageVector = if (isGranted) Icons.Default.CheckCircle else Lucide.Cross,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = if (isGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                tint = if (isGranted) Success else Error
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = if (isGranted) "Granted" else "Required",
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isGranted)
-                    MaterialTheme.colorScheme.primary
-                else
-                    MaterialTheme.colorScheme.error
+                color = if (isGranted) Success else Error
             )
         }
     }
