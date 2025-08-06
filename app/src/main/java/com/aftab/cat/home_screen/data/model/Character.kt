@@ -22,6 +22,5 @@ enum class CharacterCategory(val displayName: String) {
     ANIMALS("Animals"),
     ANIME("Anime Characters"),
     CARTOON("Cartoon Characters"),
-    CUSTOM("Custom")
 }
 

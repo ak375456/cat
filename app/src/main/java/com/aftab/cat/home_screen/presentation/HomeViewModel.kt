@@ -1,5 +1,6 @@
 package com.aftab.cat.home_screen.presentation
 
+
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -17,6 +18,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.core.content.edit
+import com.aftab.cat.home_screen.data.model.CharacterCategory
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import java.lang.ref.WeakReference
+
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -28,29 +35,46 @@ class HomeViewModel @Inject constructor(
 
     private lateinit var sharedPreferences: SharedPreferences
 
-
     companion object {
         private const val PREFS_NAME = "overlay_pets_prefs"
         private const val KEY_DONT_SHOW_PERMISSION_DIALOG = "dont_show_permission_dialog"
     }
 
     private val _allCharacters = MutableStateFlow<List<Characters>>(emptyList())
-    val allCharacters: StateFlow<List<Characters>> = _allCharacters.asStateFlow()
+
+    // Selected category for filtering
+    private val _selectedCategory = MutableStateFlow<CharacterCategory?>(null)
+    val selectedCategory: StateFlow<CharacterCategory?> = _selectedCategory.asStateFlow()
+
+    // Filtered characters based on selected category
+    val filteredCharacters: StateFlow<List<Characters>> = combine(
+        _allCharacters,
+        _selectedCategory
+    ) { characters, category ->
+        if (category == null) {
+            characters
+        } else {
+            characters.filter { it.category == category }
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     // Track running characters using MutableStateFlow<Set>
     private val _runningCharacters = MutableStateFlow<Set<String>>(emptySet())
     val runningCharacters: StateFlow<Set<String>> = _runningCharacters.asStateFlow()
 
-
-
-    // Service connection
-    private var overlayService: OverlayService? = null
+    // Use WeakReference to avoid memory leak
+    private var overlayServiceRef: WeakReference<OverlayService>? = null
     private var serviceBound = false
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as OverlayService.OverlayServiceBinder
-            overlayService = binder.getService()
+            val overlayService = binder.getService()
+            overlayServiceRef = WeakReference(overlayService)
             serviceBound = true
 
             // Update running characters based on service state
@@ -58,7 +82,8 @@ class HomeViewModel @Inject constructor(
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
-            overlayService = null
+            overlayServiceRef?.clear()
+            overlayServiceRef = null
             serviceBound = false
         }
     }
@@ -76,6 +101,8 @@ class HomeViewModel @Inject constructor(
         if (serviceBound) {
             context.unbindService(serviceConnection)
             serviceBound = false
+            overlayServiceRef?.clear()
+            overlayServiceRef = null
         }
     }
 
@@ -100,12 +127,10 @@ class HomeViewModel @Inject constructor(
         _runningCharacters.value = emptySet()
     }
 
-    fun isCharacterRunning(characterId: String): Boolean {
-        return _runningCharacters.value.contains(characterId)
-    }
+
 
     private fun updateRunningCharactersFromService() {
-        overlayService?.let { service ->
+        overlayServiceRef?.get()?.let { service ->
             _runningCharacters.value = service.getActiveCharacterIds()
         }
     }
@@ -128,13 +153,30 @@ class HomeViewModel @Inject constructor(
     }
 
     fun setDontShowPermissionDialogAgain() {
-        sharedPreferences.edit()
-            .putBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, true)
-            .apply()
+        sharedPreferences.edit {
+            putBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, true)
+        }
         _showPermissionDialog.value = false
     }
 
     fun showPermissionDialogManually() {
         _showPermissionDialog.value = true
+    }
+
+    // Category filtering methods
+    fun selectCategory(category: CharacterCategory) {
+        _selectedCategory.value = category
+    }
+
+    fun clearCategoryFilter() {
+        _selectedCategory.value = null
+    }
+
+
+
+    override fun onCleared() {
+        super.onCleared()
+        overlayServiceRef?.clear()
+        overlayServiceRef = null
     }
 }

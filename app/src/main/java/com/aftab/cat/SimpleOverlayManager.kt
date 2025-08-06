@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.PixelFormat
 import android.os.*
 import android.view.*
+import android.widget.FrameLayout
 import android.widget.ImageView
 import com.aftab.cat.home_screen.data.model.Characters
 import javax.inject.Inject
@@ -133,8 +134,8 @@ class SimpleOverlayManager @Inject constructor() {
                     updateCharacterSettings(character.id, character)
                     return true
                 }
-
-                val overlayView = LayoutInflater.from(ctx).inflate(R.layout.character_overlay_layout, null)
+                val tempParent = FrameLayout(ctx)
+                val overlayView = LayoutInflater.from(ctx).inflate(R.layout.character_overlay_layout, tempParent, false)
                 val imageView = overlayView.findViewById<ImageView>(R.id.character_image_view)
 
                 imageView.layoutParams?.apply {
