@@ -29,6 +29,7 @@ import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aftab.cat.componenets.PermissionExplanationDialog
 import com.aftab.cat.home_screen.presentation.HomeViewModel
+import com.aftab.cat.ui.theme.Background
 import com.aftab.cat.ui.theme.ButtonPrimary
 import com.aftab.cat.ui.theme.CardBackground
 import com.aftab.cat.ui.theme.ContainerHigh
@@ -87,6 +88,7 @@ fun SettingsScreen(
     )
 
     Scaffold(
+        containerColor = Background,
         topBar = {
             TopAppBar(
                 title = { Text("Settings", color = OnTopBar) },

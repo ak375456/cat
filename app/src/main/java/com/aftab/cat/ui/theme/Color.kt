@@ -13,7 +13,7 @@ val Pink40 = Color(0xFF7D5260)
 val MainColor = Color(0xFFFFD8E5)  // Soft pink main color
 
 // Primary Colors
-val Primary = Color(0xFFE6C2D1)          // Slightly desaturated pink for primary actions
+val Primary = Color(0xFFEA89B1)          // Slightly desaturated pink for primary actions
 val PrimaryVariant = Color(0xFFD4B0C0)   // Darker variant for pressed states
 val OnPrimary = Color(0xFF3D3D3D)        // Dark text on primary backgrounds
 
