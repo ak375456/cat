@@ -1,3 +1,5 @@
+// Updated EnhancedPermissionWarningCard.kt with new color palette
+
 package com.aftab.cat.home_screen.presentation.components
 
 import androidx.compose.animation.animateContentSize
@@ -37,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aftab.cat.ui.theme.* // Import your color palette
 
 @Composable
 fun EnhancedPermissionWarningCard(
@@ -57,11 +60,11 @@ fun EnhancedPermissionWarningCard(
             .fillMaxWidth()
             .animateContentSize(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+            containerColor = Error.copy(alpha = 0.08f) // Using custom error color with transparency
         ),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.error.copy(alpha = pulseAlpha * 0.5f)
+            Error.copy(alpha = pulseAlpha * 0.5f) // Using custom error color with animated alpha
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -75,7 +78,7 @@ fun EnhancedPermissionWarningCard(
                 modifier = Modifier
                     .size(48.dp)
                     .alpha(pulseAlpha),
-                tint = MaterialTheme.colorScheme.error
+                tint = Error // Using custom error color
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -85,16 +88,16 @@ fun EnhancedPermissionWarningCard(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = MaterialTheme.colorScheme.error,
+                color = Error, // Using custom error color
                 textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Grant overlay and notification permissions to bring your pets to life",
+                text = "Grant overlay and notification permissions to bring your characters to life",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                color = OnBackground.copy(alpha = 0.7f), // Using custom text color with transparency
                 textAlign = TextAlign.Center,
                 lineHeight = 20.sp
             )
@@ -107,8 +110,8 @@ fun EnhancedPermissionWarningCard(
                     .fillMaxWidth()
                     .height(48.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
+                    containerColor = Error, // Using custom error color
+                    contentColor = OnError // Using custom text on error color
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {

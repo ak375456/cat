@@ -63,6 +63,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.aftab.cat.home_screen.data.model.Characters
+import com.aftab.cat.ui.theme.ButtonPrimary
+import com.aftab.cat.ui.theme.CardBackground
+import com.aftab.cat.ui.theme.Container
+import com.aftab.cat.ui.theme.Error
+import com.aftab.cat.ui.theme.IconPrimary
+import com.aftab.cat.ui.theme.OnButtonPrimary
+import com.aftab.cat.ui.theme.OnCard
+import com.aftab.cat.ui.theme.OnError
+import com.aftab.cat.ui.theme.OnSecondary
+import com.aftab.cat.ui.theme.OutlinePrimary
+import com.aftab.cat.ui.theme.Primary
+import com.aftab.cat.ui.theme.SecondaryVariant
+import com.aftab.cat.ui.theme.SurfaceVariant
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -129,7 +142,7 @@ fun AnimatedCharacterPreviewCard(
                 defaultElevation = if (isExpanded) 12.dp else 8.dp
             ),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                containerColor = CardBackground, // Using custom card color
             ),
             shape = RoundedCornerShape(20.dp)
         ) {
@@ -151,14 +164,14 @@ fun AnimatedCharacterPreviewCard(
                                 brush = Brush.radialGradient(
                                     colors = if (isCharacterRunning) {
                                         listOf(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = glow * 0.15f),
-                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f),
-                                            MaterialTheme.colorScheme.surfaceContainer
+                                            Primary.copy(alpha = glow * 0.15f), // Using custom primary color
+                                            Container.copy(alpha = 0.08f), // Using custom container color
+                                            CardBackground
                                         )
                                     } else {
                                         listOf(
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                            MaterialTheme.colorScheme.surfaceContainer
+                                            SurfaceVariant.copy(alpha = 0.3f), // Using custom surface variant
+                                            CardBackground
                                         )
                                     }
                                 )
@@ -186,7 +199,7 @@ fun AnimatedCharacterPreviewCard(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(28.dp),
                                 strokeWidth = 2.5.dp,
-                                color = MaterialTheme.colorScheme.primary
+                                color = Primary // Using custom primary color
                             )
                         }
                     }
@@ -202,26 +215,23 @@ fun AnimatedCharacterPreviewCard(
                                 fontWeight = FontWeight.Bold
                             ),
                             textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = OnCard // Using custom text color on cards
                         )
 
                         if (!character?.category?.displayName.isNullOrBlank()) {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
+                                color = SecondaryVariant.copy(alpha = 0.6f) // Using custom secondary variant
                             ) {
                                 Text(
                                     text = character.category.displayName,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    color = OnSecondary, // Using custom text color
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
                         }
                     }
-
-                    // Top-right quick action button
-
 
                     // Running status indicator
                     if (isCharacterRunning && !isExpanded) {
@@ -233,7 +243,7 @@ fun AnimatedCharacterPreviewCard(
                                 modifier = Modifier
                                     .size(8.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
+                                    .background(Primary) // Using custom primary color
                                     .alpha(glow)
                             )
                             Text(
@@ -241,7 +251,7 @@ fun AnimatedCharacterPreviewCard(
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Medium
                                 ),
-                                color = MaterialTheme.colorScheme.primary
+                                color = Primary // Using custom primary color
                             )
                         }
                     }
@@ -256,7 +266,6 @@ fun AnimatedCharacterPreviewCard(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-
                             // Action buttons
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -269,8 +278,8 @@ fun AnimatedCharacterPreviewCard(
                                             .fillMaxWidth()
                                             .height(48.dp),
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.error,
-                                            contentColor = MaterialTheme.colorScheme.onError
+                                            containerColor = Error, // Using custom error color
+                                            contentColor = OnError // Using custom text on error
                                         ),
                                         shape = RoundedCornerShape(14.dp)
                                     ) {
@@ -289,8 +298,8 @@ fun AnimatedCharacterPreviewCard(
                                             .height(48.dp),
                                         shape = RoundedCornerShape(14.dp),
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary,
-                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                            containerColor = ButtonPrimary, // Using custom button color
+                                            contentColor = OnButtonPrimary // Using custom button text color
                                         )
                                     ) {
                                         Icon(
@@ -310,7 +319,10 @@ fun AnimatedCharacterPreviewCard(
                                     shape = RoundedCornerShape(14.dp),
                                     border = BorderStroke(
                                         1.5.dp,
-                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.7f)
+                                        OutlinePrimary.copy(alpha = 0.7f) // Using custom outline color
+                                    ),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = IconPrimary // Using custom icon color
                                     )
                                 ) {
                                     Icon(

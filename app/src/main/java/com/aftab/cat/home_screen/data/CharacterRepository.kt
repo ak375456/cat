@@ -187,6 +187,23 @@ class CharacterRepository @Inject constructor(
             height = 18,
             speed = 4,
             animationDelay = 120L
+        ),
+        Characters(
+            id = "labubu_walking",
+            name = "Labubu",
+            category = CharacterCategory.CARTOON,
+            frameIds = listOf(
+                R.drawable.labubu_walk_01,
+                R.drawable.labubu_walk_02,
+                R.drawable.labubu_walk_03,
+                R.drawable.labubu_walk_04,
+                R.drawable.labubu_walk_05,
+                R.drawable.labubu_walk_06,
+            ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L
         )
         // Add more default characters here as needed
     )

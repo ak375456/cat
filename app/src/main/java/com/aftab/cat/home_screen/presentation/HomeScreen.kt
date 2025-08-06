@@ -17,7 +17,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,6 +26,11 @@ import com.aftab.cat.componenets.PermissionExplanationDialog
 import com.aftab.cat.home_screen.presentation.components.AnimatedCharacterPreviewCard
 import com.aftab.cat.home_screen.presentation.components.CategoryFilterSection
 import com.aftab.cat.home_screen.presentation.components.EnhancedPermissionWarningCard
+import com.aftab.cat.ui.theme.Background
+import com.aftab.cat.ui.theme.IconOnPrimary
+import com.aftab.cat.ui.theme.OnTopBar
+import com.aftab.cat.ui.theme.SurfaceVariant
+import com.aftab.cat.ui.theme.TopBarBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,6 +83,7 @@ fun HomeScreen(
     )
 
     Scaffold(
+        containerColor = Background, // Using custom background color
         topBar = {
             TopAppBar(
                 title = {
@@ -86,7 +91,8 @@ fun HomeScreen(
                         "Overlay Pets",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
-                        )
+                        ),
+                        color = OnTopBar // Using custom topbar text color
                     )
                 },
                 actions = {
@@ -96,12 +102,12 @@ fun HomeScreen(
                         Icon(
                             Icons.Default.Settings,
                             contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = IconOnPrimary // Using custom icon color
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
+                    containerColor = TopBarBackground // Using main color for topbar
                 )
             )
         }
@@ -131,8 +137,8 @@ fun HomeScreen(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.background,
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                                Background, // Using custom background colors
+                                SurfaceVariant.copy(alpha = 0.3f)
                             )
                         )
                     ),
@@ -185,8 +191,6 @@ fun HomeScreen(
         }
     }
 }
-
-
 
 private fun checkOverlayPermission(context: Context): Boolean {
     return Settings.canDrawOverlays(context)

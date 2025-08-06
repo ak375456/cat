@@ -1,3 +1,5 @@
+// Updated CategoryFilterSection.kt with new color palette
+
 package com.aftab.cat.home_screen.presentation.components
 
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +20,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -26,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.aftab.cat.ui.theme.* // Import your color palette
 import com.aftab.cat.home_screen.data.model.CharacterCategory
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,7 +49,7 @@ fun CategoryFilterSection(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = MaterialTheme.colorScheme.onSurface
+                color = OnBackground // Using custom text color on background
             )
 
             if (selectedCategory != null) {
@@ -58,12 +60,14 @@ fun CategoryFilterSection(
                     Icon(
                         Icons.Default.Clear,
                         contentDescription = "Clear filter",
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp),
+                        tint = IconPrimary // Using custom icon color
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         "Clear",
-                        style = MaterialTheme.typography.labelMedium
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Primary // Using custom primary color for text
                     )
                 }
             }
@@ -105,18 +109,18 @@ private fun CategoryChip(
         },
         selected = isSelected,
         colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            containerColor = MaterialTheme.colorScheme.surface,
-            labelColor = MaterialTheme.colorScheme.onSurface
+            selectedContainerColor = Container, // Using custom selected container color
+            selectedLabelColor = OnContainer, // Using custom selected text color
+            containerColor = Surface, // Using custom surface color
+            labelColor = OnSurface // Using custom text on surface color
         ),
         border = FilterChipDefaults.filterChipBorder(
-            selectedBorderColor = MaterialTheme.colorScheme.primary,
-            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+            selectedBorderColor = Primary, // Using custom primary color for selected border
+            borderColor = OutlineSecondary.copy(alpha = 0.5f), // Using custom outline color
             selectedBorderWidth = 1.dp,
             borderWidth = 1.dp,
             enabled = true,
-            selected = true
+            selected = isSelected
         )
     )
 }

@@ -1,3 +1,5 @@
+// Updated CharacterSettingsScreen.kt with new color palette
+
 package com.aftab.cat.character_screen.presentation
 
 import androidx.compose.foundation.layout.Arrangement
@@ -48,13 +50,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material.icons.filled.Close
+import com.aftab.cat.ui.theme.* // Import your color palette
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CharacterSettingsScreen(
     characterId: String,
     onNavigateBack: () -> Unit,
-    isCharacterRunning: Boolean = false, // Pass this from the calling screen
+    isCharacterRunning: Boolean = false,
     viewModel: CharacterSettingsViewModel = hiltViewModel()
 ) {
     val character by viewModel.character.collectAsState()
@@ -78,12 +81,14 @@ fun CharacterSettingsScreen(
     }
 
     Scaffold(
+        containerColor = Background, // Using custom background color
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "${character?.name} Settings",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = OnTopBar // Using custom topbar text color
                     )
                 },
                 navigationIcon = {
@@ -91,17 +96,16 @@ fun CharacterSettingsScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = IconOnPrimary // Using custom icon color
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    containerColor = TopBarBackground // Using custom topbar background
                 )
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.surface
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -116,7 +120,7 @@ fun CharacterSettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                        containerColor = Container.copy(alpha = 0.4f) // Using custom container with transparency
                     )
                 ) {
                     Row(
@@ -126,13 +130,13 @@ fun CharacterSettingsScreen(
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = Primary, // Using custom primary color
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
                             text = "Character is running - changes will be applied instantly!",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = Primary, // Using custom primary color
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
@@ -144,28 +148,32 @@ fun CharacterSettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                        containerColor = SecondaryVariant.copy(alpha = 0.4f) // Using custom secondary variant
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Test Your Settings",
                             style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.secondary
+                            color = OnSecondary // Using custom secondary text color
                         )
                         Text(
                             text = "Start the character to see changes in real-time",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            color = OnSecondary.copy(alpha = 0.8f), // Using custom secondary text with transparency
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                         Button(
                             onClick = {
-                                viewModel.saveSettings() // Save current settings first
+                                viewModel.saveSettings()
                                 viewModel.startCharacterTest()
                             },
                             enabled = character != null,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ButtonPrimary, // Using custom button color
+                                contentColor = OnButtonPrimary // Using custom button text color
+                            )
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
@@ -184,7 +192,7 @@ fun CharacterSettingsScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
+                        contentColor = Error // Using custom error color
                     )
                 ) {
                     Icon(
@@ -205,14 +213,16 @@ fun CharacterSettingsScreen(
                 Text(
                     text = "Linked Dimensions",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = OnBackground // Using custom text on background color
                 )
                 Switch(
                     checked = linkedDimensions,
                     onCheckedChange = { viewModel.setLinkedDimensions(it) },
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.primary,
-                        checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                        checkedThumbColor = Primary, // Using custom primary color
+                        checkedTrackColor = Container, // Using custom container color
+                        uncheckedThumbColor = IconSecondary, // Using custom secondary icon color
+                        uncheckedTrackColor = SurfaceVariant // Using custom surface variant
                     )
                 )
             }
@@ -221,13 +231,14 @@ fun CharacterSettingsScreen(
             Text(
                 text = "Character Size",
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                color = Primary.copy(alpha = 0.9f) // Using custom primary color with transparency
             )
 
             // Width control
             Text(
                 text = "Width: $width px",
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = OnBackground // Using custom text on background
             )
             Slider(
                 value = width.toFloat(),
@@ -241,8 +252,9 @@ fun CharacterSettingsScreen(
                 valueRange = 10f..50f,
                 steps = 8,
                 colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary
+                    thumbColor = Primary, // Using custom primary color
+                    activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
+                    inactiveTrackColor = OutlineVariant // Using custom outline variant
                 )
             )
 
@@ -250,7 +262,8 @@ fun CharacterSettingsScreen(
             if (!linkedDimensions) {
                 Text(
                     text = "Height: $height px",
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = OnBackground // Using custom text on background
                 )
                 Slider(
                     value = height.toFloat(),
@@ -260,8 +273,9 @@ fun CharacterSettingsScreen(
                     valueRange = 10f..50f,
                     steps = 8,
                     colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary
+                        thumbColor = Primary, // Using custom primary color
+                        activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
+                        inactiveTrackColor = OutlineVariant // Using custom outline variant
                     )
                 )
             }
@@ -270,16 +284,14 @@ fun CharacterSettingsScreen(
             Text(
                 text = "Position Settings ${if (characterRunning) "(Live Updates)" else ""}",
                 style = MaterialTheme.typography.titleSmall,
-                color = if (characterRunning)
-                    MaterialTheme.colorScheme.primary
-                else
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                color = if (characterRunning) Primary else Primary.copy(alpha = 0.9f) // Using custom primary color
             )
 
             // Y Position control
             Text(
                 text = "Vertical Position: $yPosition px from top",
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = OnBackground // Using custom text on background
             )
             Slider(
                 value = yPosition.toFloat(),
@@ -287,21 +299,17 @@ fun CharacterSettingsScreen(
                 valueRange = 0f..300f,
                 steps = 30,
                 colors = SliderDefaults.colors(
-                    thumbColor = if (characterRunning)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.primary,
-                    activeTrackColor = if (characterRunning)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.primary
+                    thumbColor = Primary, // Using custom primary color
+                    activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
+                    inactiveTrackColor = OutlineVariant // Using custom outline variant
                 )
             )
 
             // Speed control
             Text(
                 text = "Movement Speed: $speed px/frame",
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = OnBackground // Using custom text on background
             )
             Slider(
                 value = speed.toFloat(),
@@ -309,8 +317,9 @@ fun CharacterSettingsScreen(
                 valueRange = 1f..10f,
                 steps = 9,
                 colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary
+                    thumbColor = Primary, // Using custom primary color
+                    activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
+                    inactiveTrackColor = OutlineVariant // Using custom outline variant
                 )
             )
 
@@ -322,7 +331,8 @@ fun CharacterSettingsScreen(
             ) {
                 Text(
                     text = "Animation Speed: ${animationDelay}ms",
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = OnBackground // Using custom text on background
                 )
                 IconButton(
                     onClick = { showPresetInfo = !showPresetInfo },
@@ -331,7 +341,7 @@ fun CharacterSettingsScreen(
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = "Info",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = IconSecondary, // Using custom secondary icon color
                     )
                 }
             }
@@ -340,7 +350,7 @@ fun CharacterSettingsScreen(
                 Text(
                     text = "Lower values = faster animation (more battery usage)",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = OnBackground.copy(alpha = 0.7f) // Using custom text with transparency
                 )
             }
 
@@ -355,11 +365,14 @@ fun CharacterSettingsScreen(
                         onClick = { viewModel.updateAnimationDelay(preset) },
                         label = { Text("${preset}ms") },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            selectedContainerColor = Container, // Using custom container color
+                            selectedLabelColor = OnContainer, // Using custom text on container
+                            containerColor = SurfaceVariant, // Using custom surface variant
+                            labelColor = OnSurfaceVariant // Using custom text on surface variant
                         ),
                         border = FilterChipDefaults.filterChipBorder(
-                            selectedBorderColor = MaterialTheme.colorScheme.primary,
+                            selectedBorderColor = Primary, // Using custom primary color
+                            borderColor = OutlineSecondary, // Using custom secondary outline
                             selected = animationDelay == preset,
                             enabled = true
                         )
@@ -377,8 +390,8 @@ fun CharacterSettingsScreen(
                     .fillMaxWidth()
                     .padding(top = 8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = ButtonPrimary, // Using custom button color
+                    contentColor = OnButtonPrimary // Using custom button text color
                 )
             ) {
                 Text("Save Settings", style = MaterialTheme.typography.labelLarge)
@@ -391,7 +404,7 @@ fun CharacterSettingsScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary
+                    contentColor = IconPrimary // Using custom primary icon color
                 )
             ) {
                 Text("Reset to Defaults")
