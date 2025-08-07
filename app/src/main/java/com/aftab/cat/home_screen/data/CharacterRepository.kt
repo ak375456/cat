@@ -204,6 +204,23 @@ class CharacterRepository @Inject constructor(
             height = 18,
             speed = 4,
             animationDelay = 120L
+        ),
+        Characters(
+            id = "naruto_running",
+            name = "Naruto",
+            category = CharacterCategory.ANIME,
+            frameIds = listOf(
+                R.drawable.naruto_01,
+                R.drawable.naruto_02,
+                R.drawable.naruto_03,
+                R.drawable.naruto_04,
+                R.drawable.naruto_05,
+                R.drawable.naruto_06,
+            ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L
         )
         // Add more default characters here as needed
     )
