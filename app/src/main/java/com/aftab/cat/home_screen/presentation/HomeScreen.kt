@@ -88,7 +88,7 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Overlay Pets",
+                        "Overlay Characters",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),

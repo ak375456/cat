@@ -163,7 +163,7 @@ fun SettingsScreen(
                     if (!hasOverlayPermission || !hasNotificationPermission) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "⚠️ Some permissions are missing. Your pets may not work properly without all required permissions.",
+                            text = "⚠️ Some permissions are missing. Your characters may not work properly without all required permissions.",
                             style = MaterialTheme.typography.bodySmall,
                             color = Error
                         )
@@ -345,17 +345,20 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "About [App Name]",
+                            text = "About Yumo",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = OnCard
                         )
                     }
                     Text(
-                        text = "[App Name] brings cute animated characters to your status bar that walk around while you use other apps. We prioritize your privacy and comply with all Google Play policies.",
+                        text = "Yumo brings cute animated characters to your status bar that walk around while you use other apps. We prioritize your privacy and comply with all Google Play policies.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = OnSurfaceVariant
                     )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
 
                     Spacer(modifier = Modifier.height(12.dp))
 

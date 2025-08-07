@@ -1,9 +1,10 @@
-// Updated PermissionExplanationDialog.kt with new color palette
+// Updated PermissionExplanationDialog.kt with privacy policy link
 
 package com.aftab.cat.componenets
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -12,8 +13,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -65,7 +71,7 @@ fun PermissionExplanationDialog(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "Welcome to Overlay Pets!",
+                        text = "Welcome to Yumo!",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
@@ -87,7 +93,7 @@ fun PermissionExplanationDialog(
                     PermissionExplanationItem(
                         icon = Lucide.View,
                         title = "Overlay Permission",
-                        description = "Allows your pets to appear on top of other apps and walk around your status bar cutely."
+                        description = "Allows your characters to appear on top of other apps and walk around your status bar cutely."
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -95,7 +101,7 @@ fun PermissionExplanationDialog(
                     PermissionExplanationItem(
                         icon = Icons.Default.Notifications,
                         title = "Notification Permission",
-                        description = "Keeps your pets running smoothly in the background, even when the app is closed."
+                        description = "Keeps your characters running smoothly in the background, even when the app is closed."
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -141,6 +147,45 @@ fun PermissionExplanationDialog(
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Privacy Policy Link
+                    val uriHandler = LocalUriHandler.current
+                    val privacyPolicyText = buildAnnotatedString {
+                        append("We respect your privacy and do not collect any type of data. Our app is designed with Google privacy policy. ")
+                        pushStringAnnotation(
+                            tag = "URL",
+                            annotation = "https://ak375456.github.io/app-privacy-policy/"
+                        )
+                        withStyle(
+                            style = SpanStyle(
+                                color = Primary,
+                                textDecoration = TextDecoration.Underline
+                            )
+                        ) {
+                            append("Read more here")
+                        }
+                        pop()
+                    }
+
+                    ClickableText(
+                        text = privacyPolicyText,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = OnDialog.copy(alpha = 0.8f),
+                            textAlign = TextAlign.Center
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { offset ->
+                            privacyPolicyText.getStringAnnotations(
+                                tag = "URL",
+                                start = offset,
+                                end = offset
+                            ).firstOrNull()?.let { annotation ->
+                                uriHandler.openUri(annotation.item)
+                            }
+                        }
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
