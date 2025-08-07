@@ -221,6 +221,26 @@ class CharacterRepository @Inject constructor(
             height = 18,
             speed = 4,
             animationDelay = 120L
+        ),
+        Characters(
+            id = "bird",
+            name = "Bird",
+            category = CharacterCategory.ANIMALS,
+            frameIds = listOf(
+                R.drawable.bird_01,
+                R.drawable.bird_02,
+                R.drawable.bird_03,
+                R.drawable.bird_04,
+                R.drawable.bird_05,
+                R.drawable.bird_06,
+                R.drawable.bird_07,
+                R.drawable.bird_08,
+                R.drawable.bird_09,
+            ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L
         )
         // Add more default characters here as needed
     )
