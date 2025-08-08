@@ -241,6 +241,23 @@ class CharacterRepository @Inject constructor(
             height = 18,
             speed = 4,
             animationDelay = 120L
+        ),
+        Characters(
+            id = "girl_walk",
+            name = "Girl",
+            category = CharacterCategory.CARTOON,
+            frameIds = listOf(
+                R.drawable.girl_walk_01,
+                R.drawable.girl_walk_02,
+                R.drawable.girl_walk_03,
+                R.drawable.girl_walk_04,
+                R.drawable.girl_walk_05,
+                R.drawable.girl_walk_06,
+            ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L
         )
         // Add more default characters here as needed
     )
