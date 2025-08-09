@@ -36,6 +36,16 @@ class SimpleOverlayManager @Inject constructor() {
 
         fun startAnimation() {
             if (isAnimating) return
+
+            // Don't start animation for hanging characters (they are static)
+            if (character.isHanging) {
+                // Just set the static image and return
+                if (character.frameIds.isNotEmpty()) {
+                    imageView.setImageResource(character.frameIds[0])
+                }
+                return
+            }
+
             isAnimating = true
 
             animationRunnable = object : Runnable {
@@ -58,6 +68,9 @@ class SimpleOverlayManager @Inject constructor() {
         }
 
         fun updateCharacterSettings(newCharacter: Characters) {
+            val wasHanging = this.character.isHanging
+            val isNowHanging = newCharacter.isHanging
+
             this.character = newCharacter
 
             context?.let { ctx ->
@@ -67,10 +80,41 @@ class SimpleOverlayManager @Inject constructor() {
                 }
                 imageView.requestLayout()
 
+                // Update Y position
                 params.y = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     character.yPosition - (systemBarsHeight / 3)
                 } else {
                     character.yPosition
+                }
+
+                // Update X position for hanging characters
+                if (isNowHanging) {
+                    params.x = character.xPosition
+                }
+
+                // If character changed from/to hanging, handle animation state
+                if (wasHanging != isNowHanging) {
+                    if (isNowHanging) {
+                        // Stop animation for hanging character
+                        stopAnimation()
+                        if (character.frameIds.isNotEmpty()) {
+                            imageView.setImageResource(character.frameIds[0])
+                        }
+                        // Position hanging character at specified X position
+                        params.x = character.xPosition
+                    } else {
+                        // Start animation for non-hanging character
+                        currentXPosition = 0
+                        isMovingRight = true
+                        imageView.scaleX = 1f
+                        startAnimation()
+                    }
+                } else if (isNowHanging) {
+                    // Update static image and position for hanging character
+                    if (character.frameIds.isNotEmpty()) {
+                        imageView.setImageResource(character.frameIds[0])
+                    }
+                    params.x = character.xPosition
                 }
 
                 try {
@@ -83,7 +127,7 @@ class SimpleOverlayManager @Inject constructor() {
 
         private fun updateCharacterAnimation() {
             try {
-                if (character.frameIds.isNotEmpty()) {
+                if (character.frameIds.isNotEmpty() && character.animationDelay > 0L) {
                     imageView.setImageResource(character.frameIds[currentFrameIndex])
                     currentFrameIndex = (currentFrameIndex + 1) % character.frameIds.size
                 }
@@ -95,22 +139,26 @@ class SimpleOverlayManager @Inject constructor() {
         private fun updateCharacterPosition() {
             try {
                 context?.let { ctx ->
-                    if (isMovingRight) {
-                        currentXPosition += character.speed
-                        if (currentXPosition >= screenWidth - (character.width * ctx.resources.displayMetrics.density).toInt()) {
-                            isMovingRight = false
-                            imageView.scaleX = -1f
+                    // Only move non-hanging characters
+                    if (!character.isHanging) {
+                        if (isMovingRight) {
+                            currentXPosition += character.speed
+                            if (currentXPosition >= screenWidth - (character.width * ctx.resources.displayMetrics.density).toInt()) {
+                                isMovingRight = false
+                                imageView.scaleX = -1f
+                            }
+                        } else {
+                            currentXPosition -= character.speed
+                            if (currentXPosition <= 0) {
+                                isMovingRight = true
+                                imageView.scaleX = 1f
+                            }
                         }
-                    } else {
-                        currentXPosition -= character.speed
-                        if (currentXPosition <= 0) {
-                            isMovingRight = true
-                            imageView.scaleX = 1f
-                        }
-                    }
 
-                    params.x = currentXPosition
-                    windowManager?.updateViewLayout(overlayView, params)
+                        params.x = currentXPosition
+                        windowManager?.updateViewLayout(overlayView, params)
+                    }
+                    // Hanging characters don't move, so we skip position updates
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -219,7 +267,14 @@ class SimpleOverlayManager @Inject constructor() {
         )
 
         params.gravity = Gravity.TOP or Gravity.START
-        params.x = 0
+
+        // Position hanging characters at specified X position, others at left edge
+        params.x = if (character.isHanging) {
+            character.xPosition
+        } else {
+            0
+        }
+
         params.y = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             character.yPosition - (systemBarsHeight / 3)
         } else {

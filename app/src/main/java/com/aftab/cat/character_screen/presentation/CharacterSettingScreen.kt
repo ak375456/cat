@@ -1,5 +1,3 @@
-// Updated CharacterSettingsScreen.kt with new color palette
-
 package com.aftab.cat.character_screen.presentation
 
 import androidx.compose.foundation.layout.Arrangement
@@ -66,6 +64,7 @@ fun CharacterSettingsScreen(
     val height by viewModel.height.collectAsState()
     val animationDelay by viewModel.animationDelay.collectAsState()
     val yPosition by viewModel.yPosition.collectAsState()
+    val xPosition by viewModel.xPosition.collectAsState()
     val linkedDimensions by viewModel.linkedDimensions.collectAsState()
     val characterRunning by viewModel.isCharacterRunning.collectAsState()
 
@@ -73,6 +72,9 @@ fun CharacterSettingsScreen(
     val animationSpeedPresets = listOf(50L, 80L, 100L, 140L, 200L, 300L, 500L)
     var showPresetInfo by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Check if character is hanging (static)
+    val isHangingCharacter = character?.isHanging == true
 
     // Load character on startup and set running state
     LaunchedEffect(characterId, isCharacterRunning) {
@@ -134,11 +136,47 @@ fun CharacterSettingsScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "Character is running - changes will be applied instantly!",
+                            text = if (isHangingCharacter)
+                                "Hanging character is active - changes will be applied instantly!"
+                            else
+                                "Character is running - changes will be applied instantly!",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Primary, // Using custom primary color
                             modifier = Modifier.padding(start = 8.dp)
                         )
+                    }
+                }
+            }
+
+            // Character Type Info Card
+            if (isHangingCharacter) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Container.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "📍",
+                            style = MaterialTheme.typography.headlineSmall,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "Static Hanging Character",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                color = OnBackground
+                            )
+                            Text(
+                                text = "This character stays in one position and doesn't move",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnBackground.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 }
             }
@@ -158,7 +196,10 @@ fun CharacterSettingsScreen(
                             color = OnSecondary // Using custom secondary text color
                         )
                         Text(
-                            text = "Start the character to see changes in real-time",
+                            text = if (isHangingCharacter)
+                                "Activate the character to see it positioned on screen"
+                            else
+                                "Start the character to see changes in real-time",
                             style = MaterialTheme.typography.bodySmall,
                             color = OnSecondary.copy(alpha = 0.8f), // Using custom secondary text with transparency
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -180,7 +221,10 @@ fun CharacterSettingsScreen(
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Text("Start Test", modifier = Modifier.padding(start = 8.dp))
+                            Text(
+                                if (isHangingCharacter) "Activate Character" else "Start Test",
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
                         }
                     }
                 }
@@ -200,7 +244,10 @@ fun CharacterSettingsScreen(
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
-                    Text("Stop Test", modifier = Modifier.padding(start = 8.dp))
+                    Text(
+                        if (isHangingCharacter) "Deactivate Character" else "Stop Test",
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
                 }
             }
 
@@ -287,9 +334,32 @@ fun CharacterSettingsScreen(
                 color = if (characterRunning) Primary else Primary.copy(alpha = 0.9f) // Using custom primary color
             )
 
+            // X Position control (only for hanging characters)
+            if (isHangingCharacter) {
+                Text(
+                    text = "Horizontal Position: $xPosition px from left",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = OnBackground // Using custom text on background
+                )
+                Slider(
+                    value = xPosition.toFloat(),
+                    onValueChange = { viewModel.updateXPosition(it.toInt()) },
+                    valueRange = 0f..1000f,
+                    steps = 50,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Primary, // Using custom primary color
+                        activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
+                        inactiveTrackColor = OutlineVariant // Using custom outline variant
+                    )
+                )
+            }
+
             // Y Position control
             Text(
-                text = "Vertical Position: $yPosition px from top",
+                text = if (isHangingCharacter)
+                    "Vertical Position: $yPosition px from top"
+                else
+                    "Vertical Position: $yPosition px from top",
                 style = MaterialTheme.typography.bodyLarge,
                 color = OnBackground // Using custom text on background
             )
@@ -305,17 +375,24 @@ fun CharacterSettingsScreen(
                 )
             )
 
-            // Speed control
+            // Speed control (disabled for hanging characters)
             Text(
-                text = "Movement Speed: $speed px/frame",
+                text = if (isHangingCharacter)
+                    "Movement Speed: Static (no movement)"
+                else
+                    "Movement Speed: $speed px/frame",
                 style = MaterialTheme.typography.bodyLarge,
-                color = OnBackground // Using custom text on background
+                color = if (isHangingCharacter)
+                    OnBackground.copy(alpha = 0.5f)
+                else
+                    OnBackground // Using custom text on background
             )
             Slider(
                 value = speed.toFloat(),
                 onValueChange = { viewModel.updateSpeed(it.toInt()) },
                 valueRange = 1f..10f,
                 steps = 9,
+                enabled = !isHangingCharacter, // Disable for hanging characters
                 colors = SliderDefaults.colors(
                     thumbColor = Primary, // Using custom primary color
                     activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
@@ -330,9 +407,15 @@ fun CharacterSettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Animation Speed: ${animationDelay}ms",
+                    text = if (isHangingCharacter)
+                        "Animation: ${animationDelay}ms (static image)"
+                    else
+                        "Animation Speed: ${animationDelay}ms",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = OnBackground // Using custom text on background
+                    color = if (isHangingCharacter)
+                        OnBackground.copy(alpha = 0.5f)
+                    else
+                        OnBackground // Using custom text on background
                 )
                 IconButton(
                     onClick = { showPresetInfo = !showPresetInfo },
@@ -348,13 +431,16 @@ fun CharacterSettingsScreen(
 
             if (showPresetInfo) {
                 Text(
-                    text = "Lower values = faster animation (more battery usage)",
+                    text = if (isHangingCharacter)
+                        "Hanging characters display static images, animation delay doesn't affect them"
+                    else
+                        "Lower values = faster animation (more battery usage)",
                     style = MaterialTheme.typography.labelSmall,
                     color = OnBackground.copy(alpha = 0.7f) // Using custom text with transparency
                 )
             }
 
-            // Preset chips
+            // Preset chips (disabled for hanging characters)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -363,6 +449,7 @@ fun CharacterSettingsScreen(
                     FilterChip(
                         selected = animationDelay == preset,
                         onClick = { viewModel.updateAnimationDelay(preset) },
+                        enabled = !isHangingCharacter, // Disable for hanging characters
                         label = { Text("${preset}ms") },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Container, // Using custom container color
@@ -374,7 +461,7 @@ fun CharacterSettingsScreen(
                             selectedBorderColor = Primary, // Using custom primary color
                             borderColor = OutlineSecondary, // Using custom secondary outline
                             selected = animationDelay == preset,
-                            enabled = true
+                            enabled = !isHangingCharacter
                         )
                     )
                 }

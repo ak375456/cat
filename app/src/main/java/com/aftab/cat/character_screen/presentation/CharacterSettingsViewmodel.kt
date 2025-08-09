@@ -35,6 +35,9 @@ class CharacterSettingsViewModel @Inject constructor(
     private val _yPosition = MutableStateFlow(60)
     val yPosition: StateFlow<Int> = _yPosition
 
+    private val _xPosition = MutableStateFlow(0)
+    val xPosition: StateFlow<Int> = _xPosition
+
     private val _linkedDimensions = MutableStateFlow(true)
     val linkedDimensions: StateFlow<Boolean> = _linkedDimensions
 
@@ -52,6 +55,7 @@ class CharacterSettingsViewModel @Inject constructor(
                 _height.value = character.height
                 _animationDelay.value = character.animationDelay
                 _yPosition.value = character.yPosition
+                _xPosition.value = character.xPosition
                 // Set linked dimensions based on whether width equals height
                 _linkedDimensions.value = character.width == character.height
             }
@@ -84,6 +88,12 @@ class CharacterSettingsViewModel @Inject constructor(
         updateLiveCharacterIfRunning()
     }
 
+    fun updateXPosition(newXPosition: Int) {
+        _xPosition.value = newXPosition
+        // Always update live position immediately for better UX
+        updateLiveCharacterIfRunning()
+    }
+
     fun setLinkedDimensions(linked: Boolean) {
         _linkedDimensions.value = linked
         // If linking dimensions, make height equal to width
@@ -107,7 +117,8 @@ class CharacterSettingsViewModel @Inject constructor(
                     width = _width.value,
                     height = _height.value,
                     animationDelay = _animationDelay.value,
-                    yPosition = _yPosition.value
+                    yPosition = _yPosition.value,
+                    xPosition = _xPosition.value
                 )
 
                 // Save to repository for persistence
@@ -136,7 +147,8 @@ class CharacterSettingsViewModel @Inject constructor(
                     width = _width.value,
                     height = _height.value,
                     animationDelay = _animationDelay.value,
-                    yPosition = _yPosition.value
+                    yPosition = _yPosition.value,
+                    xPosition = _xPosition.value
                 )
                 characterRepository.updateCharacter(updated)
                 _character.value = updated
@@ -167,7 +179,6 @@ class CharacterSettingsViewModel @Inject constructor(
         }
     }
 
-
     fun resetToDefaults() {
         viewModelScope.launch {
             _character.value?.id?.let { characterId ->
@@ -178,6 +189,7 @@ class CharacterSettingsViewModel @Inject constructor(
                     _height.value = default.height
                     _animationDelay.value = default.animationDelay
                     _yPosition.value = default.yPosition
+                    _xPosition.value = default.xPosition
                     _linkedDimensions.value = default.width == default.height
 
                     // Also save the reset values

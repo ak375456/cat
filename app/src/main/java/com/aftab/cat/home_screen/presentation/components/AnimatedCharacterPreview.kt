@@ -114,10 +114,18 @@ fun AnimatedCharacterPreviewCard(
     val frameCount = character?.frameIds?.size ?: 1
 
     LaunchedEffect(character, isExpanded) {
-        if (isExpanded) {
-            while (true) {
-                delay(character?.animationDelay ?: 120L)
-                currentFrame = (currentFrame + 1) % frameCount
+        if (isExpanded && character != null) {
+            val animationDelay = character.animationDelay
+
+            // Only animate if there are multiple frames and delay is greater than 0
+            if (frameCount > 1 && animationDelay > 0L) {
+                while (true) {
+                    delay(animationDelay)
+                    currentFrame = (currentFrame + 1) % frameCount
+                }
+            } else {
+                // For static characters (single frame or 0 delay), keep frame at 0
+                currentFrame = 0
             }
         } else {
             currentFrame = 0 // Reset to first frame when collapsed

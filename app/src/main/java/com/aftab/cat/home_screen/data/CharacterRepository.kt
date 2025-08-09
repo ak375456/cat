@@ -11,7 +11,6 @@ import androidx.core.content.edit
 import javax.inject.Inject
 import javax.inject.Singleton
 
-
 @Singleton
 class CharacterRepository @Inject constructor(
     private val sharedPreferences: SharedPreferences,
@@ -110,7 +109,6 @@ class CharacterRepository @Inject constructor(
                 R.drawable.banana_walk_08,
                 R.drawable.banana_walk_09,
                 R.drawable.banana_walk_10,
-
             ),
             width = 18,
             height = 18,
@@ -130,7 +128,7 @@ class CharacterRepository @Inject constructor(
                 R.drawable.jerry_10,
                 R.drawable.jerry_12,
                 R.drawable.jerry_14,
-                ),
+            ),
             width = 18,
             height = 18,
             speed = 4,
@@ -258,8 +256,35 @@ class CharacterRepository @Inject constructor(
             height = 18,
             speed = 4,
             animationDelay = 120L
+        ),
+        Characters(
+            id = "lightning_mcQueen",
+            name = "McQueen",
+            category = CharacterCategory.CARTOON,
+            frameIds = listOf(
+                R.drawable.lightning_mcqueen_01,
+            ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        // Static hanging character - no movement, just overlay
+        Characters(
+            id = "labubu_hanging",
+            name = "Labubu Hanging",
+            category = CharacterCategory.HANGING, // Using HANGING category
+            frameIds = listOf(
+                R.drawable.labubu_hanging,
+            ),
+            width = 18,
+            height = 18,
+            yPosition = 20, // Position where it should hang
+            xPosition = 150, // Horizontal position from left edge
+            speed = 0, // No movement
+            animationDelay = 0L // No animation
         )
-        // Add more default characters here as needed
+        // Add more hanging characters here as needed
     )
 
     // Load characters from SharedPreferences or use defaults
@@ -300,6 +325,11 @@ class CharacterRepository @Inject constructor(
 
     fun getCharactersByCategory(category: CharacterCategory): List<Characters> {
         return loadCharacters().values.filter { it.category == category }
+    }
+
+    // New method to get hanging characters specifically
+    fun getHangingCharacters(): List<Characters> {
+        return loadCharacters().values.filter { it.isHanging }
     }
 
     fun updateCharacter(updatedCharacter: Characters) {
