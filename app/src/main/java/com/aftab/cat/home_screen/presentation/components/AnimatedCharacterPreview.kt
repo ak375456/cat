@@ -25,13 +25,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -44,7 +42,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -78,7 +75,6 @@ import com.aftab.cat.ui.theme.IconPrimary
 import com.aftab.cat.ui.theme.OnButtonPrimary
 import com.aftab.cat.ui.theme.OnCard
 import com.aftab.cat.ui.theme.OnError
-import com.aftab.cat.ui.theme.OnPrimary
 import com.aftab.cat.ui.theme.OnSecondary
 import com.aftab.cat.ui.theme.OutlinePrimary
 import com.aftab.cat.ui.theme.Primary

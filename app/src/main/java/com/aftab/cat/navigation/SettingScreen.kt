@@ -74,10 +74,8 @@ fun SettingsScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted -> hasNotificationPermission = granted }
 
-    // Initialize dialog state
-    LaunchedEffect(Unit) {
-        viewModel.initializeDialogState(context)
-    }
+    // REMOVED: Don't initialize dialog state here anymore
+    // This was causing the dialog to show every time we navigate to SettingsScreen
 
     // Permission explanation dialog
     PermissionExplanationDialog(
@@ -358,7 +356,6 @@ fun SettingsScreen(
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
-
 
                     Spacer(modifier = Modifier.height(12.dp))
 

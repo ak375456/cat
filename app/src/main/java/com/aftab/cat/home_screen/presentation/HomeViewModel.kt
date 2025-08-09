@@ -33,6 +33,7 @@ class HomeViewModel @Inject constructor(
     val showPermissionDialog: StateFlow<Boolean> = _showPermissionDialog.asStateFlow()
 
     private lateinit var sharedPreferences: SharedPreferences
+    private var isDialogStateInitialized = false
 
     companion object {
         private const val PREFS_NAME = "overlay_pets_prefs"
@@ -117,6 +118,12 @@ class HomeViewModel @Inject constructor(
     }
 
     fun bindToService(context: Context) {
+        // Initialize dialog state only once when binding to service for the first time
+        if (!isDialogStateInitialized) {
+            initializeDialogState(context)
+            isDialogStateInitialized = true
+        }
+
         val intent = Intent(context, OverlayService::class.java)
         context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
@@ -170,14 +177,16 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun initializeDialogState(context: Context) {
+    private fun initializeDialogState(context: Context) {
         sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val shouldShow = !sharedPreferences.getBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, false)
         _showPermissionDialog.value = shouldShow
+        Log.d("HomeViewModel", "Dialog state initialized: shouldShow = $shouldShow")
     }
 
     fun dismissPermissionDialog() {
         _showPermissionDialog.value = false
+        Log.d("HomeViewModel", "Permission dialog dismissed")
     }
 
     fun setDontShowPermissionDialogAgain() {
@@ -185,10 +194,12 @@ class HomeViewModel @Inject constructor(
             putBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, true)
         }
         _showPermissionDialog.value = false
+        Log.d("HomeViewModel", "Permission dialog set to not show again")
     }
 
     fun showPermissionDialogManually() {
         _showPermissionDialog.value = true
+        Log.d("HomeViewModel", "Permission dialog shown manually")
     }
 
     // Category filtering methods
