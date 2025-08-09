@@ -273,7 +273,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "labubu_hanging",
             name = "Labubu Hanging",
-            category = CharacterCategory.HANGING, // Using HANGING category
+            category = CharacterCategory.HANGING,
             frameIds = listOf(
                 R.drawable.labubu_hanging,
             ),

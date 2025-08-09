@@ -297,7 +297,6 @@ fun CharacterSettingsScreen(
                     }
                 },
                 valueRange = 10f..50f,
-                steps = 8,
                 colors = SliderDefaults.colors(
                     thumbColor = Primary, // Using custom primary color
                     activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
@@ -318,7 +317,6 @@ fun CharacterSettingsScreen(
                         viewModel.updateDimensions(width, newHeight.toInt())
                     },
                     valueRange = 10f..50f,
-                    steps = 8,
                     colors = SliderDefaults.colors(
                         thumbColor = Primary, // Using custom primary color
                         activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
@@ -345,7 +343,6 @@ fun CharacterSettingsScreen(
                     value = xPosition.toFloat(),
                     onValueChange = { viewModel.updateXPosition(it.toInt()) },
                     valueRange = 0f..1000f,
-                    steps = 50,
                     colors = SliderDefaults.colors(
                         thumbColor = Primary, // Using custom primary color
                         activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
@@ -367,7 +364,6 @@ fun CharacterSettingsScreen(
                 value = yPosition.toFloat(),
                 onValueChange = { viewModel.updateYPosition(it.toInt()) },
                 valueRange = 0f..300f,
-                steps = 30,
                 colors = SliderDefaults.colors(
                     thumbColor = Primary, // Using custom primary color
                     activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
@@ -391,7 +387,6 @@ fun CharacterSettingsScreen(
                 value = speed.toFloat(),
                 onValueChange = { viewModel.updateSpeed(it.toInt()) },
                 valueRange = 1f..10f,
-                steps = 9,
                 enabled = !isHangingCharacter, // Disable for hanging characters
                 colors = SliderDefaults.colors(
                     thumbColor = Primary, // Using custom primary color
@@ -408,7 +403,7 @@ fun CharacterSettingsScreen(
             ) {
                 Text(
                     text = if (isHangingCharacter)
-                        "Animation: ${animationDelay}ms (static image)"
+                        "Animation: ${animationDelay}ms (static)"
                     else
                         "Animation Speed: ${animationDelay}ms",
                     style = MaterialTheme.typography.bodyLarge,

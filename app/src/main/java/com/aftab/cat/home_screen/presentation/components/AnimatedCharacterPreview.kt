@@ -1,7 +1,5 @@
 package com.aftab.cat.home_screen.presentation.components
 
-
-
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateContentSize
@@ -22,33 +20,41 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -62,6 +68,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.aftab.cat.home_screen.data.model.Characters
 import com.aftab.cat.ui.theme.ButtonPrimary
 import com.aftab.cat.ui.theme.CardBackground
@@ -71,6 +78,7 @@ import com.aftab.cat.ui.theme.IconPrimary
 import com.aftab.cat.ui.theme.OnButtonPrimary
 import com.aftab.cat.ui.theme.OnCard
 import com.aftab.cat.ui.theme.OnError
+import com.aftab.cat.ui.theme.OnPrimary
 import com.aftab.cat.ui.theme.OnSecondary
 import com.aftab.cat.ui.theme.OutlinePrimary
 import com.aftab.cat.ui.theme.Primary
@@ -90,6 +98,8 @@ fun AnimatedCharacterPreviewCard(
     isCharacterRunning: Boolean,
     onStopCharacter: () -> Unit,
 ) {
+    var showHangingInfoDialog by remember { mutableStateOf(false) }
+
     val infiniteTransition = rememberInfiniteTransition()
     val bounce by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -132,6 +142,79 @@ fun AnimatedCharacterPreviewCard(
         }
     }
 
+    // Hanging Character Info Dialog
+    if (showHangingInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showHangingInfoDialog = false },
+            icon = {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    tint = Primary,
+                    modifier = Modifier.size(28.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Hanging Characters",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = OnCard
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Hanging characters are special static pets that attach to your status bar elements!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = OnCard
+                    )
+
+                    Text(
+                        text = "They can hang from:",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = OnCard
+                    )
+
+                    Column(
+                        modifier = Modifier.padding(start = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text("• Camera notch", style = MaterialTheme.typography.bodySmall, color = OnCard)
+                        Text("• WiFi signal icon", style = MaterialTheme.typography.bodySmall, color = OnCard)
+                        Text("• Mobile signal bars", style = MaterialTheme.typography.bodySmall, color = OnCard)
+                        Text("• Battery indicator", style = MaterialTheme.typography.bodySmall, color = OnCard)
+                        Text("• Clock", style = MaterialTheme.typography.bodySmall, color = OnCard)
+                        Text("• Any other status bar element", style = MaterialTheme.typography.bodySmall, color = OnCard)
+                    }
+
+                    Text(
+                        text = "Unlike walking characters, hanging pets stay in one position and add a cute touch to your status bar!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = OnCard.copy(alpha = 0.8f)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showHangingInfoDialog = false }
+                ) {
+                    Text(
+                        "Got it!",
+                        color = Primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            },
+            containerColor = CardBackground
+        )
+    }
+
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
@@ -155,6 +238,37 @@ fun AnimatedCharacterPreviewCard(
             shape = RoundedCornerShape(20.dp)
         ) {
             Box {
+                // Hanging Character Info Icon - Top Right Corner
+                if (character?.isHanging == true) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .zIndex(1f), // Ensure it's above other content
+                        contentAlignment = Alignment.TopEnd
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .size(32.dp)
+                                .clickable { showHangingInfoDialog = true },
+                            shape = CircleShape,
+                            color = Primary.copy(alpha = 0.1f),
+                            border = BorderStroke(1.dp, Primary.copy(alpha = 0.3f))
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Info,
+                                    contentDescription = "Hanging character info",
+                                    tint = Primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
