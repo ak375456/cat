@@ -164,11 +164,6 @@ fun CharacterSettingsScreen(
                         modifier = Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "📍",
-                            style = MaterialTheme.typography.headlineSmall,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
                         Column {
                             Text(
                                 text = "Static Hanging Character",
@@ -246,13 +241,13 @@ fun CharacterSettingsScreen(
                             Text(
                                 text = if (motionSensingEnabled) {
                                     "🪢 Character hangs from a fixed rope/chain at the top\n" +
-                                            "↔️ Tilts and swings realistically like a pendulum\n" +
-                                            "📱 Responds to device tilt and movement\n" +
-                                            "🔋 May use slightly more battery"
+                                            "↔Tilts and swings realistically like a pendulum\n" +
+                                            "Responds to device tilt and movement\n" +
+                                            "May use slightly more battery"
                                 } else {
-                                    "🔒 Character remains completely static\n" +
-                                            "⚡ Better battery life\n" +
-                                            "📍 No movement or tilting"
+                                    "Character remains completely static\n" +
+                                            "Better battery life\n" +
+                                            "No movement or tilting"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = OnBackground.copy(alpha = 0.8f),
@@ -263,7 +258,7 @@ fun CharacterSettingsScreen(
                         // Motion sensitivity info when enabled
                         if (motionSensingEnabled && characterRunning) {
                             Text(
-                                text = "🎮 Try tilting your device left/right to see the character swing!",
+                                text = "Try tilting your device left/right to see the character swing!",
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                 color = Primary,
                                 modifier = Modifier.padding(top = 8.dp)
