@@ -269,7 +269,6 @@ class CharacterRepository @Inject constructor(
             speed = 4,
             animationDelay = 120L
         ),
-        // Static hanging character - no movement, just overlay
         Characters(
             id = "labubu_hanging",
             name = "Labubu Hanging",
@@ -279,15 +278,68 @@ class CharacterRepository @Inject constructor(
             ),
             width = 18,
             height = 18,
-            yPosition = 20, // Position where it should hang
-            xPosition = 150, // Horizontal position from left edge
+            yPosition = 20,
+            xPosition = 150,
             speed = 0, // No movement
             animationDelay = 0L // No animation
-        )
-        // Add more hanging characters here as needed
+        ),
+        Characters(
+            id = "penguin_walking",
+            name = "Penguin",
+            category = CharacterCategory.ANIMALS,
+            frameIds = listOf(
+                R.drawable.penguin_walk_01,
+                R.drawable.penguin_walk_02,
+                R.drawable.penguin_walk_03,
+                R.drawable.penguin_walk_04,
+                R.drawable.penguin_walk_05,
+                R.drawable.penguin_walk_06,
+                R.drawable.penguin_walk_07,
+                R.drawable.penguin_walk_08,
+                R.drawable.penguin_walk_09,
+                R.drawable.penguin_walk_10,
+                R.drawable.penguin_walk_11,
+            ),
+            width = 18,
+            height = 18,
+            yPosition = 20,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
+            id = "skullpanda_hanging",
+            name = "SkullPanda",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.skullpanda_01,
+            ),
+            width = 18,
+            height = 18,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0, // No movement
+            animationDelay = 0L // No animation
+        ),
+        Characters(
+            id = "doraemon_walking",
+            name = "Doraemon",
+            category = CharacterCategory.ANIMALS,
+            frameIds = listOf(
+                R.drawable.doraemon_01,
+                R.drawable.doraemon_02,
+                R.drawable.doraemon_03,
+                R.drawable.doraemon_04,
+                R.drawable.doraemon_05,
+                R.drawable.doraemon_05,
+            ),
+            width = 18,
+            height = 18,
+            yPosition = 20,
+            speed = 4,
+            animationDelay = 120L
+        ),
     )
 
-    // Load characters from SharedPreferences or use defaults
     private fun loadCharacters(): Map<String, Characters> {
         val savedJson = sharedPreferences.getString(CHARACTERS_KEY, null)
         return if (savedJson != null) {
