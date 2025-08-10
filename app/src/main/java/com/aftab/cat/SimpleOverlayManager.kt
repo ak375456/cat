@@ -9,9 +9,12 @@ import android.widget.ImageView
 import com.aftab.cat.home_screen.data.model.Characters
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.*
 
 @Singleton
-class SimpleOverlayManager @Inject constructor() {
+class SimpleOverlayManager @Inject constructor(
+    private val motionSensorManager: MotionSensorManager
+) {
 
     private var windowManager: WindowManager? = null
     private var context: Context? = null
@@ -20,6 +23,9 @@ class SimpleOverlayManager @Inject constructor() {
 
     // Track all active characters
     private val activeCharacters = mutableMapOf<String, CharacterOverlay>()
+
+    // Motion sensing state
+    private var isMotionSensingEnabled = true
 
     private inner class CharacterOverlay(
         var character: Characters,
@@ -34,15 +40,29 @@ class SimpleOverlayManager @Inject constructor() {
         var animationRunnable: Runnable? = null
         var isAnimating = false
 
+        // For hanging characters motion
+        var originalX = 0
+        var originalY = 0
+        var currentSwayX = 0f
+        var currentSwayY = 0f
+
+        // Physics simulation for hanging characters
+        var velocityX = 0f
+        var velocityY = 0f
+        val damping = 0.92f // Damping factor for realistic swaying
+        val springStrength = 0.15f // How quickly it returns to center
+
         fun startAnimation() {
             if (isAnimating) return
 
-            // Don't start animation for hanging characters (they are static)
+            // For hanging characters, just set the static image and handle motion
             if (character.isHanging) {
-                // Just set the static image and return
                 if (character.frameIds.isNotEmpty()) {
                     imageView.setImageResource(character.frameIds[0])
                 }
+                // Store original position for hanging characters
+                originalX = params.x
+                originalY = params.y
                 return
             }
 
@@ -90,6 +110,8 @@ class SimpleOverlayManager @Inject constructor() {
                 // Update X position for hanging characters
                 if (isNowHanging) {
                     params.x = character.xPosition
+                    originalX = params.x
+                    originalY = params.y
                 }
 
                 // If character changed from/to hanging, handle animation state
@@ -102,6 +124,8 @@ class SimpleOverlayManager @Inject constructor() {
                         }
                         // Position hanging character at specified X position
                         params.x = character.xPosition
+                        originalX = params.x
+                        originalY = params.y
                     } else {
                         // Start animation for non-hanging character
                         currentXPosition = 0
@@ -115,6 +139,8 @@ class SimpleOverlayManager @Inject constructor() {
                         imageView.setImageResource(character.frameIds[0])
                     }
                     params.x = character.xPosition
+                    originalX = params.x
+                    originalY = params.y
                 }
 
                 try {
@@ -122,6 +148,45 @@ class SimpleOverlayManager @Inject constructor() {
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
+            }
+        }
+
+        fun applyMotion(swayX: Float, swayY: Float) {
+            if (!character.isHanging) return
+
+            try {
+                // Apply physics simulation for more realistic hanging motion
+                val targetX = originalX + swayX
+                val targetY = originalY + swayY
+
+                // Calculate forces towards target position (device tilt)
+                val forceX = (targetX - (originalX + currentSwayX)) * springStrength
+                val forceY = (targetY - (originalY + currentSwayY)) * springStrength
+
+                // Update velocity
+                velocityX += forceX
+                velocityY += forceY
+
+                // Apply damping
+                velocityX *= damping
+                velocityY *= damping
+
+                // Update current sway position
+                currentSwayX += velocityX
+                currentSwayY += velocityY
+
+                // Limit sway range
+                val maxSway = 80f
+                currentSwayX = currentSwayX.coerceIn(-maxSway, maxSway)
+                currentSwayY = currentSwayY.coerceIn(-maxSway, maxSway)
+
+                // Update actual position
+                params.x = (originalX + currentSwayX).toInt()
+                params.y = (originalY + currentSwayY).toInt()
+
+                windowManager?.updateViewLayout(overlayView, params)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
 
@@ -158,7 +223,6 @@ class SimpleOverlayManager @Inject constructor() {
                         params.x = currentXPosition
                         windowManager?.updateViewLayout(overlayView, params)
                     }
-                    // Hanging characters don't move, so we skip position updates
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -173,6 +237,17 @@ class SimpleOverlayManager @Inject constructor() {
         val displayMetrics = context.resources.displayMetrics
         screenWidth = displayMetrics.widthPixels
         systemBarsHeight = getSystemBarsHeight(context)
+
+        // Initialize motion sensor
+        motionSensorManager.initialize(context)
+        motionSensorManager.setMotionCallback { swayX, swayY ->
+            if (isMotionSensingEnabled) {
+                applyMotionToHangingCharacters(swayX, swayY)
+            }
+        }
+
+        // Start motion sensing if there are hanging characters
+        checkAndStartMotionSensing()
     }
 
     fun addCharacter(character: Characters): Boolean {
@@ -197,6 +272,12 @@ class SimpleOverlayManager @Inject constructor() {
                 val characterOverlay = CharacterOverlay(character, overlayView, imageView, params)
                 activeCharacters[character.id] = characterOverlay
                 characterOverlay.startAnimation()
+
+                // Start motion sensing if this is a hanging character
+                if (character.isHanging) {
+                    checkAndStartMotionSensing()
+                }
+
                 true
             } ?: false
         } catch (e: Exception) {
@@ -214,11 +295,16 @@ class SimpleOverlayManager @Inject constructor() {
                 e.printStackTrace()
             }
             activeCharacters.remove(characterId)
+
+            // Stop motion sensing if no hanging characters remain
+            checkAndStopMotionSensing()
         }
     }
 
     fun updateCharacterSettings(characterId: String, newCharacter: Characters) {
         activeCharacters[characterId]?.updateCharacterSettings(newCharacter)
+        // Check if we need to start/stop motion sensing
+        checkAndStartMotionSensing()
     }
 
     fun removeAllCharacters() {
@@ -231,16 +317,51 @@ class SimpleOverlayManager @Inject constructor() {
             }
         }
         activeCharacters.clear()
+        motionSensorManager.stopListening()
     }
 
     fun getActiveCharacterIds(): Set<String> = activeCharacters.keys.toSet()
 
     fun isCharacterActive(characterId: String): Boolean = activeCharacters.containsKey(characterId)
 
+    fun setMotionSensingEnabled(enabled: Boolean) {
+        isMotionSensingEnabled = enabled
+        if (enabled) {
+            checkAndStartMotionSensing()
+        } else {
+            motionSensorManager.stopListening()
+        }
+    }
+
     fun cleanup() {
         removeAllCharacters()
+        motionSensorManager.cleanup()
         context = null
         windowManager = null
+    }
+
+    private fun hasHangingCharacters(): Boolean {
+        return activeCharacters.values.any { it.character.isHanging }
+    }
+
+    private fun checkAndStartMotionSensing() {
+        if (hasHangingCharacters() && isMotionSensingEnabled) {
+            motionSensorManager.startListening()
+        }
+    }
+
+    private fun checkAndStopMotionSensing() {
+        if (!hasHangingCharacters()) {
+            motionSensorManager.stopListening()
+        }
+    }
+
+    private fun applyMotionToHangingCharacters(swayX: Float, swayY: Float) {
+        activeCharacters.values.forEach { overlay ->
+            if (overlay.character.isHanging) {
+                overlay.applyMotion(swayX, swayY)
+            }
+        }
     }
 
     private fun getSystemBarsHeight(context: Context): Int {

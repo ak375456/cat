@@ -2,6 +2,7 @@ package com.aftab.cat.di
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.aftab.cat.MotionSensorManager
 import com.aftab.cat.SimpleOverlayManager
 import com.google.gson.Gson
 import dagger.Module
@@ -17,8 +18,18 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideMotionSensorManager(): MotionSensorManager {
+        return MotionSensorManager()
+    }
+
+
+
+    @Provides
+    @Singleton
     fun provideSimpleOverlayManager(): SimpleOverlayManager {
-        return SimpleOverlayManager()
+        return SimpleOverlayManager(
+            motionSensorManager = MotionSensorManager()
+        )
     }
 
     @Provides

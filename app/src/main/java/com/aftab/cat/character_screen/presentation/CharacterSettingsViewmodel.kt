@@ -10,12 +10,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.content.SharedPreferences
+import androidx.core.content.edit
 
 @HiltViewModel
 class CharacterSettingsViewModel @Inject constructor(
     private val characterRepository: CharacterRepository,
     private val overlayManager: SimpleOverlayManager,
+    private val sharedPreferences: SharedPreferences
 ) : ViewModel() {
+
+    companion object {
+        private const val MOTION_SENSING_KEY = "motion_sensing_enabled"
+    }
 
     private val _character = MutableStateFlow<Characters?>(null)
     val character: StateFlow<Characters?> = _character
@@ -45,6 +52,15 @@ class CharacterSettingsViewModel @Inject constructor(
     private val _isCharacterRunning = MutableStateFlow(false)
     val isCharacterRunning: StateFlow<Boolean> = _isCharacterRunning
 
+    // Motion sensing toggle
+    private val _motionSensingEnabled = MutableStateFlow(true)
+    val motionSensingEnabled: StateFlow<Boolean> = _motionSensingEnabled
+
+    init {
+        // Load motion sensing preference
+        _motionSensingEnabled.value = sharedPreferences.getBoolean(MOTION_SENSING_KEY, true)
+    }
+
     fun loadCharacter(characterId: String) {
         viewModelScope.launch {
             val loadedCharacter = characterRepository.getCharacterById(characterId)
@@ -64,6 +80,16 @@ class CharacterSettingsViewModel @Inject constructor(
 
     fun setCharacterRunning(isRunning: Boolean) {
         _isCharacterRunning.value = isRunning
+    }
+
+    fun setMotionSensingEnabled(enabled: Boolean) {
+        _motionSensingEnabled.value = enabled
+        // Save preference
+        sharedPreferences.edit {
+            putBoolean(MOTION_SENSING_KEY, enabled)
+        }
+        // Update overlay manager immediately
+        overlayManager.setMotionSensingEnabled(enabled)
     }
 
     fun updateSpeed(newSpeed: Int) {

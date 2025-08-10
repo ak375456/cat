@@ -338,6 +338,34 @@ class CharacterRepository @Inject constructor(
             speed = 4,
             animationDelay = 120L
         ),
+        Characters(
+            id = "SpongeBob_hanging",
+            name = "SpongeBob",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.spongebob_hanging,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0, // No movement
+            animationDelay = 0L // No animation
+        ),
+        Characters(
+            id = "SpongeBob_patrick_hanging",
+            name = "SpongeBob and Patrick",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.spongbobpatrick,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0, // No movement
+            animationDelay = 0L // No animation
+        ),
     )
 
     private fun loadCharacters(): Map<String, Characters> {

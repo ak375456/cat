@@ -114,19 +114,17 @@ class OverlayService : Service() {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Overlay Pets Service",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Keeps your overlay pets running"
-                setShowBadge(false)
-            }
-
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "Overlay Pets Service",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Keeps your overlay pets running"
+            setShowBadge(false)
         }
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 
     private fun createNotification(): Notification {

@@ -49,6 +49,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material.icons.filled.Close
 import com.aftab.cat.ui.theme.* // Import your color palette
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Vibrate
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -67,10 +69,12 @@ fun CharacterSettingsScreen(
     val xPosition by viewModel.xPosition.collectAsState()
     val linkedDimensions by viewModel.linkedDimensions.collectAsState()
     val characterRunning by viewModel.isCharacterRunning.collectAsState()
+    val motionSensingEnabled by viewModel.motionSensingEnabled.collectAsState()
 
     // UI state
     val animationSpeedPresets = listOf(50L, 80L, 100L, 140L, 200L, 300L, 500L)
     var showPresetInfo by remember { mutableStateOf(false) }
+    var showMotionInfo by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Check if character is hanging (static)
@@ -160,11 +164,6 @@ fun CharacterSettingsScreen(
                         modifier = Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "📍",
-                            style = MaterialTheme.typography.headlineSmall,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
                         Column {
                             Text(
                                 text = "Static Hanging Character",
@@ -172,9 +171,96 @@ fun CharacterSettingsScreen(
                                 color = OnBackground
                             )
                             Text(
-                                text = "This character stays in one position and doesn't move",
+                                text = if (motionSensingEnabled)
+                                    "This character sways with device movement"
+                                else
+                                    "This character stays perfectly still",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = OnBackground.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Motion Sensing Control (only for hanging characters)
+            if (isHangingCharacter) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (motionSensingEnabled)
+                            Primary.copy(alpha = 0.1f)
+                        else
+                            SurfaceVariant.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Lucide.Vibrate,
+                                    contentDescription = null,
+                                    tint = if (motionSensingEnabled) Primary else OnSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = "Motion Sensing",
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                                    color = OnBackground,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                                IconButton(
+                                    onClick = { showMotionInfo = !showMotionInfo },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = "Motion Info",
+                                        tint = IconSecondary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                            Switch(
+                                checked = motionSensingEnabled,
+                                onCheckedChange = { viewModel.setMotionSensingEnabled(it) },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Primary,
+                                    checkedTrackColor = Container,
+                                    uncheckedThumbColor = IconSecondary,
+                                    uncheckedTrackColor = SurfaceVariant
+                                )
+                            )
+                        }
+
+                        if (showMotionInfo) {
+                            Text(
+                                text = if (motionSensingEnabled) {
+                                    "Character will sway and move based on how you tilt and move your device\n" +
+                                            "Uses accelerometer and gyroscope sensors\n" +
+                                            "May use slightly more battery"
+                                } else {
+                                    "Character will remain completely static\n" +
+                                            "Better battery life\n" +
+                                            "Character stays in exact position"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnBackground.copy(alpha = 0.8f),
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
+
+                        // Motion sensitivity info when enabled
+                        if (motionSensingEnabled && characterRunning) {
+                            Text(
+                                text = "Try tilting your device to see the character move!",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                color = Primary,
+                                modifier = Modifier.padding(top = 8.dp)
                             )
                         }
                     }
@@ -196,10 +282,12 @@ fun CharacterSettingsScreen(
                             color = OnSecondary // Using custom secondary text color
                         )
                         Text(
-                            text = if (isHangingCharacter)
-                                "Activate the character to see it positioned on screen"
-                            else
-                                "Start the character to see changes in real-time",
+                            text = if (isHangingCharacter) {
+                                val motionText = if (motionSensingEnabled) " and sway with device motion" else ""
+                                "Activate the character to see it positioned on screen$motionText"
+                            } else {
+                                "Start the character to see changes in real-time"
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = OnSecondary.copy(alpha = 0.8f), // Using custom secondary text with transparency
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -296,7 +384,7 @@ fun CharacterSettingsScreen(
                         viewModel.updateDimensions(newWidth.toInt(), height)
                     }
                 },
-                valueRange = 10f..50f,
+                valueRange = 10f..100f,
                 colors = SliderDefaults.colors(
                     thumbColor = Primary, // Using custom primary color
                     activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
