@@ -45,12 +45,16 @@ class SimpleOverlayManager @Inject constructor(
         var originalY = 0
         var currentSwayX = 0f
         var currentSwayY = 0f
+        var currentRotation = 0f // Add rotation for tilting effect
 
-        // Physics simulation for hanging characters
+        // Physics simulation for hanging characters (pendulum-like)
         var velocityX = 0f
         var velocityY = 0f
-        val damping = 0.92f // Damping factor for realistic swaying
-        val springStrength = 0.15f // How quickly it returns to center
+        var rotationVelocity = 0f // Rotation velocity for tilting
+        val damping = 0.94f // Higher damping for more realistic hanging motion
+        val springStrength = 0.12f // Gentler spring for hanging effect
+        val rotationDamping = 0.96f // Separate damping for rotation
+        val rotationSpring = 0.08f // Spring strength for rotation
 
         fun startAnimation() {
             if (isAnimating) return
@@ -85,6 +89,12 @@ class SimpleOverlayManager @Inject constructor(
             isAnimating = false
             animationRunnable?.let { handler.removeCallbacks(it) }
             animationRunnable = null
+
+            // Reset rotation for hanging characters
+            if (character.isHanging) {
+                imageView.rotation = 0f
+                currentRotation = 0f
+            }
         }
 
         fun updateCharacterSettings(newCharacter: Characters) {
@@ -155,34 +165,61 @@ class SimpleOverlayManager @Inject constructor(
             if (!character.isHanging) return
 
             try {
-                // Apply physics simulation for more realistic hanging motion
-                val targetX = originalX + swayX
-                val targetY = originalY + swayY
+                // Define rope length (distance from attachment point to character center)
+                val ropeLength = 80f // Adjust this based on your rope visual length
 
-                // Calculate forces towards target position (device tilt)
+                // Calculate pendulum angle based on device tilt
+                // Limit the maximum swing angle for realistic motion
+                val maxAngle = 30f // Maximum swing angle in degrees
+                val targetAngle = (swayX * 0.5f).coerceIn(-maxAngle, maxAngle)
+
+                // Convert angle to radians for calculation
+                val angleRad = Math.toRadians(targetAngle.toDouble()).toFloat()
+
+                // Calculate character position based on pendulum physics
+                // The rope attachment point stays at (originalX, originalY)
+                val targetX = originalX + (sin(angleRad) * ropeLength)
+                val targetY = originalY + (cos(angleRad) * ropeLength) - ropeLength // Subtract ropeLength to account for hanging
+
+                // Apply spring physics for smooth swinging motion
                 val forceX = (targetX - (originalX + currentSwayX)) * springStrength
                 val forceY = (targetY - (originalY + currentSwayY)) * springStrength
 
-                // Update velocity
+                // Apply rotation force for character tilting
+                val targetRotation = targetAngle * 0.8f // Character tilts with the swing
+                val rotationForce = (targetRotation - currentRotation) * rotationSpring
+
+                // Update velocities with forces
                 velocityX += forceX
                 velocityY += forceY
+                rotationVelocity += rotationForce
 
-                // Apply damping
+                // Apply damping for realistic pendulum motion
                 velocityX *= damping
                 velocityY *= damping
+                rotationVelocity *= rotationDamping
 
-                // Update current sway position
+                // Update positions
                 currentSwayX += velocityX
                 currentSwayY += velocityY
+                currentRotation += rotationVelocity
 
-                // Limit sway range
-                val maxSway = 80f
-                currentSwayX = currentSwayX.coerceIn(-maxSway, maxSway)
-                currentSwayY = currentSwayY.coerceIn(-maxSway, maxSway)
+                // Apply constraints to keep motion realistic
+                val maxSwayX = ropeLength * 0.8f // Based on rope length
+                val maxSwayY = ropeLength * 0.3f // Limited vertical movement
+                val maxRotation = 25f
 
-                // Update actual position
+                currentSwayX = currentSwayX.coerceIn(-maxSwayX, maxSwayX)
+                currentSwayY = currentSwayY.coerceIn(-maxSwayY, maxSwayY)
+                currentRotation = currentRotation.coerceIn(-maxRotation, maxRotation)
+
+                // IMPORTANT: Only move the character, not the rope attachment point
+                // The rope attachment point remains at (originalX, originalY)
                 params.x = (originalX + currentSwayX).toInt()
                 params.y = (originalY + currentSwayY).toInt()
+
+                // Apply rotation to create tilting effect
+                imageView.rotation = currentRotation
 
                 windowManager?.updateViewLayout(overlayView, params)
             } catch (e: Exception) {

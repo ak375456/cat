@@ -164,6 +164,11 @@ fun CharacterSettingsScreen(
                         modifier = Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Text(
+                            text = "📍",
+                            style = MaterialTheme.typography.headlineSmall,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
                         Column {
                             Text(
                                 text = "Static Hanging Character",
@@ -172,7 +177,7 @@ fun CharacterSettingsScreen(
                             )
                             Text(
                                 text = if (motionSensingEnabled)
-                                    "This character sways with device movement"
+                                    "This character swings and tilts with device movement"
                                 else
                                     "This character stays perfectly still",
                                 style = MaterialTheme.typography.bodySmall,
@@ -240,13 +245,14 @@ fun CharacterSettingsScreen(
                         if (showMotionInfo) {
                             Text(
                                 text = if (motionSensingEnabled) {
-                                    "Character will sway and move based on how you tilt and move your device\n" +
-                                            "Uses accelerometer and gyroscope sensors\n" +
-                                            "May use slightly more battery"
+                                    "🪢 Character hangs from a fixed rope/chain at the top\n" +
+                                            "↔️ Tilts and swings realistically like a pendulum\n" +
+                                            "📱 Responds to device tilt and movement\n" +
+                                            "🔋 May use slightly more battery"
                                 } else {
-                                    "Character will remain completely static\n" +
-                                            "Better battery life\n" +
-                                            "Character stays in exact position"
+                                    "🔒 Character remains completely static\n" +
+                                            "⚡ Better battery life\n" +
+                                            "📍 No movement or tilting"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = OnBackground.copy(alpha = 0.8f),
@@ -257,7 +263,7 @@ fun CharacterSettingsScreen(
                         // Motion sensitivity info when enabled
                         if (motionSensingEnabled && characterRunning) {
                             Text(
-                                text = "Try tilting your device to see the character move!",
+                                text = "🎮 Try tilting your device left/right to see the character swing!",
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                 color = Primary,
                                 modifier = Modifier.padding(top = 8.dp)
@@ -283,7 +289,7 @@ fun CharacterSettingsScreen(
                         )
                         Text(
                             text = if (isHangingCharacter) {
-                                val motionText = if (motionSensingEnabled) " and sway with device motion" else ""
+                                val motionText = if (motionSensingEnabled) " and swing like a pendulum" else ""
                                 "Activate the character to see it positioned on screen$motionText"
                             } else {
                                 "Start the character to see changes in real-time"

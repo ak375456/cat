@@ -1,12 +1,10 @@
 package com.aftab.cat
 
-
 import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import kotlin.math.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -85,16 +83,26 @@ class MotionSensorManager @Inject constructor() : SensorEventListener {
     }
 
     private fun calculateSway() {
-        // Combine accelerometer and gyroscope data for more realistic movement
-        val swayX = (-smoothedAccelX * 0.3f) + (smoothedRotY * 10f)
-        val swayY = (smoothedAccelY * 0.2f) + (smoothedRotX * 8f)
+        // For hanging characters, we want pendulum-like motion
+        // Device tilt left -> character swings right (opposite direction)
+        // Device tilt right -> character swings left
 
-        // Limit the sway range (in pixels)
-        val maxSway = 50f
-        val clampedSwayX = swayX.coerceIn(-maxSway, maxSway)
-        val clampedSwayY = swayY.coerceIn(-maxSway, maxSway)
+        // Use accelerometer data for tilt detection
+        val tiltX = -smoothedAccelX // Negative because we want opposite direction
+        val tiltY = smoothedAccelY * 0.5f // Reduced Y movement for hanging effect
 
-        // Notify callback
+        // Add subtle gyroscope influence for dynamic movement
+        val swayX = (tiltX * 0.8f) + (smoothedRotY * 8f)
+        val swayY = (tiltY * 0.3f) + (smoothedRotX * 3f) // Less Y movement
+
+        // Limit the sway range for realistic hanging motion
+        val maxSwayX = 40f // Horizontal sway
+        val maxSwayY = 15f // Minimal vertical movement (hanging objects don't move up much)
+
+        val clampedSwayX = swayX.coerceIn(-maxSwayX, maxSwayX)
+        val clampedSwayY = swayY.coerceIn(-maxSwayY, maxSwayY)
+
+        // Notify callback with pendulum motion
         motionCallback?.invoke(clampedSwayX, clampedSwayY)
     }
 
