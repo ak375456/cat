@@ -323,7 +323,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "doraemon_walking",
             name = "Doraemon",
-            category = CharacterCategory.ANIMALS,
+            category = CharacterCategory.CARTOON,
             frameIds = listOf(
                 R.drawable.doraemon_01,
                 R.drawable.doraemon_02,
@@ -363,8 +363,44 @@ class CharacterRepository @Inject constructor(
             height = 30,
             yPosition = 20,
             xPosition = 150,
-            speed = 0, // No movement
-            animationDelay = 0L // No animation
+            speed = 0,
+            animationDelay = 0L
+        ),
+        Characters(
+            id = "wingman_hanging",
+            name = "Wingman",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.wingman_hanging,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
+        Characters(
+            id = "wolf_running",
+            name = "Wolf",
+            category = CharacterCategory.CARTOON,
+            frameIds = listOf(
+                R.drawable.wolf_running_01,
+                R.drawable.wolf_running_02,
+                R.drawable.wolf_running_03,
+                R.drawable.wolf_running_04,
+                R.drawable.wolf_running_05,
+                R.drawable.wolf_running_06,
+                R.drawable.wolf_running_07,
+                R.drawable.wolf_running_08,
+                R.drawable.wolf_running_09,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
         ),
     )
 

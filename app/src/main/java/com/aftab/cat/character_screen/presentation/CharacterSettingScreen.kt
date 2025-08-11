@@ -240,8 +240,7 @@ fun CharacterSettingsScreen(
                         if (showMotionInfo) {
                             Text(
                                 text = if (motionSensingEnabled) {
-                                    "🪢 Character hangs from a fixed rope/chain at the top\n" +
-                                            "↔Tilts and swings realistically like a pendulum\n" +
+                                    "Character hangs from a fixed rope/chain at the top\n" +
                                             "Responds to device tilt and movement\n" +
                                             "May use slightly more battery"
                                 } else {
