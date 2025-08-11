@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.aftab.cat"
+    namespace = "com.lexur.yumo"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.aftab.cat"
+        applicationId = "com.lexur.yumo"
         minSdk = 29
         targetSdk = 36
         versionCode = 1
