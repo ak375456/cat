@@ -36,7 +36,7 @@ class OverlayService : Service() {
 
         fun startCharacter(context: Context, character: Characters) {
             val intent = Intent(context, OverlayService::class.java).apply {
-                action = ACTION_START_CHARACTER
+                action = ACTION_START_CHARACTER // ✅ Correct
                 putExtra(EXTRA_CHARACTER, character)
             }
             context.startForegroundService(intent)
@@ -44,7 +44,7 @@ class OverlayService : Service() {
 
         fun stopCharacter(context: Context, characterId: String) {
             val intent = Intent(context, OverlayService::class.java).apply {
-                action = ACTION_START_CHARACTER
+                action = ACTION_STOP_CHARACTER // ✅ Fixed - was ACTION_START_CHARACTER
                 putExtra(EXTRA_CHARACTER_ID, characterId)
             }
             context.startService(intent)
@@ -52,7 +52,7 @@ class OverlayService : Service() {
 
         fun stopAllCharacters(context: Context) {
             val intent = Intent(context, OverlayService::class.java).apply {
-                action = ACTION_START_CHARACTER
+                action = ACTION_STOP_ALL // ✅ Fixed - was ACTION_START_CHARACTER
             }
             context.startService(intent)
         }
@@ -139,18 +139,20 @@ class OverlayService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Stop all action
+        // Stop all action - FIXED THE ACTION
         val stopAllIntent = PendingIntent.getService(
             this,
             0,
-            Intent(this, OverlayService::class.java).apply { action = ACTION_START_CHARACTER },
+            Intent(this, OverlayService::class.java).apply {
+                action = ACTION_STOP_ALL // ✅ Fixed - was ACTION_START_CHARACTER
+            },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Overlay Pets Running")
             .setContentText("$activeCount pet${if (activeCount != 1) "s" else ""} active")
-            .setSmallIcon(R.drawable.ic_notification) // You'll need to add this icon
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(pendingIntent)
             .addAction(R.drawable.ic_stop, "Stop All", stopAllIntent)
             .setOngoing(true)

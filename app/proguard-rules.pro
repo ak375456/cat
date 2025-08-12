@@ -1,21 +1,42 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+########################################
+## Hilt / Dagger 2
+########################################
+# Keep Hilt-generated classes
+-keep class dagger.hilt.** { *; }
+-keep class * extends dagger.hilt.internal.GeneratedComponent { *; }
+-keep class * extends dagger.hilt.EntryPoint { *; }
+-keep @dagger.hilt.InstallIn class * { *; }
+-keep @dagger.Module class * { *; }
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep annotations for Hilt
+-keepattributes *Annotation*
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+########################################
+## Gson (reflection-based serialization)
+########################################
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+-keepattributes Signature
+-keepattributes *Annotation*
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+########################################
+## Parcelable models
+########################################
+-keepclassmembers class * implements android.os.Parcelable {
+    public static final android.os.Parcelable$Creator *;
+}
+
+########################################
+## Prevent stripping of MotionSensorManager & SimpleOverlayManager
+########################################
+-keep class com.lexur.yumo.MotionSensorManager { *; }
+-keep class com.lexur.yumo.SimpleOverlayManager { *; }
+-keep class com.lexur.yumo.OverlayService { *; }
+
+########################################
+## General
+########################################
+-dontwarn javax.annotation.**
+-dontwarn dagger.hilt.**
+-dontwarn kotlin.**
