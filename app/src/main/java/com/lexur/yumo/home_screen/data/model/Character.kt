@@ -27,8 +27,6 @@ data class Characters(
 }
 
 enum class CharacterCategory(val displayName: String) {
-    ANIMALS("Animals"),
-    ANIME("Anime Characters"),
-    CARTOON("Cartoon Characters"),
-    HANGING("Hanging Characters") // Category for static hanging characters
+    ANIMATED("Animated"),
+    HANGING("Hanging Characters")
 }

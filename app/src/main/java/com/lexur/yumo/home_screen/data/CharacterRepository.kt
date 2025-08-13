@@ -25,7 +25,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "walking_cat",
             name = "Cat",
-            category = CharacterCategory.ANIMALS,
+            category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.cat_walk_01,
                 R.drawable.cat_walk_02,
@@ -42,7 +42,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "blu_cat",
             name = "Blu",
-            category = CharacterCategory.ANIMALS,
+            category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.blu_walk_01,
                 R.drawable.blu_walk_02,
@@ -59,7 +59,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "walking_dog",
             name = "Dog",
-            category = CharacterCategory.ANIMALS,
+            category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.dog_walk_01,
                 R.drawable.dog_walk_02,
@@ -76,7 +76,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "walking_gangster",
             name = "Gangster",
-            category = CharacterCategory.CARTOON,
+            category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.gangsters_walk_01,
                 R.drawable.gangsters_walk_02,
@@ -97,7 +97,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "walking_banana",
             name = "Banana Man",
-            category = CharacterCategory.CARTOON,
+            category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.banana_walk_01,
                 R.drawable.banana_walk_02,
@@ -116,80 +116,9 @@ class CharacterRepository @Inject constructor(
             animationDelay = 120L
         ),
         Characters(
-            id = "walking_jerry",
-            name = "Jerry",
-            category = CharacterCategory.CARTOON,
-            frameIds = listOf(
-                R.drawable.jerry_03,
-                R.drawable.jerry_04,
-                R.drawable.jerry_05,
-                R.drawable.jerry_06,
-                R.drawable.jerry_08,
-                R.drawable.jerry_10,
-                R.drawable.jerry_12,
-                R.drawable.jerry_14,
-            ),
-            width = 18,
-            height = 18,
-            speed = 4,
-            animationDelay = 120L
-        ),
-        Characters(
-            id = "jumping_pikachu",
-            name = "Jumping Pikachu",
-            category = CharacterCategory.ANIME,
-            frameIds = listOf(
-                R.drawable.pikachu_01,
-                R.drawable.pikachu_02,
-                R.drawable.pikachu_03,
-                R.drawable.pikachu_04,
-                R.drawable.pikachu_05,
-                R.drawable.pikachu_06,
-                R.drawable.pikachu_07,
-                R.drawable.pikachu_08,
-            ),
-            width = 18,
-            height = 18,
-            speed = 4,
-            animationDelay = 120L
-        ),
-        Characters(
-            id = "morty_walking",
-            name = "Morty",
-            category = CharacterCategory.CARTOON,
-            frameIds = listOf(
-                R.drawable.morty_01,
-                R.drawable.morty_02,
-                R.drawable.morty_03,
-                R.drawable.morty_04,
-            ),
-            width = 18,
-            height = 18,
-            speed = 4,
-            animationDelay = 120L
-        ),
-        Characters(
-            id = "peter_walking",
-            name = "Peter",
-            category = CharacterCategory.CARTOON,
-            frameIds = listOf(
-                R.drawable.peter_01,
-                R.drawable.peter_02,
-                R.drawable.peter_03,
-                R.drawable.peter_04,
-                R.drawable.peter_05,
-                R.drawable.peter_06,
-                R.drawable.peter_07,
-            ),
-            width = 18,
-            height = 18,
-            speed = 4,
-            animationDelay = 120L
-        ),
-        Characters(
             id = "labubu_walking",
             name = "Labubu",
-            category = CharacterCategory.CARTOON,
+            category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.labubu_walk_01,
                 R.drawable.labubu_walk_02,
@@ -206,7 +135,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "naruto_running",
             name = "Naruto",
-            category = CharacterCategory.ANIME,
+            category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.naruto_01,
                 R.drawable.naruto_02,
@@ -223,7 +152,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "bird",
             name = "Bird",
-            category = CharacterCategory.ANIMALS,
+            category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.bird_01,
                 R.drawable.bird_02,
@@ -243,7 +172,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "girl_walk",
             name = "Girl",
-            category = CharacterCategory.CARTOON,
+            category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.girl_walk_01,
                 R.drawable.girl_walk_02,
@@ -260,7 +189,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "lightning_mcQueen",
             name = "McQueen",
-            category = CharacterCategory.CARTOON,
+            category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.lightning_mcqueen_01,
             ),
@@ -286,7 +215,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "penguin_walking",
             name = "Penguin",
-            category = CharacterCategory.ANIMALS,
+            category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.penguin_walk_01,
                 R.drawable.penguin_walk_02,
@@ -323,7 +252,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "doraemon_walking",
             name = "Doraemon",
-            category = CharacterCategory.CARTOON,
+            category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.doraemon_01,
                 R.drawable.doraemon_02,
@@ -337,34 +266,6 @@ class CharacterRepository @Inject constructor(
             yPosition = 20,
             speed = 4,
             animationDelay = 120L
-        ),
-        Characters(
-            id = "SpongeBob_hanging",
-            name = "SpongeBob",
-            category = CharacterCategory.HANGING,
-            frameIds = listOf(
-                R.drawable.spongebob_hanging,
-            ),
-            width = 30,
-            height = 30,
-            yPosition = 20,
-            xPosition = 150,
-            speed = 0, // No movement
-            animationDelay = 0L // No animation
-        ),
-        Characters(
-            id = "SpongeBob_patrick_hanging",
-            name = "SpongeBob and Patrick",
-            category = CharacterCategory.HANGING,
-            frameIds = listOf(
-                R.drawable.spongbobpatrick,
-            ),
-            width = 30,
-            height = 30,
-            yPosition = 20,
-            xPosition = 150,
-            speed = 0,
-            animationDelay = 0L
         ),
         Characters(
             id = "wingman_hanging",
@@ -383,7 +284,7 @@ class CharacterRepository @Inject constructor(
         Characters(
             id = "wolf_running",
             name = "Wolf",
-            category = CharacterCategory.CARTOON,
+            category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.wolf_running_01,
                 R.drawable.wolf_running_02,
@@ -394,6 +295,50 @@ class CharacterRepository @Inject constructor(
                 R.drawable.wolf_running_07,
                 R.drawable.wolf_running_08,
                 R.drawable.wolf_running_09,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
+            id = "bronco_running",
+            name = "Bronco",
+            category = CharacterCategory.ANIMATED,
+            frameIds = listOf(
+                R.drawable.bronco_01,
+                R.drawable.bronco_02,
+                R.drawable.bronco_03,
+                R.drawable.bronco_04,
+                R.drawable.bronco_05,
+                R.drawable.bronco_06,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
+            id = "zippy_running",
+            name = "Zippy",
+            category = CharacterCategory.ANIMATED,
+            frameIds = listOf(
+                R.drawable.zippy_01,
+                R.drawable.zippy_02,
+                R.drawable.zippy_03,
+                R.drawable.zippy_04,
+                R.drawable.zippy_05,
+                R.drawable.zippy_06,
+                R.drawable.zippy_07,
+                R.drawable.zippy_08,
+                R.drawable.zippy_09,
+                R.drawable.zippy_10,
+                R.drawable.zippy_11,
+                R.drawable.zippy_12,
             ),
             width = 30,
             height = 30,

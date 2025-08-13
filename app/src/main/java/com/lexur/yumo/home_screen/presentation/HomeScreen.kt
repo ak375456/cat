@@ -52,10 +52,6 @@ fun HomeScreen(
         mutableStateOf(checkNotificationPermission(context))
     }
 
-    // REMOVED: Don't initialize dialog state here anymore
-    // This was causing the dialog to show every time we navigate to HomeScreen
-
-    // Bind to service and sync state
     LaunchedEffect(Unit) {
         viewModel.bindToService(context)
     }
