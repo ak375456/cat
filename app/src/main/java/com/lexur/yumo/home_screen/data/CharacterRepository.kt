@@ -348,6 +348,27 @@ class CharacterRepository @Inject constructor(
             animationDelay = 120L
         ),
         Characters(
+            id = "bleepy_walking",
+            name = "Blippy",
+            category = CharacterCategory.ANIMATED,
+            frameIds = listOf(
+                R.drawable.bleepy_01,
+                R.drawable.bleepy_02,
+                R.drawable.bleepy_03,
+                R.drawable.bleepy_04,
+                R.drawable.bleepy_05,
+                R.drawable.bleepy_06,
+                R.drawable.bleepy_07,
+                R.drawable.bleepy_08,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
             id = "judy_hanging",
             name = "Judy Hopps",
             category = CharacterCategory.HANGING,
@@ -376,6 +397,22 @@ class CharacterRepository @Inject constructor(
             speed = 0,
             animationDelay = 0L
         ),
+        Characters(
+            id = "danglo_hanging",
+            name = "Danglo",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.danglo_hanging
+                ,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
+
     )
 
     private fun loadCharacters(): Map<String, Characters> {
