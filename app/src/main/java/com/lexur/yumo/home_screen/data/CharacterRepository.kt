@@ -282,8 +282,8 @@ class CharacterRepository @Inject constructor(
             animationDelay = 0L
         ),
         Characters(
-            id = "wolf_running",
-            name = "Wolf",
+            id = "fox_running",
+            name = "Fox",
             category = CharacterCategory.ANIMATED,
             frameIds = listOf(
                 R.drawable.wolf_running_01,
