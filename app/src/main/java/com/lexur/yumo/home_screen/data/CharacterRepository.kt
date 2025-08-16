@@ -448,6 +448,21 @@ class CharacterRepository @Inject constructor(
             speed = 0,
             animationDelay = 0L
         ),
+        Characters(
+            id = "puffin_hanging",
+            name = "Puffin",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.puffin
+                ,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
 
     )
 
