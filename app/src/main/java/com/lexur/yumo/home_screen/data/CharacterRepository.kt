@@ -369,6 +369,27 @@ class CharacterRepository @Inject constructor(
             animationDelay = 120L
         ),
         Characters(
+            id = "flare_flying",
+            name = "Flare",
+            category = CharacterCategory.ANIMATED,
+            frameIds = listOf(
+                R.drawable.flare_01,
+                R.drawable.flare_02,
+                R.drawable.flare_03,
+                R.drawable.flare_04,
+                R.drawable.flare_05,
+                R.drawable.flare_06,
+                R.drawable.flare_07,
+                R.drawable.flare_08,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
             id = "judy_hanging",
             name = "Judy Hopps",
             category = CharacterCategory.HANGING,
@@ -403,6 +424,21 @@ class CharacterRepository @Inject constructor(
             category = CharacterCategory.HANGING,
             frameIds = listOf(
                 R.drawable.danglo_hanging
+                ,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
+        Characters(
+            id = "tweeto_hanging",
+            name = "Tweeto",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.tweeto
                 ,
             ),
             width = 30,

@@ -1,6 +1,5 @@
 package com.lexur.yumo.home_screen.presentation.components
 
-import android.R
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -10,6 +9,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
@@ -41,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -98,7 +96,7 @@ fun AnimatedCharacterPreview(
                     stiffness = Spring.StiffnessMedium
                 )
             ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
         colors = CardDefaults.cardColors(containerColor = CardBackground),
     ) {
         Column(
@@ -186,17 +184,17 @@ fun AnimatedCharacterPreview(
                 enter = fadeIn(tween(400)) + expandVertically(tween(400)),
                 exit = fadeOut(tween(300)) + shrinkVertically(tween(300))
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 4.dp) // Add some spacing from the content above
+                        .padding(top = 4.dp)
                 ) {
                     // Show "Stop" button if running, otherwise show "Use" button
                     if (isCharacterRunning) {
                         Button(
                             onClick = onStopCharacter,
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            modifier = Modifier.fillMaxWidth(0.5f).height(48.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Error,
                                 contentColor = OnError
@@ -204,7 +202,7 @@ fun AnimatedCharacterPreview(
                             shape = RoundedCornerShape(14.dp)
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_media_pause),
+                                painter = painterResource(android.R.drawable.ic_media_pause),
                                 contentDescription = "Stop Character",
                                 modifier = Modifier.size(18.dp)
                             )
@@ -221,7 +219,7 @@ fun AnimatedCharacterPreview(
                             )
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_media_play),
+                                painter = painterResource(android.R.drawable.ic_media_play),
                                 contentDescription = "Use Character",
                                 modifier = Modifier.size(18.dp)
                             )
