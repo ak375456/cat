@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lexur.yumo.componenets.PermissionExplanationDialog
-import com.lexur.yumo.home_screen.presentation.components.AnimatedCharacterPreviewCard
+import com.lexur.yumo.home_screen.presentation.components.AnimatedCharacterPreview
 import com.lexur.yumo.home_screen.presentation.components.CategoryFilterSection
 import com.lexur.yumo.home_screen.presentation.components.EnhancedPermissionWarningCard
 import com.lexur.yumo.ui.theme.Background
@@ -127,15 +127,7 @@ fun HomeScreen(
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Background, // Using custom background colors
-                                SurfaceVariant.copy(alpha = 0.3f)
-                            )
-                        )
-                    ),
+                    .fillMaxSize(),
                 contentPadding = PaddingValues(
                     bottom = innerPadding.calculateBottomPadding() + 16.dp,
                     start = 12.dp,
@@ -156,7 +148,7 @@ fun HomeScreen(
                     val isRunning = runningCharacters.contains(character.id)
                     val isExpanded = expandedCharacterId == character.id
 
-                    AnimatedCharacterPreviewCard(
+                    AnimatedCharacterPreview (
                         character = character,
                         isExpanded = isExpanded,
                         onCardClick = {
