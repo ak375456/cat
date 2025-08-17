@@ -478,7 +478,36 @@ class CharacterRepository @Inject constructor(
             speed = 0,
             animationDelay = 0L
         ),
-
+        Characters(
+            id = "saturn_ring_for_camera_notch",
+            name = "Saturn Ring for Camera Notch",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.saturn_ring
+                ,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
+        Characters(
+            id = "black_hole_for_camera_notch",
+            name = "Black Whole for Camera Notch",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.black_hole
+                ,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
     )
 
     private fun loadCharacters(): Map<String, Characters> {
