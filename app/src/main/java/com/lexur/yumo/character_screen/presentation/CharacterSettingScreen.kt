@@ -14,6 +14,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -80,14 +84,13 @@ fun CharacterSettingsScreen(
 ) {
     val character by viewModel.character.collectAsState()
     val speed by viewModel.speed.collectAsState()
-    val width by viewModel.width.collectAsState()
-    val height by viewModel.height.collectAsState()
+    val size by viewModel.size.collectAsState()
     val animationDelay by viewModel.animationDelay.collectAsState()
     val yPosition by viewModel.yPosition.collectAsState()
     val xPosition by viewModel.xPosition.collectAsState()
-    val linkedDimensions by viewModel.linkedDimensions.collectAsState()
     val characterRunning by viewModel.isCharacterRunning.collectAsState()
     val motionSensingEnabled by viewModel.motionSensingEnabled.collectAsState()
+    val useButtonControls by viewModel.useButtonControls.collectAsState()
 
     // UI state
     val animationSpeedPresets = listOf(50L, 80L, 100L, 140L, 200L, 300L, 500L)
@@ -105,14 +108,14 @@ fun CharacterSettingsScreen(
     }
 
     Scaffold(
-        containerColor = Background, // Using custom background color
+        containerColor = Background,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "${character?.name} Settings",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = OnTopBar // Using custom topbar text color
+                        color = OnTopBar
                     )
                 },
                 navigationIcon = {
@@ -120,12 +123,12 @@ fun CharacterSettingsScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = IconOnPrimary // Using custom icon color
+                            tint = IconOnPrimary
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = TopBarBackground // Using custom topbar background
+                    containerColor = TopBarBackground
                 )
             )
         },
@@ -144,7 +147,7 @@ fun CharacterSettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = Container.copy(alpha = 0.4f) // Using custom container with transparency
+                        containerColor = Container.copy(alpha = 0.4f)
                     )
                 ) {
                     Row(
@@ -154,7 +157,7 @@ fun CharacterSettingsScreen(
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
                             contentDescription = null,
-                            tint = Primary, // Using custom primary color
+                            tint = Primary,
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
@@ -163,7 +166,7 @@ fun CharacterSettingsScreen(
                             else
                                 "Character is running - changes will be applied instantly!",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Primary, // Using custom primary color
+                            color = Primary,
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
@@ -290,14 +293,14 @@ fun CharacterSettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = SecondaryVariant.copy(alpha = 0.4f) // Using custom secondary variant
+                        containerColor = SecondaryVariant.copy(alpha = 0.4f)
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Test Your Settings",
                             style = MaterialTheme.typography.titleSmall,
-                            color = OnSecondary // Using custom secondary text color
+                            color = OnSecondary
                         )
                         Text(
                             text = if (isHangingCharacter) {
@@ -307,7 +310,7 @@ fun CharacterSettingsScreen(
                                 "Start the character to see changes in real-time"
                             },
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnSecondary.copy(alpha = 0.8f), // Using custom secondary text with transparency
+                            color = OnSecondary.copy(alpha = 0.8f),
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                         Button(
@@ -318,8 +321,8 @@ fun CharacterSettingsScreen(
                             enabled = character != null,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = ButtonPrimary, // Using custom button color
-                                contentColor = OnButtonPrimary // Using custom button text color
+                                containerColor = ButtonPrimary,
+                                contentColor = OnButtonPrimary
                             )
                         ) {
                             Icon(
@@ -342,7 +345,7 @@ fun CharacterSettingsScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Error // Using custom error color
+                        contentColor = Error
                     )
                 ) {
                     Icon(
@@ -357,76 +360,50 @@ fun CharacterSettingsScreen(
                 }
             }
 
-            // Linked Dimensions Toggle
+            // Size Control (Single slider for both width and height)
+            Text(
+                text = "Character Size",
+                style = MaterialTheme.typography.titleSmall,
+                color = Primary.copy(alpha = 0.9f)
+            )
+
+            Text(
+                text = "Size: ${size}px",
+                style = MaterialTheme.typography.bodyLarge,
+                color = OnBackground
+            )
+            Slider(
+                value = size.toFloat(),
+                onValueChange = { newSize ->
+                    viewModel.updateSize(newSize.toInt())
+                },
+                valueRange = 10f..100f,
+                colors = SliderDefaults.colors(
+                    thumbColor = Primary,
+                    activeTrackColor = Primary.copy(alpha = 0.7f),
+                    inactiveTrackColor = OutlineVariant
+                )
+            )
+
+            // Position Control Mode Toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Linked Dimensions",
+                    text = "Use Button Controls",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = OnBackground // Using custom text on background color
+                    color = OnBackground
                 )
                 Switch(
-                    checked = linkedDimensions,
-                    onCheckedChange = { viewModel.setLinkedDimensions(it) },
+                    checked = useButtonControls,
+                    onCheckedChange = { viewModel.setUseButtonControls(it) },
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Primary, // Using custom primary color
-                        checkedTrackColor = Container, // Using custom container color
-                        uncheckedThumbColor = IconSecondary, // Using custom secondary icon color
-                        uncheckedTrackColor = SurfaceVariant // Using custom surface variant
-                    )
-                )
-            }
-
-            // Size Controls
-            Text(
-                text = "Character Size",
-                style = MaterialTheme.typography.titleSmall,
-                color = Primary.copy(alpha = 0.9f) // Using custom primary color with transparency
-            )
-
-            // Width control
-            Text(
-                text = "Width: $width px",
-                style = MaterialTheme.typography.bodyLarge,
-                color = OnBackground // Using custom text on background
-            )
-            Slider(
-                value = width.toFloat(),
-                onValueChange = { newWidth ->
-                    if (linkedDimensions) {
-                        viewModel.updateDimensions(newWidth.toInt(), newWidth.toInt())
-                    } else {
-                        viewModel.updateDimensions(newWidth.toInt(), height)
-                    }
-                },
-                valueRange = 10f..100f,
-                colors = SliderDefaults.colors(
-                    thumbColor = Primary, // Using custom primary color
-                    activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
-                    inactiveTrackColor = OutlineVariant // Using custom outline variant
-                )
-            )
-
-            // Height control (only show if not linked)
-            if (!linkedDimensions) {
-                Text(
-                    text = "Height: $height px",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = OnBackground // Using custom text on background
-                )
-                Slider(
-                    value = height.toFloat(),
-                    onValueChange = { newHeight ->
-                        viewModel.updateDimensions(width, newHeight.toInt())
-                    },
-                    valueRange = 10f..50f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = Primary, // Using custom primary color
-                        activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
-                        inactiveTrackColor = OutlineVariant // Using custom outline variant
+                        checkedThumbColor = Primary,
+                        checkedTrackColor = Container,
+                        uncheckedThumbColor = IconSecondary,
+                        uncheckedTrackColor = SurfaceVariant
                     )
                 )
             }
@@ -435,47 +412,142 @@ fun CharacterSettingsScreen(
             Text(
                 text = "Position Settings ${if (characterRunning) "(Live Updates)" else ""}",
                 style = MaterialTheme.typography.titleSmall,
-                color = if (characterRunning) Primary else Primary.copy(alpha = 0.9f) // Using custom primary color
+                color = if (characterRunning) Primary else Primary.copy(alpha = 0.9f)
             )
 
-            // X Position control (only for hanging characters)
-            if (isHangingCharacter) {
+            if (useButtonControls) {
+                // Button Controls
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Display current position
+                    Text(
+                        text = "Position: X=${xPosition}px, Y=${yPosition}px",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = OnBackground
+                    )
+
+                    // Up button
+                    IconButton(
+                        onClick = { viewModel.movePosition(0, -1) },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowUp,
+                            contentDescription = "Move Up",
+                            tint = Primary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+
+                    // Left, Right buttons row
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = { viewModel.movePosition(-1, 0) },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowLeft,
+                                contentDescription = "Move Left",
+                                tint = Primary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+
+                        // Center space
+                        Text(
+                            text = "1px",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OnBackground.copy(alpha = 0.7f)
+                        )
+
+                        IconButton(
+                            onClick = { viewModel.movePosition(1, 0) },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowRight,
+                                contentDescription = "Move Right",
+                                tint = Primary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+
+                    // Down button
+                    IconButton(
+                        onClick = { viewModel.movePosition(0, 1) },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Move Down",
+                            tint = Primary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+            } else {
+                // Slider Controls
+                if (isHangingCharacter) {
+                    Text(
+                        text = "Horizontal Position: $xPosition px from left",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = OnBackground
+                    )
+                    Slider(
+                        value = xPosition.toFloat(),
+                        onValueChange = { viewModel.updateXPosition(it.toInt()) },
+                        valueRange = 0f..1000f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Primary,
+                            activeTrackColor = Primary.copy(alpha = 0.7f),
+                            inactiveTrackColor = OutlineVariant
+                        )
+                    )
+                }
+
                 Text(
-                    text = "Horizontal Position: $xPosition px from left",
+                    text = if (isHangingCharacter)
+                        "Vertical Position: $yPosition px from top"
+                    else
+                        "Vertical Position: $yPosition px from top",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = OnBackground // Using custom text on background
+                    color = OnBackground
                 )
                 Slider(
-                    value = xPosition.toFloat(),
-                    onValueChange = { viewModel.updateXPosition(it.toInt()) },
-                    valueRange = 0f..1000f,
+                    value = yPosition.toFloat(),
+                    onValueChange = { viewModel.updateYPosition(it.toInt()) },
+                    valueRange = 0f..300f,
                     colors = SliderDefaults.colors(
-                        thumbColor = Primary, // Using custom primary color
-                        activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
-                        inactiveTrackColor = OutlineVariant // Using custom outline variant
+                        thumbColor = Primary,
+                        activeTrackColor = Primary.copy(alpha = 0.7f),
+                        inactiveTrackColor = OutlineVariant
                     )
                 )
-            }
 
-            // Y Position control
-            Text(
-                text = if (isHangingCharacter)
-                    "Vertical Position: $yPosition px from top"
-                else
-                    "Vertical Position: $yPosition px from top",
-                style = MaterialTheme.typography.bodyLarge,
-                color = OnBackground // Using custom text on background
-            )
-            Slider(
-                value = yPosition.toFloat(),
-                onValueChange = { viewModel.updateYPosition(it.toInt()) },
-                valueRange = 0f..300f,
-                colors = SliderDefaults.colors(
-                    thumbColor = Primary, // Using custom primary color
-                    activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
-                    inactiveTrackColor = OutlineVariant // Using custom outline variant
-                )
-            )
+                if (!isHangingCharacter) {
+                    Text(
+                        text = "Horizontal Position: $xPosition px from left",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = OnBackground
+                    )
+                    Slider(
+                        value = xPosition.toFloat(),
+                        onValueChange = { viewModel.updateXPosition(it.toInt()) },
+                        valueRange = 0f..1000f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Primary,
+                            activeTrackColor = Primary.copy(alpha = 0.7f),
+                            inactiveTrackColor = OutlineVariant
+                        )
+                    )
+                }
+            }
 
             // Speed control (disabled for hanging characters)
             Text(
@@ -487,17 +559,17 @@ fun CharacterSettingsScreen(
                 color = if (isHangingCharacter)
                     OnBackground.copy(alpha = 0.5f)
                 else
-                    OnBackground // Using custom text on background
+                    OnBackground
             )
             Slider(
                 value = speed.toFloat(),
                 onValueChange = { viewModel.updateSpeed(it.toInt()) },
                 valueRange = 1f..10f,
-                enabled = !isHangingCharacter, // Disable for hanging characters
+                enabled = !isHangingCharacter,
                 colors = SliderDefaults.colors(
-                    thumbColor = Primary, // Using custom primary color
-                    activeTrackColor = Primary.copy(alpha = 0.7f), // Using custom primary with transparency
-                    inactiveTrackColor = OutlineVariant // Using custom outline variant
+                    thumbColor = Primary,
+                    activeTrackColor = Primary.copy(alpha = 0.7f),
+                    inactiveTrackColor = OutlineVariant
                 )
             )
 
@@ -516,7 +588,7 @@ fun CharacterSettingsScreen(
                     color = if (isHangingCharacter)
                         OnBackground.copy(alpha = 0.5f)
                     else
-                        OnBackground // Using custom text on background
+                        OnBackground
                 )
                 IconButton(
                     onClick = { showPresetInfo = !showPresetInfo },
@@ -525,7 +597,7 @@ fun CharacterSettingsScreen(
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = "Info",
-                        tint = IconSecondary, // Using custom secondary icon color
+                        tint = IconSecondary,
                     )
                 }
             }
@@ -537,7 +609,7 @@ fun CharacterSettingsScreen(
                     else
                         "Lower values = faster animation (more battery usage)",
                     style = MaterialTheme.typography.labelSmall,
-                    color = OnBackground.copy(alpha = 0.7f) // Using custom text with transparency
+                    color = OnBackground.copy(alpha = 0.7f)
                 )
             }
 
@@ -550,17 +622,17 @@ fun CharacterSettingsScreen(
                     FilterChip(
                         selected = animationDelay == preset,
                         onClick = { viewModel.updateAnimationDelay(preset) },
-                        enabled = !isHangingCharacter, // Disable for hanging characters
+                        enabled = !isHangingCharacter,
                         label = { Text("${preset}ms") },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Container, // Using custom container color
-                            selectedLabelColor = OnContainer, // Using custom text on container
-                            containerColor = SurfaceVariant, // Using custom surface variant
-                            labelColor = OnSurfaceVariant // Using custom text on surface variant
+                            selectedContainerColor = Container,
+                            selectedLabelColor = OnContainer,
+                            containerColor = SurfaceVariant,
+                            labelColor = OnSurfaceVariant
                         ),
                         border = FilterChipDefaults.filterChipBorder(
-                            selectedBorderColor = Primary, // Using custom primary color
-                            borderColor = OutlineSecondary, // Using custom secondary outline
+                            selectedBorderColor = Primary,
+                            borderColor = OutlineSecondary,
                             selected = animationDelay == preset,
                             enabled = !isHangingCharacter
                         )
@@ -578,8 +650,8 @@ fun CharacterSettingsScreen(
                     .fillMaxWidth()
                     .padding(top = 8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ButtonPrimary, // Using custom button color
-                    contentColor = OnButtonPrimary // Using custom button text color
+                    containerColor = ButtonPrimary,
+                    contentColor = OnButtonPrimary
                 )
             ) {
                 Text("Save Settings", style = MaterialTheme.typography.labelLarge)
@@ -592,7 +664,7 @@ fun CharacterSettingsScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = IconPrimary // Using custom primary icon color
+                    contentColor = IconPrimary
                 )
             ) {
                 Text("Reset to Defaults")

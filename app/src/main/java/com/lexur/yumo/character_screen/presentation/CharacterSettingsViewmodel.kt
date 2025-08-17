@@ -22,6 +22,7 @@ class CharacterSettingsViewModel @Inject constructor(
 
     companion object {
         private const val MOTION_SENSING_KEY = "motion_sensing_enabled"
+        private const val USE_BUTTON_CONTROLS_KEY = "use_button_controls"
     }
 
     private val _character = MutableStateFlow<Characters?>(null)
@@ -30,11 +31,8 @@ class CharacterSettingsViewModel @Inject constructor(
     private val _speed = MutableStateFlow(3)
     val speed: StateFlow<Int> = _speed
 
-    private val _width = MutableStateFlow(18)
-    val width: StateFlow<Int> = _width
-
-    private val _height = MutableStateFlow(18)
-    val height: StateFlow<Int> = _height
+    private val _size = MutableStateFlow(18)
+    val size: StateFlow<Int> = _size
 
     private val _animationDelay = MutableStateFlow(100L)
     val animationDelay: StateFlow<Long> = _animationDelay
@@ -45,9 +43,6 @@ class CharacterSettingsViewModel @Inject constructor(
     private val _xPosition = MutableStateFlow(0)
     val xPosition: StateFlow<Int> = _xPosition
 
-    private val _linkedDimensions = MutableStateFlow(true)
-    val linkedDimensions: StateFlow<Boolean> = _linkedDimensions
-
     // Track if character is currently running for live updates
     private val _isCharacterRunning = MutableStateFlow(false)
     val isCharacterRunning: StateFlow<Boolean> = _isCharacterRunning
@@ -56,9 +51,14 @@ class CharacterSettingsViewModel @Inject constructor(
     private val _motionSensingEnabled = MutableStateFlow(true)
     val motionSensingEnabled: StateFlow<Boolean> = _motionSensingEnabled
 
+    // Button controls toggle
+    private val _useButtonControls = MutableStateFlow(false)
+    val useButtonControls: StateFlow<Boolean> = _useButtonControls
+
     init {
-        // Load motion sensing preference
+        // Load preferences
         _motionSensingEnabled.value = sharedPreferences.getBoolean(MOTION_SENSING_KEY, true)
+        _useButtonControls.value = sharedPreferences.getBoolean(USE_BUTTON_CONTROLS_KEY, false)
     }
 
     fun loadCharacter(characterId: String) {
@@ -67,13 +67,10 @@ class CharacterSettingsViewModel @Inject constructor(
             _character.value = loadedCharacter
             loadedCharacter?.let { character ->
                 _speed.value = character.speed
-                _width.value = character.width
-                _height.value = character.height
+                _size.value = character.width // Use width as the single size value
                 _animationDelay.value = character.animationDelay
                 _yPosition.value = character.yPosition
                 _xPosition.value = character.xPosition
-                // Set linked dimensions based on whether width equals height
-                _linkedDimensions.value = character.width == character.height
             }
         }
     }
@@ -92,14 +89,21 @@ class CharacterSettingsViewModel @Inject constructor(
         overlayManager.setMotionSensingEnabled(enabled)
     }
 
+    fun setUseButtonControls(useButtons: Boolean) {
+        _useButtonControls.value = useButtons
+        // Save preference
+        sharedPreferences.edit {
+            putBoolean(USE_BUTTON_CONTROLS_KEY, useButtons)
+        }
+    }
+
     fun updateSpeed(newSpeed: Int) {
         _speed.value = newSpeed
         updateLiveCharacterIfRunning()
     }
 
-    fun updateDimensions(newWidth: Int, newHeight: Int) {
-        _width.value = newWidth
-        _height.value = newHeight
+    fun updateSize(newSize: Int) {
+        _size.value = newSize
         updateLiveCharacterIfRunning()
     }
 
@@ -110,23 +114,21 @@ class CharacterSettingsViewModel @Inject constructor(
 
     fun updateYPosition(newYPosition: Int) {
         _yPosition.value = newYPosition
-        // Always update live position immediately for better UX
         updateLiveCharacterIfRunning()
     }
 
     fun updateXPosition(newXPosition: Int) {
         _xPosition.value = newXPosition
-        // Always update live position immediately for better UX
         updateLiveCharacterIfRunning()
     }
 
-    fun setLinkedDimensions(linked: Boolean) {
-        _linkedDimensions.value = linked
-        // If linking dimensions, make height equal to width
-        if (linked) {
-            _height.value = _width.value
-            updateLiveCharacterIfRunning()
-        }
+    fun movePosition(deltaX: Int, deltaY: Int) {
+        val newX = (_xPosition.value + deltaX).coerceIn(0, 1000)
+        val newY = (_yPosition.value + deltaY).coerceIn(0, 300)
+
+        _xPosition.value = newX
+        _yPosition.value = newY
+        updateLiveCharacterIfRunning()
     }
 
     private fun updateLiveCharacterIfRunning() {
@@ -140,8 +142,8 @@ class CharacterSettingsViewModel @Inject constructor(
             _character.value?.let { current ->
                 val updated = current.copy(
                     speed = _speed.value,
-                    width = _width.value,
-                    height = _height.value,
+                    width = _size.value,
+                    height = _size.value, // Use same value for both width and height
                     animationDelay = _animationDelay.value,
                     yPosition = _yPosition.value,
                     xPosition = _xPosition.value
@@ -170,8 +172,8 @@ class CharacterSettingsViewModel @Inject constructor(
             _character.value?.let { current ->
                 val updated = current.copy(
                     speed = _speed.value,
-                    width = _width.value,
-                    height = _height.value,
+                    width = _size.value,
+                    height = _size.value, // Use same value for both width and height
                     animationDelay = _animationDelay.value,
                     yPosition = _yPosition.value,
                     xPosition = _xPosition.value
@@ -211,12 +213,10 @@ class CharacterSettingsViewModel @Inject constructor(
                 val defaultCharacter = characterRepository.getDefaultCharacter(characterId)
                 defaultCharacter?.let { default ->
                     _speed.value = default.speed
-                    _width.value = default.width
-                    _height.value = default.height
+                    _size.value = default.width // Use width as the single size value
                     _animationDelay.value = default.animationDelay
                     _yPosition.value = default.yPosition
                     _xPosition.value = default.xPosition
-                    _linkedDimensions.value = default.width == default.height
 
                     // Also save the reset values
                     characterRepository.resetCharacterToDefault(characterId)

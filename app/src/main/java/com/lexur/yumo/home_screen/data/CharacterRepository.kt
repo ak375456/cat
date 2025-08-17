@@ -463,6 +463,21 @@ class CharacterRepository @Inject constructor(
             speed = 0,
             animationDelay = 0L
         ),
+        Characters(
+            id = "punch_hole_glow",
+            name = "camera punch hole glow",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.punch_hole_glow
+                ,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
 
     )
 
