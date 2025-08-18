@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "65926410976",
+    "project_id": "yumo-cff1a",
+    "storage_bucket": "yumo-cff1a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:65926410976:android:1f51b87adec63399dfd685",
+        "android_client_info": {
+          "package_name": "com.lexur.yumo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKnrU-ZNhpnLNDWiDlYcLae28C9Gp7ryU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

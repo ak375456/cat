@@ -2,6 +2,7 @@ package com.lexur.yumo.di
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.google.firebase.firestore.FirebaseFirestore
 import com.lexur.yumo.MotionSensorManager
 import com.lexur.yumo.SimpleOverlayManager
 import com.google.gson.Gson
@@ -22,6 +23,11 @@ object AppModule {
         return MotionSensorManager()
     }
 
+    @Provides
+    @Singleton
+    fun provideFirestore(): FirebaseFirestore {
+        return FirebaseFirestore.getInstance()
+    }
 
 
     @Provides

@@ -465,7 +465,7 @@ class CharacterRepository @Inject constructor(
         ),
         Characters(
             id = "punch_hole_glow",
-            name = "camera punch hole glow",
+            name = "camera punch hole ring",
             category = CharacterCategory.HANGING,
             frameIds = listOf(
                 R.drawable.punch_hole_glow
