@@ -22,10 +22,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.lexur.yumo" />
+                  <option name="mobileSdkAppId" value="1:65926410976:android:1f51b87adec63399dfd685" />
+                  <option name="projectId" value="yumo-cff1a" />
+                  <option name="projectNumber" value="65926410976" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
