@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.content.SharedPreferences
 import android.os.IBinder
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lexur.yumo.OverlayService
@@ -52,33 +51,23 @@ class HomeViewModel @Inject constructor(
         _allCharacters,
         _selectedCategory
     ) { characters, category ->
-        Log.d("HomeViewModel", "Filtering - Total characters: ${characters.size}, Selected category: $category")
 
         val filtered = when (category) {
             null -> {
-                Log.d("HomeViewModel", "No filter applied, showing all characters")
                 characters
             }
             CharacterCategory.HANGING -> {
                 // For hanging characters, check both category and isHanging property
                 val hangingChars = characters.filter { character ->
                     val isHanging = character.category == CharacterCategory.HANGING || character.isHanging
-                    Log.d("HomeViewModel", "Character ${character.name}: category=${character.category}, isHanging=${character.isHanging}, matches=$isHanging")
                     isHanging
                 }
-                Log.d("HomeViewModel", "Found ${hangingChars.size} hanging characters")
                 hangingChars
             }
             else -> {
                 val categoryChars = characters.filter { it.category == category }
-                Log.d("HomeViewModel", "Found ${categoryChars.size} characters in category $category")
                 categoryChars
             }
-        }
-
-        Log.d("HomeViewModel", "Final filtered result: ${filtered.size} characters")
-        filtered.forEach { char ->
-            Log.d("HomeViewModel", "Filtered character: ${char.name} (category=${char.category}, isHanging=${char.isHanging})")
         }
 
         filtered
@@ -143,10 +132,6 @@ class HomeViewModel @Inject constructor(
             val allChars = characterRepository.getAllCharacters()
             _allCharacters.value = allChars
 
-            Log.d("HomeViewModel", "Loaded ${allChars.size} total characters:")
-            allChars.forEach { char ->
-                Log.d("HomeViewModel", "Character: ${char.name}, Category: ${char.category}, IsHanging: ${char.isHanging}")
-            }
         }
     }
 
@@ -182,12 +167,10 @@ class HomeViewModel @Inject constructor(
         sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val shouldShow = !sharedPreferences.getBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, false)
         _showPermissionDialog.value = shouldShow
-        Log.d("HomeViewModel", "Dialog state initialized: shouldShow = $shouldShow")
     }
 
     fun dismissPermissionDialog() {
         _showPermissionDialog.value = false
-        Log.d("HomeViewModel", "Permission dialog dismissed")
     }
 
     fun setDontShowPermissionDialogAgain() {
@@ -195,23 +178,19 @@ class HomeViewModel @Inject constructor(
             putBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, true)
         }
         _showPermissionDialog.value = false
-        Log.d("HomeViewModel", "Permission dialog set to not show again")
     }
 
     fun showPermissionDialogManually() {
         _showPermissionDialog.value = true
-        Log.d("HomeViewModel", "Permission dialog shown manually")
     }
 
     // Category filtering methods
     fun selectCategory(category: CharacterCategory) {
         _selectedCategory.value = category
-        Log.d("HomeViewModel", "Selected category: $category")
     }
 
     fun clearCategoryFilter() {
         _selectedCategory.value = null
-        Log.d("HomeViewModel", "Cleared category filter")
     }
 
     override fun onCleared() {

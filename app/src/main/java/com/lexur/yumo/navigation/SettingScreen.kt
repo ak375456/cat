@@ -120,144 +120,6 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // Character Request Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = CardBackground)
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    ) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Request Your Favorite Character",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = OnCard
-                        )
-                    }
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Primary.copy(alpha = 0.1f)
-                        ),
-                        border = BorderStroke(1.dp, Primary.copy(alpha = 0.2f))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = Primary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "How Yumo Characters Work",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Primary
-                                )
-                            }
-                            Text(
-                                text = "• Characters walk along your status bar\n" +
-                                        "• They can hang from camera notch, WiFi, or battery icons\n" +
-                                        "• Designed to be lightweight and non-intrusive\n",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = OnSurfaceVariant,
-                                lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.2f
-                            )
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = feedbackViewModel.characterRequestText,
-                        onValueChange = { feedbackViewModel.onCharacterRequestChange(it) },
-                        placeholder = {
-                            Text("e.g., Pikachu, Hello Kitty, Dragon, Unicorn...")
-                        },
-                        label = {
-                            Text("Which character would you love to see?")
-                        },
-                        supportingText = {
-                            Text(
-                                "Tell us your favorite character and we'll consider adding it!",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                        maxLines = 4,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = InputBackground,
-                            unfocusedContainerColor = InputBackground,
-                            disabledContainerColor = InputBackground,
-                            cursorColor = Primary,
-                            focusedBorderColor = InputBorderFocused,
-                            unfocusedBorderColor = InputBorder,
-                            focusedLabelColor = Primary,
-                            unfocusedLabelColor = OnSurfaceVariant,
-                            focusedTextColor = OnSurface,
-                            unfocusedTextColor = OnSurface,
-                        ),
-                    )
-
-                    Button(
-                        onClick = {
-                            feedbackViewModel.submitCharacterRequest(UUID.randomUUID().toString())
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !feedbackViewModel.isSubmitting && feedbackViewModel.characterRequestText.isNotBlank(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = ButtonPrimary,
-                            contentColor = OnButtonPrimary
-                        )
-                    ) {
-                        if (feedbackViewModel.isSubmitting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = OnButtonPrimary
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text("Submitting Request...")
-                        } else {
-                            Icon(
-                                imageVector = Lucide.Heart,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text("Submit Character Request")
-                        }
-                    }
-
-                    feedbackViewModel.submitSuccess?.let { success ->
-                        if (success) {
-                            Text(
-                                "✅ Character request submitted! We'll review it soon.",
-                                color = Success,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        } else {
-                            Text(
-                                "❌ Failed to submit request. Please try again.",
-                                color = Error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Permission Status Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -430,7 +292,143 @@ fun SettingsScreen(
                 }
             }
 
-            // App Control Card
+            // Character Request Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardBackground)
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    ) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Request Your Favorite Character",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = OnCard
+                        )
+                    }
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Primary.copy(alpha = 0.1f)
+                        ),
+                        border = BorderStroke(1.dp, Primary.copy(alpha = 0.2f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = Primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "How Yumo Characters Work",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Primary
+                                )
+                            }
+                            Text(
+                                text = "• Characters walk along your status bar\n" +
+                                        "• They can hang from camera notch, WiFi, or battery icons\n" +
+                                        "• Designed to be lightweight and non-intrusive\n",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnSurfaceVariant,
+                                lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.2f
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = feedbackViewModel.characterRequestText,
+                        onValueChange = { feedbackViewModel.onCharacterRequestChange(it) },
+                        placeholder = {
+                            Text("e.g., Pikachu, Hello Kitty, Dragon, Unicorn...")
+                        },
+                        label = {
+                            Text("Which character would you love to see?")
+                        },
+                        supportingText = {
+                            Text(
+                                "Tell us your favorite character and we'll consider adding it!",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        maxLines = 4,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = InputBackground,
+                            unfocusedContainerColor = InputBackground,
+                            disabledContainerColor = InputBackground,
+                            cursorColor = Primary,
+                            focusedBorderColor = InputBorderFocused,
+                            unfocusedBorderColor = InputBorder,
+                            focusedLabelColor = Primary,
+                            unfocusedLabelColor = OnSurfaceVariant,
+                            focusedTextColor = OnSurface,
+                            unfocusedTextColor = OnSurface,
+                        ),
+                    )
+
+                    Button(
+                        onClick = {
+                            feedbackViewModel.submitCharacterRequest(UUID.randomUUID().toString())
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !feedbackViewModel.isSubmitting && feedbackViewModel.characterRequestText.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ButtonPrimary,
+                            contentColor = OnButtonPrimary
+                        )
+                    ) {
+                        if (feedbackViewModel.isSubmitting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = OnButtonPrimary
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Submitting Request...")
+                        } else {
+                            Icon(
+                                imageVector = Lucide.Heart,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Submit Character Request")
+                        }
+                    }
+
+                    feedbackViewModel.submitSuccess?.let { success ->
+                        if (success) {
+                            Text(
+                                "✅ Character request submitted! We'll review it soon.",
+                                color = Success,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        } else {
+                            Text(
+                                "❌ Failed to submit request. Please try again.",
+                                color = Error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(

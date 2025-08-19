@@ -1,7 +1,6 @@
 package com.lexur.yumo.home_screen.data
 
 import android.content.SharedPreferences
-import android.util.Log
 import com.lexur.yumo.home_screen.data.model.CharacterCategory
 import com.lexur.yumo.home_screen.data.model.Characters
 import com.google.gson.Gson
@@ -22,6 +21,96 @@ class CharacterRepository @Inject constructor(
 
     // Default characters - these are the base templates
     private val defaultCharacters = listOf(
+        Characters(
+            id = "danglo_hanging",
+            name = "Danglo",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.danglo_hanging
+                ,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
+        Characters(
+            id = "tweeto_hanging",
+            name = "Tweeto",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.tweeto
+                ,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
+        Characters(
+            id = "puffin_hanging",
+            name = "Puffin",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.puffin
+                ,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
+        Characters(
+            id = "punch_hole_glow",
+            name = "camera punch hole ring",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.punch_hole_glow
+                ,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
+        Characters(
+            id = "saturn_ring_for_camera_notch",
+            name = "Saturn Ring for Camera Notch",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.saturn_ring
+                ,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
+        Characters(
+            id = "black_hole_for_camera_notch",
+            name = "Black Whole for Camera Notch",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.black_hole
+                ,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
         Characters(
             id = "walking_cat",
             name = "Cat",
@@ -418,96 +507,7 @@ class CharacterRepository @Inject constructor(
             speed = 0,
             animationDelay = 0L
         ),
-        Characters(
-            id = "danglo_hanging",
-            name = "Danglo",
-            category = CharacterCategory.HANGING,
-            frameIds = listOf(
-                R.drawable.danglo_hanging
-                ,
-            ),
-            width = 30,
-            height = 30,
-            yPosition = 20,
-            xPosition = 150,
-            speed = 0,
-            animationDelay = 0L
-        ),
-        Characters(
-            id = "tweeto_hanging",
-            name = "Tweeto",
-            category = CharacterCategory.HANGING,
-            frameIds = listOf(
-                R.drawable.tweeto
-                ,
-            ),
-            width = 30,
-            height = 30,
-            yPosition = 20,
-            xPosition = 150,
-            speed = 0,
-            animationDelay = 0L
-        ),
-        Characters(
-            id = "puffin_hanging",
-            name = "Puffin",
-            category = CharacterCategory.HANGING,
-            frameIds = listOf(
-                R.drawable.puffin
-                ,
-            ),
-            width = 30,
-            height = 30,
-            yPosition = 20,
-            xPosition = 150,
-            speed = 0,
-            animationDelay = 0L
-        ),
-        Characters(
-            id = "punch_hole_glow",
-            name = "camera punch hole ring",
-            category = CharacterCategory.HANGING,
-            frameIds = listOf(
-                R.drawable.punch_hole_glow
-                ,
-            ),
-            width = 30,
-            height = 30,
-            yPosition = 20,
-            xPosition = 150,
-            speed = 0,
-            animationDelay = 0L
-        ),
-        Characters(
-            id = "saturn_ring_for_camera_notch",
-            name = "Saturn Ring for Camera Notch",
-            category = CharacterCategory.HANGING,
-            frameIds = listOf(
-                R.drawable.saturn_ring
-                ,
-            ),
-            width = 30,
-            height = 30,
-            yPosition = 20,
-            xPosition = 150,
-            speed = 0,
-            animationDelay = 0L
-        ),
-        Characters(
-            id = "black_hole_for_camera_notch",
-            name = "Black Whole for Camera Notch",
-            category = CharacterCategory.HANGING,
-            frameIds = listOf(
-                R.drawable.black_hole
-                ,
-            ),
-            width = 30,
-            height = 30,
-            yPosition = 20,
-            xPosition = 150,
-            speed = 0,
-            animationDelay = 0L
-        ),
+
     )
 
     private fun loadCharacters(): Map<String, Characters> {
@@ -536,7 +536,6 @@ class CharacterRepository @Inject constructor(
 
     fun getAllCharacters(): List<Characters> {
         val characters = loadCharacters().values.toList()
-        Log.d("CharacterRepo", "Loaded ${characters.size} characters: ${characters.map { it.name }}")
         return characters
     }
 
