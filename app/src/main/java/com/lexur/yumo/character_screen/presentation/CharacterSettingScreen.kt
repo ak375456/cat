@@ -493,6 +493,7 @@ fun CharacterSettingsScreen(
                 }
             } else {
                 // Slider Controls
+                // Horizontal Position Slider - ONLY for hanging characters
                 if (isHangingCharacter) {
                     Text(
                         text = "Horizontal Position: $xPosition px from left",
@@ -511,11 +512,9 @@ fun CharacterSettingsScreen(
                     )
                 }
 
+                // Vertical Position Slider - for both types
                 Text(
-                    text = if (isHangingCharacter)
-                        "Vertical Position: $yPosition px from top"
-                    else
-                        "Vertical Position: $yPosition px from top",
+                    text = "Vertical Position: $yPosition px from top",
                     style = MaterialTheme.typography.bodyLarge,
                     color = OnBackground
                 )
@@ -529,24 +528,6 @@ fun CharacterSettingsScreen(
                         inactiveTrackColor = OutlineVariant
                     )
                 )
-
-                if (!isHangingCharacter) {
-                    Text(
-                        text = "Horizontal Position: $xPosition px from left",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = OnBackground
-                    )
-                    Slider(
-                        value = xPosition.toFloat(),
-                        onValueChange = { viewModel.updateXPosition(it.toInt()) },
-                        valueRange = 0f..1000f,
-                        colors = SliderDefaults.colors(
-                            thumbColor = Primary,
-                            activeTrackColor = Primary.copy(alpha = 0.7f),
-                            inactiveTrackColor = OutlineVariant
-                        )
-                    )
-                }
             }
 
             // Speed control (disabled for hanging characters)
