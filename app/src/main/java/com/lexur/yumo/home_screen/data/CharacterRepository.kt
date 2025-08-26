@@ -22,6 +22,25 @@ class CharacterRepository @Inject constructor(
     // Default characters - these are the base templates
     private val defaultCharacters = listOf(
         Characters(
+            id = "zombie_crawling",
+            name = "Zombie",
+            category = CharacterCategory.ANIMATED,
+            frameIds = listOf(
+                R.drawable.zombie_01,
+                R.drawable.zombie_02,
+                R.drawable.zombie_03,
+                R.drawable.zombie_04,
+                R.drawable.zombie_05,
+                R.drawable.zombie_06,
+                R.drawable.zombie_07,
+                R.drawable.zombie_08,
+            ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
             id = "danglo_hanging",
             name = "Danglo",
             category = CharacterCategory.HANGING,
