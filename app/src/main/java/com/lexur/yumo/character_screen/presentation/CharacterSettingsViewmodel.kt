@@ -23,6 +23,13 @@ class CharacterSettingsViewModel @Inject constructor(
     companion object {
         private const val MOTION_SENSING_KEY = "motion_sensing_enabled"
         private const val USE_BUTTON_CONTROLS_KEY = "use_button_controls"
+
+        // Keys for character-specific settings
+        private const val SPEED_SUFFIX = "_speed"
+        private const val SIZE_SUFFIX = "_size"
+        private const val ANIMATION_DELAY_SUFFIX = "_animation_delay"
+        private const val Y_POSITION_SUFFIX = "_y_position"
+        private const val X_POSITION_SUFFIX = "_x_position"
     }
 
     private val _character = MutableStateFlow<Characters?>(null)
@@ -56,7 +63,7 @@ class CharacterSettingsViewModel @Inject constructor(
     val useButtonControls: StateFlow<Boolean> = _useButtonControls
 
     init {
-        // Load preferences
+        // Load global preferences
         _motionSensingEnabled.value = sharedPreferences.getBoolean(MOTION_SENSING_KEY, true)
         _useButtonControls.value = sharedPreferences.getBoolean(USE_BUTTON_CONTROLS_KEY, false)
     }
@@ -66,12 +73,39 @@ class CharacterSettingsViewModel @Inject constructor(
             val loadedCharacter = characterRepository.getCharacterById(characterId)
             _character.value = loadedCharacter
             loadedCharacter?.let { character ->
-                _speed.value = character.speed
-                _size.value = character.width // Use width as the single size value
-                _animationDelay.value = character.animationDelay
-                _yPosition.value = character.yPosition
-                _xPosition.value = character.xPosition
+                // Load character-specific settings from SharedPreferences
+                // If no saved settings exist, use the character's default values
+                _speed.value = sharedPreferences.getInt(
+                    characterId + SPEED_SUFFIX,
+                    character.speed
+                )
+                _size.value = sharedPreferences.getInt(
+                    characterId + SIZE_SUFFIX,
+                    character.width
+                )
+                _animationDelay.value = sharedPreferences.getLong(
+                    characterId + ANIMATION_DELAY_SUFFIX,
+                    character.animationDelay
+                )
+                _yPosition.value = sharedPreferences.getInt(
+                    characterId + Y_POSITION_SUFFIX,
+                    character.yPosition
+                )
+                _xPosition.value = sharedPreferences.getInt(
+                    characterId + X_POSITION_SUFFIX,
+                    character.xPosition
+                )
             }
+        }
+    }
+
+    private fun saveCharacterSpecificSettings(characterId: String) {
+        sharedPreferences.edit {
+            putInt(characterId + SPEED_SUFFIX, _speed.value)
+            putInt(characterId + SIZE_SUFFIX, _size.value)
+            putLong(characterId + ANIMATION_DELAY_SUFFIX, _animationDelay.value)
+            putInt(characterId + Y_POSITION_SUFFIX, _yPosition.value)
+            putInt(characterId + X_POSITION_SUFFIX, _xPosition.value)
         }
     }
 
@@ -81,7 +115,7 @@ class CharacterSettingsViewModel @Inject constructor(
 
     fun setMotionSensingEnabled(enabled: Boolean) {
         _motionSensingEnabled.value = enabled
-        // Save preference
+        // Save global preference
         sharedPreferences.edit {
             putBoolean(MOTION_SENSING_KEY, enabled)
         }
@@ -91,7 +125,7 @@ class CharacterSettingsViewModel @Inject constructor(
 
     fun setUseButtonControls(useButtons: Boolean) {
         _useButtonControls.value = useButtons
-        // Save preference
+        // Save global preference
         sharedPreferences.edit {
             putBoolean(USE_BUTTON_CONTROLS_KEY, useButtons)
         }
@@ -149,10 +183,6 @@ class CharacterSettingsViewModel @Inject constructor(
                     xPosition = _xPosition.value
                 )
 
-                // Save to repository for persistence
-                characterRepository.updateCharacter(updated)
-                _character.value = updated
-
                 // Send live update to service
                 sendLiveUpdateToService(updated)
             }
@@ -170,6 +200,9 @@ class CharacterSettingsViewModel @Inject constructor(
     fun saveSettings() {
         viewModelScope.launch {
             _character.value?.let { current ->
+                // Save character-specific settings to SharedPreferences
+                saveCharacterSpecificSettings(current.id)
+
                 val updated = current.copy(
                     speed = _speed.value,
                     width = _size.value,
@@ -178,8 +211,6 @@ class CharacterSettingsViewModel @Inject constructor(
                     yPosition = _yPosition.value,
                     xPosition = _xPosition.value
                 )
-                characterRepository.updateCharacter(updated)
-                _character.value = updated
 
                 // Send final update to service if running
                 if (_isCharacterRunning.value) {
@@ -192,7 +223,15 @@ class CharacterSettingsViewModel @Inject constructor(
     fun startCharacterTest() {
         viewModelScope.launch {
             _character.value?.let { character ->
-                overlayManager.addCharacter(character)
+                val testCharacter = character.copy(
+                    speed = _speed.value,
+                    width = _size.value,
+                    height = _size.value,
+                    animationDelay = _animationDelay.value,
+                    yPosition = _yPosition.value,
+                    xPosition = _xPosition.value
+                )
+                overlayManager.addCharacter(testCharacter)
                 _isCharacterRunning.value = true
             }
         }
@@ -209,18 +248,24 @@ class CharacterSettingsViewModel @Inject constructor(
 
     fun resetToDefaults() {
         viewModelScope.launch {
-            _character.value?.id?.let { characterId ->
-                val defaultCharacter = characterRepository.getDefaultCharacter(characterId)
+            _character.value?.let { character ->
+                // Remove character-specific settings from SharedPreferences
+                sharedPreferences.edit {
+                    remove(character.id + SPEED_SUFFIX)
+                    remove(character.id + SIZE_SUFFIX)
+                    remove(character.id + ANIMATION_DELAY_SUFFIX)
+                    remove(character.id + Y_POSITION_SUFFIX)
+                    remove(character.id + X_POSITION_SUFFIX)
+                }
+
+                // Reset to original character values
+                val defaultCharacter = characterRepository.getDefaultCharacter(character.id)
                 defaultCharacter?.let { default ->
                     _speed.value = default.speed
-                    _size.value = default.width // Use width as the single size value
+                    _size.value = default.width
                     _animationDelay.value = default.animationDelay
                     _yPosition.value = default.yPosition
                     _xPosition.value = default.xPosition
-
-                    // Also save the reset values
-                    characterRepository.resetCharacterToDefault(characterId)
-                    _character.value = default
 
                     // Send live update to service if running
                     if (_isCharacterRunning.value) {

@@ -26,18 +26,25 @@ import java.lang.ref.WeakReference
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val characterRepository: CharacterRepository
+    private val characterRepository: CharacterRepository,
+    private val sharedPreferences: SharedPreferences
 ) : ViewModel() {
 
     private val _showPermissionDialog = MutableStateFlow(false)
     val showPermissionDialog: StateFlow<Boolean> = _showPermissionDialog.asStateFlow()
 
-    private lateinit var sharedPreferences: SharedPreferences
     private var isDialogStateInitialized = false
 
     companion object {
         private const val PREFS_NAME = "overlay_pets_prefs"
         private const val KEY_DONT_SHOW_PERMISSION_DIALOG = "dont_show_permission_dialog"
+
+        // Keys for character-specific settings
+        private const val SPEED_SUFFIX = "_speed"
+        private const val SIZE_SUFFIX = "_size"
+        private const val ANIMATION_DELAY_SUFFIX = "_animation_delay"
+        private const val Y_POSITION_SUFFIX = "_y_position"
+        private const val X_POSITION_SUFFIX = "_x_position"
     }
 
     private val _allCharacters = MutableStateFlow<List<Characters>>(emptyList())
@@ -131,22 +138,67 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val allChars = characterRepository.getAllCharacters()
             _allCharacters.value = allChars
-
         }
     }
 
     fun startCharacter(context: Context, character: Characters) {
-        OverlayService.Companion.startCharacter(context, character)
-        _runningCharacters.value = _runningCharacters.value + character.id
+        viewModelScope.launch {
+            try {
+                // Load character-specific settings from SharedPreferences
+                val characterWithCustomSettings = loadCharacterCustomSettings(character)
+
+                // Use the static companion method from OverlayService
+                OverlayService.startCharacter(context, characterWithCustomSettings)
+                _runningCharacters.value = _runningCharacters.value + character.id
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun loadCharacterCustomSettings(character: Characters): Characters {
+        val characterId = character.id
+
+        // Load character-specific settings with fallback to original values
+        val customSpeed = sharedPreferences.getInt(
+            characterId + SPEED_SUFFIX,
+            character.speed
+        )
+        val customSize = sharedPreferences.getInt(
+            characterId + SIZE_SUFFIX,
+            character.width
+        )
+        val customAnimationDelay = sharedPreferences.getLong(
+            characterId + ANIMATION_DELAY_SUFFIX,
+            character.animationDelay
+        )
+        val customYPosition = sharedPreferences.getInt(
+            characterId + Y_POSITION_SUFFIX,
+            character.yPosition
+        )
+        val customXPosition = sharedPreferences.getInt(
+            characterId + X_POSITION_SUFFIX,
+            character.xPosition
+        )
+
+        // Return character with custom settings applied
+        return character.copy(
+            speed = customSpeed,
+            width = customSize,
+            height = customSize, // Use same value for both width and height
+            animationDelay = customAnimationDelay,
+            yPosition = customYPosition,
+            xPosition = customXPosition
+        )
     }
 
     fun stopCharacter(context: Context, characterId: String) {
-        OverlayService.Companion.stopCharacter(context, characterId)
+        OverlayService.stopCharacter(context, characterId)
         _runningCharacters.value = _runningCharacters.value - characterId
     }
 
     fun clearAllRunningCharacters(context: Context) {
-        OverlayService.Companion.stopAllCharacters(context)
+        OverlayService.stopAllCharacters(context)
         _runningCharacters.value = emptySet()
     }
 
@@ -164,8 +216,8 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun initializeDialogState(context: Context) {
-        sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val shouldShow = !sharedPreferences.getBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, false)
+        val dialogPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val shouldShow = !dialogPrefs.getBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, false)
         _showPermissionDialog.value = shouldShow
     }
 
@@ -174,9 +226,9 @@ class HomeViewModel @Inject constructor(
     }
 
     fun setDontShowPermissionDialogAgain() {
-        sharedPreferences.edit {
-            putBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, true)
-        }
+        val dialogPrefs = sharedPreferences.edit()
+        dialogPrefs.putBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, true)
+        dialogPrefs.apply()
         _showPermissionDialog.value = false
     }
 

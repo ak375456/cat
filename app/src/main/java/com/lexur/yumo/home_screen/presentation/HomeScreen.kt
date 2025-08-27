@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -16,7 +15,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,7 +27,6 @@ import com.lexur.yumo.home_screen.presentation.components.EnhancedPermissionWarn
 import com.lexur.yumo.ui.theme.Background
 import com.lexur.yumo.ui.theme.IconOnPrimary
 import com.lexur.yumo.ui.theme.OnTopBar
-import com.lexur.yumo.ui.theme.SurfaceVariant
 import com.lexur.yumo.ui.theme.TopBarBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
