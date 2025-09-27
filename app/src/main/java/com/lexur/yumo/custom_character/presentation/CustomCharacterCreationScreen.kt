@@ -1,13 +1,17 @@
 package com.lexur.yumo.custom_character.presentation
 
 
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
@@ -18,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
@@ -27,6 +32,8 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -35,12 +42,15 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import android.view.MotionEvent
 import androidx.navigation.NavController
+import androidx.core.graphics.scale
+import androidx.core.graphics.createBitmap
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomCharacterCreationScreen(
     navController: NavController,
-    viewModel: CustomCharacterCreationViewModel = hiltViewModel()
+    viewModel: CustomCharacterCreationViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -139,7 +149,7 @@ fun CustomCharacterCreationScreen(
                                 brushSize = uiState.brushSize,
                                 isBackgroundRemovalMode = uiState.isBackgroundRemovalMode,
                                 maskPath = uiState.maskPath,
-                                currentStrokePath = uiState.currentStrokePath, // Pass the new path
+                                currentStrokePath = uiState.currentStrokePath,
                                 previewPosition = uiState.previewPosition,
                                 onDrawStart = viewModel::startDrawing,
                                 onDrawContinue = viewModel::continueDrawing,
@@ -164,7 +174,7 @@ fun CustomCharacterCreationScreen(
                                     Slider(
                                         value = uiState.brushSize,
                                         onValueChange = { viewModel.updateBrushSize(it) },
-                                        valueRange = 10f..100f,
+                                        valueRange = 10f..300f,
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                     Box(
@@ -224,7 +234,7 @@ fun CustomCharacterCreationScreen(
 @Composable
 fun NameCharacterDialog(
     onNameSelected: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
     AlertDialog(
@@ -258,53 +268,38 @@ fun NameCharacterDialog(
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun BackgroundRemovalCanvas(
-    imageUri: android.net.Uri,
+    imageUri: Uri,
     brushSize: Float,
     isBackgroundRemovalMode: Boolean,
     maskPath: Path,
-    currentStrokePath: Path, // Receive the new path
+    currentStrokePath: Path,
     previewPosition: Offset?,
     onDrawStart: (Offset) -> Unit,
     onDrawContinue: (Offset) -> Unit,
     onDrawEnd: () -> Unit,
     onPreviewMove: (Offset?) -> Unit,
-    onCanvasSize: (IntSize) -> Unit
+    onCanvasSize: (IntSize) -> Unit,
 ) {
     val context = LocalContext.current
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 
-    val processedImageBitmap = remember(maskPath, canvasSize, imageUri) {
-        if (canvasSize == IntSize.Zero) return@remember null
-
-        val originalBitmap = context.contentResolver.openInputStream(imageUri)?.use {
-            android.graphics.BitmapFactory.decodeStream(it)
-        } ?: return@remember null
-
-        val scaledBitmap = android.graphics.Bitmap.createScaledBitmap(
-            originalBitmap,
-            canvasSize.width,
-            canvasSize.height,
-            true
-        )
-
-        val resultBitmap = android.graphics.Bitmap.createBitmap(
-            canvasSize.width,
-            canvasSize.height,
-            android.graphics.Bitmap.Config.ARGB_8888
-        )
-        val resultCanvas = android.graphics.Canvas(resultBitmap)
-
-        resultCanvas.drawBitmap(scaledBitmap, 0f, 0f, null)
-
-        if (!maskPath.isEmpty) {
-            val erasePaint = android.graphics.Paint().apply {
-                xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_OUT)
-                isAntiAlias = true
-            }
-            resultCanvas.drawPath(maskPath.asAndroidPath(), erasePaint)
+    val imageBitmap by produceState<ImageBitmap?>(initialValue = null, key1 = imageUri) {
+        value = try {
+            context.contentResolver.openInputStream(imageUri)?.use {
+                BitmapFactory.decodeStream(it)
+            }?.asImageBitmap()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
+    }
 
-        resultBitmap.asImageBitmap()
+    val transformation = remember(imageBitmap, canvasSize) {
+        if (imageBitmap == null || canvasSize == IntSize.Zero) {
+            null
+        } else {
+            calculateImageTransformation(imageBitmap!!, canvasSize)
+        }
     }
 
     Box(
@@ -319,21 +314,26 @@ private fun BackgroundRemovalCanvas(
                 }
             }
     ) {
-        // Background checkerboard pattern to show transparency
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCheckerboard()
         }
 
-        // Display the processed image if it exists, otherwise display the original.
-        if (processedImageBitmap != null) {
-            Image(
-                bitmap = processedImageBitmap,
-                contentDescription = "Character Image",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
-            )
+        // Draw the image with proper transformation
+        if (imageBitmap != null && transformation != null) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawImage(
+                    image = imageBitmap!!,
+                    dstOffset = IntOffset(
+                        transformation.imageOffset.x.roundToInt(),
+                        transformation.imageOffset.y.roundToInt()
+                    ),
+                    dstSize = IntSize(
+                        transformation.displayedImageSize.width.roundToInt(),
+                        transformation.displayedImageSize.height.roundToInt()
+                    )
+                )
+            }
         } else {
-            // Show original image initially to get canvas size.
             Image(
                 painter = rememberAsyncImagePainter(model = imageUri),
                 contentDescription = "Character Image",
@@ -342,8 +342,6 @@ private fun BackgroundRemovalCanvas(
             )
         }
 
-
-        // Overlay canvas for drawing and preview
         if (isBackgroundRemovalMode) {
             Canvas(
                 modifier = Modifier
@@ -366,26 +364,16 @@ private fun BackgroundRemovalCanvas(
                                 onPreviewMove(null)
                                 true
                             }
-                            MotionEvent.ACTION_HOVER_MOVE -> {
-                                onPreviewMove(offset)
-                                true
-                            }
-                            MotionEvent.ACTION_HOVER_EXIT -> {
-                                onPreviewMove(null)
-                                true
-                            }
                             else -> false
                         }
                     }
             ) {
-                // OPTIMIZATION: Draw the current, in-progress stroke path for immediate feedback.
                 drawPath(
                     path = currentStrokePath,
                     color = Color.Red.copy(alpha = 0.2f),
                     style = Fill
                 )
 
-                // Draw preview circle cursor
                 previewPosition?.let { position ->
                     drawCircle(
                         color = Color.White,
@@ -399,16 +387,140 @@ private fun BackgroundRemovalCanvas(
                         center = position,
                         style = Stroke(width = 2.dp.toPx())
                     )
-                    drawCircle(
-                        color = Color.Red.copy(alpha = 0.2f),
-                        radius = brushSize / 2,
-                        center = position,
-                        style = Fill
-                    )
                 }
             }
         }
+
+        // Show magnifier only when we have valid transformation data
+        if (isBackgroundRemovalMode &&
+            previewPosition != null &&
+            imageBitmap != null &&
+            transformation != null) {
+
+            MagnifierPreview(
+                position = previewPosition,
+                imageBitmap = imageBitmap!!,
+                transformation = transformation,
+                brushSize = brushSize
+            )
+        }
     }
+}
+
+@Composable
+private fun MagnifierPreview(
+    position: Offset,
+    imageBitmap: ImageBitmap,
+    transformation: ImageTransformation,
+    brushSize: Float
+) {
+    val loupeSize = 120.dp
+    val magnification = 2.5f
+    val loupeSizePx = with(LocalDensity.current) { loupeSize.toPx() }
+
+    // Calculate the actual position on the original image
+    val imagePosition = calculateImagePosition(position, transformation)
+
+    // Only show magnifier if the position is within the image bounds
+    if (imagePosition.x < 0 || imagePosition.y < 0 ||
+        imagePosition.x >= imageBitmap.width || imagePosition.y >= imageBitmap.height) {
+        return
+    }
+
+    // Calculate source rectangle for the magnifier
+    val srcSize = IntSize(
+        (loupeSizePx / magnification).roundToInt(),
+        (loupeSizePx / magnification).roundToInt()
+    )
+
+    val srcOffset = IntOffset(
+        (imagePosition.x - srcSize.width / 2).coerceIn(0f, (imageBitmap.width - srcSize.width).toFloat()).roundToInt(),
+        (imagePosition.y - srcSize.height / 2).coerceIn(0f, (imageBitmap.height - srcSize.height).toFloat()).roundToInt()
+    )
+
+    // Calculate magnifier position (avoid going off-screen)
+    val loupeOffset = calculateLoupePosition(position, loupeSizePx, transformation.displayedImageSize)
+
+    Canvas(
+        modifier = Modifier
+            .size(loupeSize)
+            .offset { IntOffset(loupeOffset.x.roundToInt(), loupeOffset.y.roundToInt()) }
+            .shadow(4.dp, CircleShape)
+            .clip(CircleShape)
+            .background(Color.White)
+            .border(2.dp, Color.DarkGray, CircleShape)
+    ) {
+        // Draw magnified image
+        drawImage(
+            image = imageBitmap,
+            srcOffset = srcOffset,
+            srcSize = srcSize,
+            dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt())
+        )
+
+        // Draw brush preview in magnifier
+        val brushRadiusInLoupe = (brushSize / 2) / transformation.scaleFactor * magnification
+        val center = this.center
+
+        drawCircle(
+            color = Color.Red.copy(alpha = 0.3f),
+            radius = brushRadiusInLoupe,
+            center = center,
+            style = Fill
+        )
+        drawCircle(
+            color = Color.Red,
+            radius = brushRadiusInLoupe,
+            center = center,
+            style = Stroke(width = 1.dp.toPx())
+        )
+
+        // Draw crosshair
+        val crosshairSize = 8.dp.toPx()
+        drawLine(
+            Color.Black.copy(alpha = 0.5f),
+            start = Offset(center.x - crosshairSize, center.y),
+            end = Offset(center.x + crosshairSize, center.y),
+            strokeWidth = 1.dp.toPx()
+        )
+        drawLine(
+            Color.Black.copy(alpha = 0.5f),
+            start = Offset(center.x, center.y - crosshairSize),
+            end = Offset(center.x, center.y + crosshairSize),
+            strokeWidth = 1.dp.toPx()
+        )
+    }
+}
+
+private fun calculateImagePosition(touchPosition: Offset, transformation: ImageTransformation): Offset {
+    // Convert touch position to image coordinates
+    val imageX = (touchPosition.x - transformation.imageOffset.x) / transformation.scaleFactor
+    val imageY = (touchPosition.y - transformation.imageOffset.y) / transformation.scaleFactor
+
+    return Offset(imageX, imageY)
+}
+
+@Composable
+private fun calculateLoupePosition(
+    touchPosition: Offset,
+    loupeSizePx: Float,
+    imageSize: Size
+): Offset {
+    val density = LocalDensity.current
+    val margin = with(density) { 16.dp.toPx() }
+
+    val loupeRadius = loupeSizePx / 2
+
+    return Offset(
+        x = (touchPosition.x - loupeRadius).coerceIn(
+            margin,
+            imageSize.width - loupeSizePx - margin
+        ),
+        y = (touchPosition.y - loupeSizePx - margin).coerceIn(
+            margin,
+            imageSize.height - loupeSizePx - margin
+        )
+    )
 }
 
 private fun DrawScope.drawCheckerboard() {
@@ -428,3 +540,46 @@ private fun DrawScope.drawCheckerboard() {
     }
 }
 
+data class ImageTransformation(
+    val scaleFactor: Float,
+    val imageOffset: Offset,
+    val displayedImageSize: Size
+)
+
+fun calculateImageTransformation(
+    imageBitmap: ImageBitmap,
+    canvasSize: IntSize
+): ImageTransformation {
+    val imageRatio = imageBitmap.width.toFloat() / imageBitmap.height
+    val canvasRatio = canvasSize.width.toFloat() / canvasSize.height
+
+    val scaleFactor: Float
+    val displayedImageSize: Size
+    val imageOffset: Offset
+
+    if (imageRatio > canvasRatio) {
+        // Image is wider than canvas - fit to width
+        scaleFactor = canvasSize.width.toFloat() / imageBitmap.width
+        displayedImageSize = Size(
+            width = canvasSize.width.toFloat(),
+            height = imageBitmap.height * scaleFactor
+        )
+        imageOffset = Offset(
+            x = 0f,
+            y = (canvasSize.height - displayedImageSize.height) / 2
+        )
+    } else {
+        // Image is taller than canvas - fit to height
+        scaleFactor = canvasSize.height.toFloat() / imageBitmap.height
+        displayedImageSize = Size(
+            width = imageBitmap.width * scaleFactor,
+            height = canvasSize.height.toFloat()
+        )
+        imageOffset = Offset(
+            x = (canvasSize.width - displayedImageSize.width) / 2,
+            y = 0f
+        )
+    }
+
+    return ImageTransformation(scaleFactor, imageOffset, displayedImageSize)
+}

@@ -45,6 +45,7 @@ data class CustomCharacterUiState(
     val lastDrawnPoint: Offset? = null,
     val selectedRopeResId: Int? = null,
     val characterName: String = "",
+    val imageTransformation: ImageTransformation? = null
 )
 
 @HiltViewModel
@@ -162,9 +163,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
     }
 
     fun updatePreviewPosition(position: Offset?) {
-        if (!_uiState.value.isDrawing) {
-            _uiState.value = _uiState.value.copy(previewPosition = position)
-        }
+        _uiState.value = _uiState.value.copy(previewPosition = position)
     }
 
     fun updateCanvasSize(size: IntSize) {
@@ -294,5 +293,11 @@ class CustomCharacterCreationViewModel @Inject constructor(
             e.printStackTrace()
             null
         }
+    }
+
+
+    // Add this function to your ViewModel
+    fun updateImageTransformation(transformation: ImageTransformation?) {
+        _uiState.update { it.copy(imageTransformation = transformation) }
     }
 }
