@@ -16,7 +16,9 @@ data class Characters(
     val previewWidth: Int = 80,
     val previewHeight: Int = 80,
     val speed: Int = 3, // pixels per frame
-    val animationDelay: Long = 100L // milliseconds
+    val animationDelay: Long = 100L, // milliseconds
+    val isCustom: Boolean = false,
+    val imagePath: String? = null
 ) : Parcelable {
 
     // Helper property to check if character is hanging (static)

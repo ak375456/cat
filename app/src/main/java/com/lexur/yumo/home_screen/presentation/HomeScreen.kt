@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.lexur.yumo.componenets.PermissionExplanationDialog
 import com.lexur.yumo.home_screen.presentation.components.AnimatedCharacterPreview
 import com.lexur.yumo.home_screen.presentation.components.CategoryFilterSection
@@ -36,7 +37,8 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToCharacterSettings: (String) -> Unit = {},
     onNavigateToCustomCharacterCreation: () -> Unit,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    navController: NavController,
 ) {
     val context = LocalContext.current
     val characters by viewModel.filteredCharacters.collectAsState()
@@ -131,14 +133,9 @@ fun HomeScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.onFabClicked() },
-                containerColor = TopBarBackground
+                onClick = { navController.navigate("custom_character_creation") },
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add custom character",
-                    tint = IconOnPrimary
-                )
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Add custom character")
             }
         }
     ) { innerPadding ->

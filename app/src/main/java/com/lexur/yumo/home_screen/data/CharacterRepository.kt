@@ -7,13 +7,18 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import androidx.core.content.edit
 import com.lexur.yumo.R
+import com.lexur.yumo.custom_character.domain.CustomCharacter
+import com.lexur.yumo.custom_character.domain.CustomCharacterDao
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class CharacterRepository @Inject constructor(
     private val sharedPreferences: SharedPreferences,
-    private val gson: Gson
+    private val gson: Gson,
+    private val customCharacterDao: CustomCharacterDao
 ) {
     companion object {
         private const val CHARACTERS_KEY = "saved_characters"
@@ -529,6 +534,11 @@ class CharacterRepository @Inject constructor(
 
     )
 
+
+    suspend fun insertCustomCharacter(character: CustomCharacter) {
+        customCharacterDao.insertCharacter(character)
+    }
+
     private fun loadCharacters(): Map<String, Characters> {
         val savedJson = sharedPreferences.getString(CHARACTERS_KEY, null)
         return if (savedJson != null) {
@@ -553,9 +563,20 @@ class CharacterRepository @Inject constructor(
         sharedPreferences.edit { putString(CHARACTERS_KEY, json) }
     }
 
-    fun getAllCharacters(): List<Characters> {
-        val characters = loadCharacters().values.toList()
-        return characters
+    fun getAllCharacters(): Flow<List<Characters>> {
+        return customCharacterDao.getAllCharacters().map { customCharacters ->
+            val customMapped = customCharacters.map {
+                Characters(
+                    id = "custom_${it.id}",
+                    name = it.name,
+                    category = CharacterCategory.HANGING,
+                    frameIds = emptyList(), // Will be loaded from path
+                    imagePath = it.imagePath,
+                    isCustom = true
+                )
+            }
+            defaultCharacters + customMapped
+        }
     }
 
     fun getCharacterById(id: String): Characters? {

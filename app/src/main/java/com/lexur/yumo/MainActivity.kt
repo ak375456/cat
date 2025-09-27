@@ -48,7 +48,8 @@ fun NavigationGraph() {
                 },
                 onNavigateToCustomCharacterCreation = {
                     navController.navigate(Screen.CustomCharacterCreation.route)
-                }
+                },
+                navController = navController
             )
         }
 
@@ -70,7 +71,9 @@ fun NavigationGraph() {
         }
 
         composable(Screen.CustomCharacterCreation.route) {
-            CustomCharacterCreationScreen()
+            CustomCharacterCreationScreen(
+                navController = navController,
+            )
         }
     }
 }

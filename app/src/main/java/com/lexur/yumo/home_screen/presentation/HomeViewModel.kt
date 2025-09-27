@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import androidx.core.content.edit
 import com.lexur.yumo.home_screen.data.model.CharacterCategory
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -139,8 +138,9 @@ class HomeViewModel @Inject constructor(
 
     private fun loadAllCharacters() {
         viewModelScope.launch {
-            val allChars = characterRepository.getAllCharacters()
-            _allCharacters.value = allChars
+            characterRepository.getAllCharacters().collect { allChars ->
+                _allCharacters.value = allChars
+            }
         }
     }
 
@@ -244,6 +244,8 @@ class HomeViewModel @Inject constructor(
         _selectedCategory.value = category
     }
 
+
+
     fun clearCategoryFilter() {
         _selectedCategory.value = null
     }
@@ -262,3 +264,4 @@ class HomeViewModel @Inject constructor(
         overlayServiceRef = null
     }
 }
+

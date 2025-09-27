@@ -2,10 +2,13 @@ package com.lexur.yumo.di
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.room.Room
 import com.google.firebase.firestore.FirebaseFirestore
 import com.lexur.yumo.MotionSensorManager
 import com.lexur.yumo.SimpleOverlayManager
 import com.google.gson.Gson
+import com.lexur.yumo.custom_character.domain.AppDatabase
+import com.lexur.yumo.custom_character.domain.CustomCharacterDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,6 +19,22 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+    @Provides
+    @Singleton
+    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
+        return Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "yumo_database"
+        ).build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideCustomCharacterDao(appDatabase: AppDatabase): CustomCharacterDao {
+        return appDatabase.customCharacterDao()
+    }
+
 
     @Provides
     @Singleton

@@ -90,4 +90,9 @@ dependencies {
 
     implementation("io.coil-kt:coil-compose:2.5.0")
     implementation ("androidx.compose.material:material-icons-extended")
+    val room_version = "2.8.1"
+
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+    ksp("androidx.room:room-compiler:$room_version") // Use ksp instead of kapt
 }

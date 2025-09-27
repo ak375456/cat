@@ -50,6 +50,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil.compose.rememberAsyncImagePainter
 import com.lexur.yumo.home_screen.data.model.CharacterCategory
 import com.lexur.yumo.home_screen.data.model.Characters
 import com.lexur.yumo.ui.theme.ButtonPrimary
@@ -131,22 +132,25 @@ fun AnimatedCharacterPreview(
                     modifier = Modifier
                         .size(100.dp)
                 ) {
-                    if (character != null) {
+                    if (character!!.isCustom) {
                         Image(
-                            painter = painterResource(id = character.frameIds[currentFrame]),
+                            painter = rememberAsyncImagePainter(model = character.imagePath),
+                            contentDescription = character?.name,
+                            modifier = Modifier.size(
+                                (character?.previewWidth!! * 0.7).dp,
+                                (character.previewHeight * 0.7).dp
+                            ),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = character!!.frameIds[currentFrame]),
                             contentDescription = character.name,
                             modifier = Modifier.size(
                                 (character.previewWidth * 0.7).dp,
                                 (character.previewHeight * 0.7).dp
                             ),
                             contentScale = ContentScale.Fit
-                        )
-                    } else {
-                        // Show a loading indicator if the character data is not yet available
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(28.dp),
-                            strokeWidth = 2.5.dp,
-                            color = Primary
                         )
                     }
                 }
