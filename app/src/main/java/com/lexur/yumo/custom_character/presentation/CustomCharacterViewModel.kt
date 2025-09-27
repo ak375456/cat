@@ -33,10 +33,13 @@ data class CustomCharacterUiState(
     val selectedImageUri: Uri? = null,
     val isBackgroundRemovalMode: Boolean = false,
     val brushSize: Float = 30f,
+    // This now holds only the completed strokes.
     val maskPath: Path = Path(),
+    // OPTIMIZATION: A separate path for the stroke currently being drawn.
     val currentStrokePath: Path = Path(),
     val previewPosition: Offset? = null,
     val canvasSize: IntSize = IntSize.Zero,
+    // Stores the state of maskPath before each new stroke.
     val strokeHistory: List<Path> = emptyList(),
     val isDrawing: Boolean = false,
     val lastDrawnPoint: Offset? = null,
@@ -53,32 +56,39 @@ class CustomCharacterCreationViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
 
     fun onImageSelected(uri: Uri?) {
-        _uiState.value = _uiState.value.copy(
-            selectedImageUri = uri,
-            isBackgroundRemovalMode = false,
-            maskPath = Path(),
-            currentStrokePath = Path(),
-            strokeHistory = emptyList(),
-            lastDrawnPoint = null
-        )
+        _uiState.update {
+            it.copy(
+                selectedImageUri = uri,
+                isBackgroundRemovalMode = false,
+                maskPath = Path(),
+                currentStrokePath = Path(),
+                strokeHistory = emptyList(),
+                lastDrawnPoint = null
+            )
+        }
     }
 
     fun toggleBackgroundRemovalMode() {
-        _uiState.value = _uiState.value.copy(
-            isBackgroundRemovalMode = !_uiState.value.isBackgroundRemovalMode,
-            previewPosition = null
-        )
+        _uiState.update {
+            it.copy(
+                isBackgroundRemovalMode = !it.isBackgroundRemovalMode,
+                previewPosition = null
+            )
+        }
     }
 
     fun updateBrushSize(size: Float) {
         _uiState.update { it.copy(brushSize = size) }
     }
 
+    // OPTIMIZATION: Called when the user first touches the screen.
     fun startDrawing(offset: Offset) {
         _uiState.update { currentState ->
+            // Save the current state of the mask for the undo functionality.
             val newHistory = currentState.strokeHistory + currentState.maskPath
-            val newMaskPath = Path().apply {
-                addPath(currentState.maskPath)
+
+            // Start a new path for the current stroke.
+            val newStrokePath = Path().apply {
                 addOval(
                     androidx.compose.ui.geometry.Rect(
                         center = offset,
@@ -87,7 +97,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
                 )
             }
             currentState.copy(
-                maskPath = newMaskPath,
+                currentStrokePath = newStrokePath,
                 strokeHistory = newHistory,
                 isDrawing = true,
                 lastDrawnPoint = offset
@@ -95,43 +105,56 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
     }
 
+    // OPTIMIZATION: Called when the user drags their finger.
+    // This now only updates the lightweight `currentStrokePath`, preventing lag.
     fun continueDrawing(offset: Offset) {
         if (!_uiState.value.isDrawing) return
 
         _uiState.update { currentState ->
             val lastPoint = currentState.lastDrawnPoint ?: return@update currentState
 
-            val newMaskPath = Path().apply { addPath(currentState.maskPath) }
+            val newStrokePath = Path().apply {
+                addPath(currentState.currentStrokePath)
 
-            // Interpolate points for a smoother line
-            val distance = kotlin.math.sqrt(
-                (offset.x - lastPoint.x).pow(2) + (offset.y - lastPoint.y).pow(2)
-            )
-            val steps = (distance / (currentState.brushSize * 0.25f)).toInt().coerceAtLeast(1)
+                // Interpolate points for a smoother line
+                val distance = kotlin.math.sqrt(
+                    (offset.x - lastPoint.x).pow(2) + (offset.y - lastPoint.y).pow(2)
+                )
+                val steps = (distance / (currentState.brushSize * 0.25f)).toInt().coerceAtLeast(1)
 
-            for (i in 0..steps) {
-                val t = i.toFloat() / steps
-                val interpolatedPoint = Offset(
-                    lastPoint.x + (offset.x - lastPoint.x) * t,
-                    lastPoint.y + (offset.y - lastPoint.y) * t
-                )
-                val oval = androidx.compose.ui.geometry.Rect(
-                    center = interpolatedPoint,
-                    radius = currentState.brushSize / 2
-                )
-                newMaskPath.addOval(oval)
+                for (i in 0..steps) {
+                    val t = i.toFloat() / steps
+                    val interpolatedPoint = Offset(
+                        lastPoint.x + (offset.x - lastPoint.x) * t,
+                        lastPoint.y + (offset.y - lastPoint.y) * t
+                    )
+                    val oval = androidx.compose.ui.geometry.Rect(
+                        center = interpolatedPoint,
+                        radius = currentState.brushSize / 2
+                    )
+                    addOval(oval)
+                }
             }
 
             currentState.copy(
-                maskPath = newMaskPath,
+                currentStrokePath = newStrokePath,
                 lastDrawnPoint = offset
             )
         }
     }
 
+    // OPTIMIZATION: Called when the user lifts their finger.
     fun endDrawing() {
-        _uiState.update {
-            it.copy(
+        _uiState.update { currentState ->
+            // The drawing is finished, so merge the current stroke into the main mask path.
+            // The expensive bitmap processing will happen now, just once per stroke.
+            val newMaskPath = Path().apply {
+                addPath(currentState.maskPath)
+                addPath(currentState.currentStrokePath)
+            }
+            currentState.copy(
+                maskPath = newMaskPath,
+                currentStrokePath = Path(), // Clear the temporary stroke path.
                 isDrawing = false,
                 lastDrawnPoint = null
             )
@@ -149,15 +172,18 @@ class CustomCharacterCreationViewModel @Inject constructor(
     }
 
     fun undoLastStroke() {
-        val currentState = _uiState.value
-        if (currentState.strokeHistory.isNotEmpty()) {
-            val previousPath = currentState.strokeHistory.last()
-            _uiState.value = currentState.copy(
-                maskPath = previousPath,
-                strokeHistory = currentState.strokeHistory.dropLast(1)
-            )
-        } else {
-            _uiState.value = currentState.copy(maskPath = Path())
+        _uiState.update { currentState ->
+            if (currentState.strokeHistory.isNotEmpty()) {
+                val previousPath = currentState.strokeHistory.last()
+                currentState.copy(
+                    maskPath = previousPath,
+                    strokeHistory = currentState.strokeHistory.dropLast(1),
+                    currentStrokePath = Path() // Ensure any in-progress drawing is cancelled
+                )
+            } else {
+                // If no history, clear everything.
+                currentState.copy(maskPath = Path(), currentStrokePath = Path())
+            }
         }
     }
 
@@ -214,20 +240,16 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
         val scaledBitmap = originalBitmap.scale(canvasSize.width, canvasSize.height)
 
-        // Create result bitmap with transparency
         val resultBitmap = createBitmap(canvasSize.width, canvasSize.height)
         val resultCanvas = Canvas(resultBitmap)
 
-        // Draw the original image
         resultCanvas.drawBitmap(scaledBitmap, 0f, 0f, null)
 
-        // Create erase paint with DST_OUT mode to remove drawn areas
         val erasePaint = Paint().apply {
             xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
             isAntiAlias = true
         }
 
-        // Draw the mask path to erase those areas
         resultCanvas.drawPath(maskPath.asAndroidPath(), erasePaint)
 
         return resultBitmap
