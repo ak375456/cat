@@ -26,6 +26,8 @@ import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
 import kotlin.math.pow
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
 
 data class CustomCharacterUiState(
     val selectedImageUri: Uri? = null,
@@ -39,12 +41,12 @@ data class CustomCharacterUiState(
     val isDrawing: Boolean = false,
     val lastDrawnPoint: Offset? = null,
     val selectedRopeResId: Int? = null,
-    val characterName: String = ""
+    val characterName: String = "",
 )
 
 @HiltViewModel
 class CustomCharacterCreationViewModel @Inject constructor(
-    private val characterRepository: CharacterRepository
+    private val characterRepository: CharacterRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CustomCharacterUiState())
@@ -136,22 +138,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
     }
 
-    private fun addPointToMask(offset: Offset) {
-        val currentState = _uiState.value
-        val newMaskPath = Path().apply {
-            addPath(currentState.maskPath)
-            addOval(androidx.compose.ui.geometry.Rect(center = offset, radius = currentState.brushSize / 2))
-        }
-        val newStrokePath = Path().apply {
-            addPath(currentState.currentStrokePath)
-            addOval(androidx.compose.ui.geometry.Rect(center = offset, radius = currentState.brushSize / 2))
-        }
-        _uiState.value = currentState.copy(
-            maskPath = newMaskPath,
-            currentStrokePath = newStrokePath
-        )
-    }
-
     fun updatePreviewPosition(position: Offset?) {
         if (!_uiState.value.isDrawing) {
             _uiState.value = _uiState.value.copy(previewPosition = position)
@@ -222,22 +208,22 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
     }
 
-    private fun processImage(context: Context, imageUri: Uri, maskPath: Path, canvasSize: IntSize): android.graphics.Bitmap {
+    private fun processImage(context: Context, imageUri: Uri, maskPath: Path, canvasSize: IntSize): Bitmap {
         val originalBitmap = context.contentResolver.openInputStream(imageUri).use {
             android.graphics.BitmapFactory.decodeStream(it)
         }
-        val scaledBitmap = android.graphics.Bitmap.createScaledBitmap(originalBitmap, canvasSize.width, canvasSize.height, true)
+        val scaledBitmap = originalBitmap.scale(canvasSize.width, canvasSize.height)
 
         // Create result bitmap with transparency
-        val resultBitmap = android.graphics.Bitmap.createBitmap(canvasSize.width, canvasSize.height, android.graphics.Bitmap.Config.ARGB_8888)
-        val resultCanvas = android.graphics.Canvas(resultBitmap)
+        val resultBitmap = createBitmap(canvasSize.width, canvasSize.height)
+        val resultCanvas = Canvas(resultBitmap)
 
         // Draw the original image
         resultCanvas.drawBitmap(scaledBitmap, 0f, 0f, null)
 
         // Create erase paint with DST_OUT mode to remove drawn areas
-        val erasePaint = android.graphics.Paint().apply {
-            xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_OUT)
+        val erasePaint = Paint().apply {
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
             isAntiAlias = true
         }
 
@@ -256,11 +242,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         val characterWidth = characterBitmap.width
         val characterHeight = characterBitmap.height
 
-        val combinedBitmap = Bitmap.createBitmap(
-            characterWidth,
-            ropeHeight + characterHeight,
-            Bitmap.Config.ARGB_8888
-        )
+        val combinedBitmap = createBitmap(characterWidth, ropeHeight + characterHeight)
         val canvas = Canvas(combinedBitmap)
 
         val ropeX = (characterWidth - ropeWidth) / 2f
