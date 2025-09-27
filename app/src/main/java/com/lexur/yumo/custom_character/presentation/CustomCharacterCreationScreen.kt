@@ -1,5 +1,8 @@
 package com.lexur.yumo.custom_character.presentation
 
+import android.graphics.Bitmap
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -268,8 +271,49 @@ private fun BackgroundRemovalCanvas(
     onPreviewMove: (Offset?) -> Unit,
     onCanvasSize: (IntSize) -> Unit
 ) {
+    val context = LocalContext.current
     val painter = rememberAsyncImagePainter(model = imageUri)
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+
+    // Create a processed image with the mask applied
+    val processedImageBitmap = remember(maskPath, canvasSize) {
+        if (canvasSize == IntSize.Zero) return@remember null
+
+        // Load the original bitmap
+        val originalBitmap = context.contentResolver.openInputStream(imageUri)?.use {
+            android.graphics.BitmapFactory.decodeStream(it)
+        } ?: return@remember null
+
+        // Scale to canvas size
+        val scaledBitmap = android.graphics.Bitmap.createScaledBitmap(
+            originalBitmap,
+            canvasSize.width,
+            canvasSize.height,
+            true
+        )
+
+        // Create result bitmap with transparency
+        val resultBitmap = android.graphics.Bitmap.createBitmap(
+            canvasSize.width,
+            canvasSize.height,
+            android.graphics.Bitmap.Config.ARGB_8888
+        )
+        val resultCanvas = android.graphics.Canvas(resultBitmap)
+
+        // Draw the original image
+        resultCanvas.drawBitmap(scaledBitmap, 0f, 0f, null)
+
+        // Apply the inverse mask to remove areas
+        if (maskPath != Path()) {
+            val erasePaint = android.graphics.Paint().apply {
+                xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_OUT)
+                isAntiAlias = true
+            }
+            resultCanvas.drawPath(maskPath.asAndroidPath(), erasePaint)
+        }
+
+        resultBitmap.asImageBitmap()
+    }
 
     Box(
         modifier = Modifier
@@ -277,18 +321,45 @@ private fun BackgroundRemovalCanvas(
             .clip(RoundedCornerShape(12.dp))
             .background(Color.LightGray.copy(alpha = 0.1f))
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) { drawCheckerboard() }
-        Image(
-            painter = painter,
-            contentDescription = "Character Image",
-            modifier = Modifier
-                .fillMaxSize()
-                .onGloballyPositioned { coordinates ->
-                    canvasSize = coordinates.size
-                    onCanvasSize(canvasSize)
-                },
-            contentScale = ContentScale.Fit
-        )
+        // Background checkerboard pattern to show transparency
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCheckerboard()
+        }
+
+        // Show either processed image or original based on whether we have edits
+        if (processedImageBitmap != null && maskPath != Path()) {
+            // Show the processed image with background removed
+            Canvas(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { coordinates ->
+                        if (canvasSize != coordinates.size) {
+                            canvasSize = coordinates.size
+                            onCanvasSize(coordinates.size)
+                        }
+                    }
+            ) {
+                drawImage(
+                    image = processedImageBitmap,
+                    topLeft = Offset.Zero
+                )
+            }
+        } else {
+            // Show original image
+            Image(
+                painter = painter,
+                contentDescription = "Character Image",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { coordinates ->
+                        canvasSize = coordinates.size
+                        onCanvasSize(coordinates.size)
+                    },
+                contentScale = ContentScale.Fit
+            )
+        }
+
+        // Overlay canvas for drawing and preview
         if (isBackgroundRemovalMode) {
             Canvas(
                 modifier = Modifier
@@ -312,33 +383,45 @@ private fun BackgroundRemovalCanvas(
                                 onPreviewMove(null)
                                 true
                             }
+                            MotionEvent.ACTION_HOVER_MOVE -> {
+                                val offset = Offset(event.x, event.y)
+                                onPreviewMove(offset)
+                                true
+                            }
+                            MotionEvent.ACTION_HOVER_EXIT -> {
+                                onPreviewMove(null)
+                                true
+                            }
                             else -> false
                         }
                     }
             ) {
+                // Draw semi-transparent overlay to show what will be removed
                 drawPath(
                     path = maskPath,
-                    color = Color.Red.copy(alpha = 0.4f),
+                    color = Color.Red.copy(alpha = 0.2f),
                     style = Fill
                 )
-                drawPath(
-                    path = maskPath,
-                    color = Color.Red.copy(alpha = 0.8f),
-                    style = Stroke(width = 1.dp.toPx())
-                )
+
+                // Draw preview circle cursor
                 previewPosition?.let { position ->
+                    // Outer ring (white for contrast)
                     drawCircle(
                         color = Color.White,
                         radius = brushSize / 2 + 2.dp.toPx(),
                         center = position,
                         style = Stroke(width = 2.dp.toPx())
                     )
+
+                    // Inner ring (red to indicate removal)
                     drawCircle(
                         color = Color.Red,
                         radius = brushSize / 2,
                         center = position,
                         style = Stroke(width = 2.dp.toPx())
                     )
+
+                    // Semi-transparent fill to show area
                     drawCircle(
                         color = Color.Red.copy(alpha = 0.2f),
                         radius = brushSize / 2,
@@ -351,6 +434,7 @@ private fun BackgroundRemovalCanvas(
     }
 }
 
+// Extension function to draw checkerboard pattern
 private fun DrawScope.drawCheckerboard() {
     val checkSize = 10.dp.toPx()
     val numChecksX = (size.width / checkSize).toInt() + 1
