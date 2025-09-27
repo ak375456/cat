@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,6 +35,7 @@ import com.lexur.yumo.ui.theme.TopBarBackground
 fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToCharacterSettings: (String) -> Unit = {},
+    onNavigateToCustomCharacterCreation: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -42,6 +44,7 @@ fun HomeScreen(
     var expandedCharacterId by remember { mutableStateOf<String?>(null) }
     val runningCharacters by viewModel.runningCharacters.collectAsState()
     val showPermissionDialog by viewModel.showPermissionDialog.collectAsState()
+    val showCreationDialog by viewModel.showCreationDialog.collectAsState()
 
     // Check permissions
     var hasOverlayPermission by remember { mutableStateOf(checkOverlayPermission(context)) }
@@ -72,6 +75,30 @@ fun HomeScreen(
         onDontShowAgain = { viewModel.setDontShowPermissionDialogAgain() },
         onContinue = { viewModel.dismissPermissionDialog() }
     )
+    if (showCreationDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onDismissCreationDialog() },
+            title = { Text("Create Your Own Character") },
+            text = { Text("Here, you can bring your own characters to life on your screen. They can be your partner, a friend, or anyone you can imagine!") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.onDismissCreationDialog()
+                        onNavigateToCustomCharacterCreation()
+                    }
+                ) {
+                    Text("Next")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { viewModel.onDismissCreationDialog() }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Scaffold(
         containerColor = Background, // Using custom background color
@@ -101,6 +128,18 @@ fun HomeScreen(
                     containerColor = TopBarBackground // Using main color for topbar
                 )
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { viewModel.onFabClicked() },
+                containerColor = TopBarBackground
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add custom character",
+                    tint = IconOnPrimary
+                )
+            }
         }
     ) { innerPadding ->
         Column(

@@ -87,4 +87,7 @@ dependencies {
     // Declare the dependency for the Cloud Firestore library
     // When using the BoM, you don't specify versions in Firebase library dependencies
     implementation("com.google.firebase:firebase-firestore")
+
+    implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation ("androidx.compose.material:material-icons-extended")
 }

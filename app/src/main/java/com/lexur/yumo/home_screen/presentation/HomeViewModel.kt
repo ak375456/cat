@@ -35,6 +35,9 @@ class HomeViewModel @Inject constructor(
 
     private var isDialogStateInitialized = false
 
+    private val _showCreationDialog = MutableStateFlow(false)
+    val showCreationDialog = _showCreationDialog.asStateFlow()
+
     companion object {
         private const val PREFS_NAME = "overlay_pets_prefs"
         private const val KEY_DONT_SHOW_PERMISSION_DIALOG = "dont_show_permission_dialog"
@@ -243,6 +246,14 @@ class HomeViewModel @Inject constructor(
 
     fun clearCategoryFilter() {
         _selectedCategory.value = null
+    }
+
+    fun onFabClicked() {
+        _showCreationDialog.value = true
+    }
+
+    fun onDismissCreationDialog() {
+        _showCreationDialog.value = false
     }
 
     override fun onCleared() {

@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.lexur.yumo.custom_character.presentation.CustomCharacterCreationScreen
 import com.lexur.yumo.navigation.Screen
 import com.lexur.yumo.navigation.SettingsScreen
 import com.lexur.yumo.home_screen.presentation.HomeScreen
@@ -44,6 +45,9 @@ fun NavigationGraph() {
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToCharacterSettings = { characterId ->
                     navController.navigate("character_settings/$characterId")
+                },
+                onNavigateToCustomCharacterCreation = {
+                    navController.navigate(Screen.CustomCharacterCreation.route)
                 }
             )
         }
@@ -63,6 +67,10 @@ fun NavigationGraph() {
                 characterId = characterId,
                 onNavigateBack = { navController.popBackStack() }
             )
+        }
+
+        composable(Screen.CustomCharacterCreation.route) {
+            CustomCharacterCreationScreen()
         }
     }
 }
