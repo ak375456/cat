@@ -1,7 +1,10 @@
 package com.lexur.yumo.custom_character.presentation
 
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -41,10 +44,7 @@ import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import android.view.MotionEvent
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.navigation.NavController
-import androidx.core.graphics.scale
-import androidx.core.graphics.createBitmap
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -303,6 +303,13 @@ private fun BackgroundRemovalCanvas(
         }
     }
 
+    // Create processed bitmap with transparency applied
+    val processedBitmap = remember(imageBitmap, maskPath, currentStrokePath) {
+        if (imageBitmap != null) {
+            createTransparentBitmap(imageBitmap!!, maskPath, currentStrokePath)
+        } else null
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -315,15 +322,29 @@ private fun BackgroundRemovalCanvas(
                 }
             }
     ) {
-        // Layer 1: Checkerboard background
+        // Layer 1: Checkerboard background (for transparency visualization)
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCheckerboard()
         }
 
-        // Layer 2: Original image with real-time masking
-        if (imageBitmap != null && transformation != null) {
+        // Layer 2: Image with transparent areas
+        if (processedBitmap != null && transformation != null) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                // Draw the image
+                drawImage(
+                    image = processedBitmap,
+                    dstOffset = IntOffset(
+                        transformation.imageOffset.x.roundToInt(),
+                        transformation.imageOffset.y.roundToInt()
+                    ),
+                    dstSize = IntSize(
+                        transformation.displayedImageSize.width.roundToInt(),
+                        transformation.displayedImageSize.height.roundToInt()
+                    )
+                )
+            }
+        } else if (imageBitmap != null && transformation != null) {
+            // Fallback to original image if processing failed
+            Canvas(modifier = Modifier.fillMaxSize()) {
                 drawImage(
                     image = imageBitmap!!,
                     dstOffset = IntOffset(
@@ -335,33 +356,6 @@ private fun BackgroundRemovalCanvas(
                         transformation.displayedImageSize.height.roundToInt()
                     )
                 )
-
-                // Apply the mask in real-time using BlendMode
-                drawIntoCanvas { canvas ->
-                    val paint = Paint().apply {
-                        blendMode = BlendMode.DstOut
-                        alpha = 1f
-                    }
-
-                    // Translate to match image position
-                    canvas.save()
-                    canvas.translate(
-                        transformation.imageOffset.x,
-                        transformation.imageOffset.y
-                    )
-                    canvas.scale(
-                        transformation.scaleFactor,
-                        transformation.scaleFactor
-                    )
-
-                    // Draw the completed mask
-                    canvas.drawPath(maskPath, paint)
-
-                    // Draw the current stroke (what's being drawn right now)
-                    canvas.drawPath(currentStrokePath, paint)
-
-                    canvas.restore()
-                }
             }
         } else {
             Image(
@@ -425,7 +419,7 @@ private fun BackgroundRemovalCanvas(
             }
         }
 
-        // Magnifier remains the same
+        // Magnifier
         if (isBackgroundRemovalMode &&
             previewPosition != null &&
             imageBitmap != null &&
@@ -439,7 +433,6 @@ private fun BackgroundRemovalCanvas(
         }
     }
 }
-
 @Composable
 private fun MagnifierPreview(
     position: Offset,
@@ -557,16 +550,19 @@ private fun calculateLoupePosition(
 }
 
 private fun DrawScope.drawCheckerboard() {
-    val checkSize = 10.dp.toPx()
-    val numChecksX = (size.width / checkSize).toInt() + 1
-    val numChecksY = (size.height / checkSize).toInt() + 1
+    val checkSize = 20.dp.toPx()
+    val lightGray = Color.LightGray.copy(alpha = 0.3f)
+    val darkGray = Color.Gray.copy(alpha = 0.3f)
 
-    for (x in 0 until numChecksX) {
-        for (y in 0 until numChecksY) {
-            val isEvenCheck = (x + y) % 2 == 0
+    val cols = (size.width / checkSize).toInt() + 1
+    val rows = (size.height / checkSize).toInt() + 1
+
+    for (row in 0..rows) {
+        for (col in 0..cols) {
+            val color = if ((row + col) % 2 == 0) lightGray else darkGray
             drawRect(
-                color = if (isEvenCheck) Color.White else Color.Gray.copy(alpha = 0.2f),
-                topLeft = Offset(x * checkSize, y * checkSize),
+                color = color,
+                topLeft = Offset(col * checkSize, row * checkSize),
                 size = Size(checkSize, checkSize)
             )
         }
@@ -615,4 +611,38 @@ fun calculateImageTransformation(
     }
 
     return ImageTransformation(scaleFactor, imageOffset, displayedImageSize)
+}
+
+private fun createTransparentBitmap(
+    originalBitmap: ImageBitmap,
+    maskPath: Path,
+    currentStrokePath: Path
+): ImageBitmap {
+    // Convert ImageBitmap to Android Bitmap for processing
+    val androidBitmap = originalBitmap.asAndroidBitmap()
+
+    // Create a mutable copy with ARGB_8888 config for transparency support
+    val mutableBitmap = androidBitmap.copy(Bitmap.Config.ARGB_8888, true)
+
+    // Create canvas to draw on the bitmap
+    val canvas = android.graphics.Canvas(mutableBitmap)
+
+    // Create paint for erasing (making transparent)
+    val erasePaint = android.graphics.Paint().apply {
+        isAntiAlias = true
+        style = android.graphics.Paint.Style.FILL
+        // This blend mode will make the drawn areas transparent
+        xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+    }
+
+    // Convert Compose Path to Android Path and apply mask
+    val androidMaskPath = maskPath.asAndroidPath()
+    val androidCurrentPath = currentStrokePath.asAndroidPath()
+
+    // Erase the masked areas (make them transparent)
+    canvas.drawPath(androidMaskPath, erasePaint)
+    canvas.drawPath(androidCurrentPath, erasePaint)
+
+    // Convert back to ImageBitmap
+    return mutableBitmap.asImageBitmap()
 }
