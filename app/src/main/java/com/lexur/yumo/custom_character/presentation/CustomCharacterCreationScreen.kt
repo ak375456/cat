@@ -41,6 +41,7 @@ import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import android.view.MotionEvent
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.navigation.NavController
 import androidx.core.graphics.scale
 import androidx.core.graphics.createBitmap
@@ -314,13 +315,15 @@ private fun BackgroundRemovalCanvas(
                 }
             }
     ) {
+        // Layer 1: Checkerboard background
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCheckerboard()
         }
 
-        // Draw the image with proper transformation
+        // Layer 2: Original image with real-time masking
         if (imageBitmap != null && transformation != null) {
             Canvas(modifier = Modifier.fillMaxSize()) {
+                // Draw the image
                 drawImage(
                     image = imageBitmap!!,
                     dstOffset = IntOffset(
@@ -332,6 +335,33 @@ private fun BackgroundRemovalCanvas(
                         transformation.displayedImageSize.height.roundToInt()
                     )
                 )
+
+                // Apply the mask in real-time using BlendMode
+                drawIntoCanvas { canvas ->
+                    val paint = Paint().apply {
+                        blendMode = BlendMode.DstOut
+                        alpha = 1f
+                    }
+
+                    // Translate to match image position
+                    canvas.save()
+                    canvas.translate(
+                        transformation.imageOffset.x,
+                        transformation.imageOffset.y
+                    )
+                    canvas.scale(
+                        transformation.scaleFactor,
+                        transformation.scaleFactor
+                    )
+
+                    // Draw the completed mask
+                    canvas.drawPath(maskPath, paint)
+
+                    // Draw the current stroke (what's being drawn right now)
+                    canvas.drawPath(currentStrokePath, paint)
+
+                    canvas.restore()
+                }
             }
         } else {
             Image(
@@ -342,21 +372,30 @@ private fun BackgroundRemovalCanvas(
             )
         }
 
+        // Layer 3: Drawing interaction and preview
         if (isBackgroundRemovalMode) {
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
                     .pointerInteropFilter { event ->
-                        val offset = Offset(event.x, event.y)
+                        if (transformation == null) return@pointerInteropFilter false
+
+                        val canvasOffset = Offset(event.x, event.y)
+                        // Convert to image coordinates for accurate drawing
+                        val imageOffset = Offset(
+                            (canvasOffset.x - transformation.imageOffset.x) / transformation.scaleFactor,
+                            (canvasOffset.y - transformation.imageOffset.y) / transformation.scaleFactor
+                        )
+
                         when (event.action) {
                             MotionEvent.ACTION_DOWN -> {
-                                onDrawStart(offset)
-                                onPreviewMove(offset)
+                                onDrawStart(imageOffset)
+                                onPreviewMove(canvasOffset)
                                 true
                             }
                             MotionEvent.ACTION_MOVE -> {
-                                onDrawContinue(offset)
-                                onPreviewMove(offset)
+                                onDrawContinue(imageOffset)
+                                onPreviewMove(canvasOffset)
                                 true
                             }
                             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -368,22 +407,17 @@ private fun BackgroundRemovalCanvas(
                         }
                     }
             ) {
-                drawPath(
-                    path = currentStrokePath,
-                    color = Color.Red.copy(alpha = 0.2f),
-                    style = Fill
-                )
-
+                // Draw brush preview cursor
                 previewPosition?.let { position ->
                     drawCircle(
                         color = Color.White,
-                        radius = brushSize / 2 + 2.dp.toPx(),
+                        radius = brushSize / 2 * (transformation?.scaleFactor ?: 1f) + 2.dp.toPx(),
                         center = position,
                         style = Stroke(width = 2.dp.toPx())
                     )
                     drawCircle(
                         color = Color.Red,
-                        radius = brushSize / 2,
+                        radius = brushSize / 2 * (transformation?.scaleFactor ?: 1f),
                         center = position,
                         style = Stroke(width = 2.dp.toPx())
                     )
@@ -391,12 +425,11 @@ private fun BackgroundRemovalCanvas(
             }
         }
 
-        // Show magnifier only when we have valid transformation data
+        // Magnifier remains the same
         if (isBackgroundRemovalMode &&
             previewPosition != null &&
             imageBitmap != null &&
             transformation != null) {
-
             MagnifierPreview(
                 position = previewPosition,
                 imageBitmap = imageBitmap!!,

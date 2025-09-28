@@ -9,6 +9,7 @@ import android.graphics.PorterDuffXfermode
 import android.net.Uri
 import android.os.Build
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.unit.IntSize
@@ -28,6 +29,8 @@ import javax.inject.Inject
 import kotlin.math.pow
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 data class CustomCharacterUiState(
     val selectedImageUri: Uri? = null,
@@ -233,25 +236,73 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
     }
 
-    private fun processImage(context: Context, imageUri: Uri, maskPath: Path, canvasSize: IntSize): Bitmap {
+    private suspend fun processImage(
+        context: Context,
+        imageUri: Uri,
+        maskPath: Path,
+        canvasSize: IntSize
+    ): Bitmap = withContext(Dispatchers.IO) {
         val originalBitmap = context.contentResolver.openInputStream(imageUri).use {
             android.graphics.BitmapFactory.decodeStream(it)
         }
-        val scaledBitmap = originalBitmap.scale(canvasSize.width, canvasSize.height)
 
-        val resultBitmap = createBitmap(canvasSize.width, canvasSize.height)
+        // Calculate the same transformation used in the UI
+        val imageRatio = originalBitmap.width.toFloat() / originalBitmap.height
+        val canvasRatio = canvasSize.width.toFloat() / canvasSize.height
+
+        val scaleFactor: Float
+        val displayedImageSize: Size
+
+        if (imageRatio > canvasRatio) {
+            scaleFactor = canvasSize.width.toFloat() / originalBitmap.width
+            displayedImageSize = Size(
+                width = canvasSize.width.toFloat(),
+                height = originalBitmap.height * scaleFactor
+            )
+        } else {
+            scaleFactor = canvasSize.height.toFloat() / originalBitmap.height
+            displayedImageSize = Size(
+                width = originalBitmap.width * scaleFactor,
+                height = canvasSize.height.toFloat()
+            )
+        }
+
+        // Create result bitmap at displayed size
+        val resultBitmap = createBitmap(
+            displayedImageSize.width.toInt(),
+            displayedImageSize.height.toInt()
+        )
         val resultCanvas = Canvas(resultBitmap)
 
+        // Scale original to displayed size
+        val scaledBitmap = originalBitmap.scale(
+            displayedImageSize.width.toInt(),
+            displayedImageSize.height.toInt()
+        )
+
+        // Draw the scaled image
         resultCanvas.drawBitmap(scaledBitmap, 0f, 0f, null)
 
+        // Apply the mask at the correct scale
         val erasePaint = Paint().apply {
             xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
             isAntiAlias = true
+            style = Paint.Style.FILL
         }
 
-        resultCanvas.drawPath(maskPath.asAndroidPath(), erasePaint)
+        // Scale the path to match the bitmap
+        val matrix = android.graphics.Matrix().apply {
+            setScale(scaleFactor, scaleFactor)
+        }
+        val scaledPath = android.graphics.Path()
+        maskPath.asAndroidPath().transform(matrix, scaledPath)
 
-        return resultBitmap
+        resultCanvas.drawPath(scaledPath, erasePaint)
+
+        originalBitmap.recycle()
+        scaledBitmap.recycle()
+
+        return@withContext resultBitmap
     }
 
     private fun combineImageAndRope(context: Context, characterBitmap: Bitmap, ropeResId: Int): Bitmap {
