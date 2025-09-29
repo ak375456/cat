@@ -44,6 +44,7 @@ import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import android.view.MotionEvent
+import androidx.compose.foundation.clickable
 import androidx.navigation.NavController
 import kotlin.math.roundToInt
 
@@ -64,171 +65,176 @@ fun CustomCharacterCreationScreen(
     var showRopeSelection by remember { mutableStateOf(false) }
     var showNameDialog by remember { mutableStateOf(false) }
 
-    if (showRopeSelection) {
-        RopeSelectionScreen(
-            onRopeSelected = { ropeResId ->
-                viewModel.onRopeSelected(ropeResId)
-                showRopeSelection = false
-                showNameDialog = true
-            },
-            onNavigateBack = { showRopeSelection = false }
-        )
-    } else if (showNameDialog) {
-        NameCharacterDialog(
-            onNameSelected = { name ->
-                viewModel.onCharacterNameChanged(name)
-                viewModel.saveCustomCharacter(context)
-                showNameDialog = false
-                navController.popBackStack() // Go back to home screen
-            },
-            onDismiss = { showNameDialog = false }
-        )
-    } else {
-        Scaffold(
-            topBar = {
-                if (uiState.selectedImageUri != null) {
-                    TopAppBar(
-                        title = { Text("Background Removal") },
-                        actions = {
-                            IconButton(onClick = { viewModel.toggleBackgroundRemovalMode() }) {
-                                Icon(
-                                    Icons.Default.Brush,
-                                    contentDescription = "Toggle brush mode",
-                                    tint = if (uiState.isBackgroundRemovalMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            IconButton(
-                                onClick = { viewModel.undoLastStroke() },
-                                enabled = uiState.strokeHistory.isNotEmpty()
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
-                            }
-                            IconButton(onClick = {
-                                viewModel.finishEditing()
-                                showRopeSelection = true
-                            }) {
-                                Icon(Icons.Default.Done, contentDescription = "Done")
-                            }
-                        }
-                    )
-                }
-            }
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                when {
-                    uiState.selectedImageUri == null -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Button(onClick = {
-                                photoPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            }) {
-                                Text("Select Image")
-                            }
-                        }
-                    }
-                    else -> {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        ) {
-                            BackgroundRemovalCanvas(
-                                imageUri = uiState.selectedImageUri!!,
-                                brushSize = uiState.brushSize,
-                                isBackgroundRemovalMode = uiState.isBackgroundRemovalMode,
-                                maskPath = uiState.maskPath,
-                                currentStrokePath = uiState.currentStrokePath,
-                                previewPosition = uiState.previewPosition,
-                                onDrawStart = viewModel::startDrawing,
-                                onDrawContinue = viewModel::continueDrawing,
-                                onDrawEnd = viewModel::endDrawing,
-                                onPreviewMove = viewModel::updatePreviewPosition,
-                                onCanvasSize = viewModel::updateCanvasSize
-                            )
-                        }
+    // --- FIX START: Handle navigation as a side effect when saving is complete ---
+    LaunchedEffect(uiState.saveComplete) {
+        if (uiState.saveComplete) {
+            navController.popBackStack()
+            viewModel.onNavigationComplete() // Reset the event
+        }
+    }
+    // --- FIX END ---
 
-                        if (uiState.isBackgroundRemovalMode) {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                shape = RoundedCornerShape(12.dp)
+    // --- FIX START: Add a Box to host the loading overlay ---
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (showRopeSelection) {
+            RopeSelectionScreen(
+                onRopeSelected = { ropeResId ->
+                    viewModel.onRopeSelected(ropeResId)
+                    showRopeSelection = false
+                    showNameDialog = true
+                },
+                onNavigateBack = { showRopeSelection = false }
+            )
+        } else if (showNameDialog) {
+            NameCharacterDialog(
+                onNameSelected = { name ->
+                    viewModel.onCharacterNameChanged(name)
+                    viewModel.saveCustomCharacter(context)
+                    // --- FIX: Remove navigation from here, it's now handled by LaunchedEffect ---
+                    showNameDialog = false
+                },
+                onDismiss = { showNameDialog = false }
+            )
+        } else {
+            Scaffold(
+                topBar = {
+                    if (uiState.selectedImageUri != null) {
+                        TopAppBar(
+                            title = { Text("Background Removal") },
+                            actions = {
+                                IconButton(onClick = { viewModel.toggleBackgroundRemovalMode() }) {
+                                    Icon(
+                                        Icons.Default.Brush,
+                                        contentDescription = "Toggle brush mode",
+                                        tint = if (uiState.isBackgroundRemovalMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { viewModel.undoLastStroke() },
+                                    enabled = uiState.strokeHistory.isNotEmpty()
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+                                }
+                                IconButton(onClick = {
+                                    viewModel.finishEditing()
+                                    showRopeSelection = true
+                                }) {
+                                    Icon(Icons.Default.Done, contentDescription = "Done")
+                                }
+                            }
+                        )
+                    }
+                }
+            ) { paddingValues ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    when {
+                        uiState.selectedImageUri == null -> {
+                            Column(
+                                modifier = Modifier.fillMaxSize().padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(
-                                        "Brush Size: ${uiState.brushSize.toInt()}px",
-                                        style = MaterialTheme.typography.labelMedium
+                                Button(onClick = {
+                                    photoPickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                     )
-                                    Slider(
-                                        value = uiState.brushSize,
-                                        onValueChange = { viewModel.updateBrushSize(it) },
-                                        valueRange = 10f..300f,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .size(60.dp)
-                                            .align(Alignment.CenterHorizontally),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Canvas(modifier = Modifier.size(60.dp)) {
-                                            drawCheckerboard()
-                                            drawCircle(
-                                                color = Color.Red.copy(alpha = 0.5f),
-                                                radius = uiState.brushSize / 2,
-                                                center = center
-                                            )
-                                            drawCircle(
-                                                color = Color.Red,
-                                                radius = uiState.brushSize / 2,
-                                                center = center,
-                                                style = Stroke(width = 2.dp.toPx())
-                                            )
+                                }) {
+                                    Text("Select Image")
+                                }
+                            }
+                        }
+                        else -> {
+                            Box(
+                                modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp)
+                            ) {
+                                BackgroundRemovalCanvas(
+                                    imageUri = uiState.selectedImageUri!!,
+                                    brushSize = uiState.brushSize,
+                                    isBackgroundRemovalMode = uiState.isBackgroundRemovalMode,
+                                    maskPath = uiState.maskPath,
+                                    currentStrokePath = uiState.currentStrokePath,
+                                    previewPosition = uiState.previewPosition,
+                                    onDrawStart = viewModel::startDrawing,
+                                    onDrawContinue = viewModel::continueDrawing,
+                                    onDrawEnd = viewModel::endDrawing,
+                                    onPreviewMove = viewModel::updatePreviewPosition,
+                                    onCanvasSize = viewModel::updateCanvasSize
+                                )
+                            }
+                            if (uiState.isBackgroundRemovalMode) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Text("Brush Size: ${uiState.brushSize.toInt()}px", style = MaterialTheme.typography.labelMedium)
+                                        Slider(
+                                            value = uiState.brushSize,
+                                            onValueChange = { viewModel.updateBrushSize(it) },
+                                            valueRange = 10f..300f,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        Box(
+                                            modifier = Modifier.size(60.dp).align(Alignment.CenterHorizontally),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Canvas(modifier = Modifier.size(60.dp)) {
+                                                drawCheckerboard()
+                                                drawCircle(color = Color.Red.copy(alpha = 0.5f), radius = uiState.brushSize / 2, center = center)
+                                                drawCircle(color = Color.Red, radius = uiState.brushSize / 2, center = center, style = Stroke(width = 2.dp.toPx()))
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = { viewModel.resetImage() },
-                                modifier = Modifier.weight(1f)
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("Reset")
-                            }
-                            Button(
-                                onClick = {
-                                    viewModel.finishEditing()
-                                    showRopeSelection = true
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Next")
+                                OutlinedButton(onClick = { viewModel.resetImage() }, modifier = Modifier.weight(1f)) { Text("Reset") }
+                                Button(
+                                    onClick = {
+                                        viewModel.finishEditing()
+                                        showRopeSelection = true
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("Next") }
                             }
                         }
                     }
                 }
             }
         }
+
+        // --- FIX START: Show a loading overlay when isSaving is true ---
+        if (uiState.isSaving) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable(enabled = false, onClick = {}), // Block interactions
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(color = Color.White)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Saving Character...",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+        }
+        // --- FIX END ---
     }
 }
 

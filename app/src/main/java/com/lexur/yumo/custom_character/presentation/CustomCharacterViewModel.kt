@@ -2,6 +2,7 @@ package com.lexur.yumo.custom_character.presentation
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.PorterDuff
@@ -9,6 +10,7 @@ import android.graphics.PorterDuffXfermode
 import android.net.Uri
 import android.os.Build
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asAndroidPath
@@ -48,7 +50,9 @@ data class CustomCharacterUiState(
     val lastDrawnPoint: Offset? = null,
     val selectedRopeResId: Int? = null,
     val characterName: String = "",
-    val imageTransformation: ImageTransformation? = null
+    val imageTransformation: ImageTransformation? = null,
+    val isSaving: Boolean = false,
+    val saveComplete: Boolean = false
 )
 
 @HiltViewModel
@@ -85,20 +89,11 @@ class CustomCharacterCreationViewModel @Inject constructor(
         _uiState.update { it.copy(brushSize = size) }
     }
 
-    // OPTIMIZATION: Called when the user first touches the screen.
     fun startDrawing(offset: Offset) {
         _uiState.update { currentState ->
-            // Save the current state of the mask for the undo functionality.
             val newHistory = currentState.strokeHistory + currentState.maskPath
-
-            // Start a new path for the current stroke.
             val newStrokePath = Path().apply {
-                addOval(
-                    androidx.compose.ui.geometry.Rect(
-                        center = offset,
-                        radius = currentState.brushSize / 2
-                    )
-                )
+                addOval(Rect(center = offset, radius = currentState.brushSize / 2))
             }
             currentState.copy(
                 currentStrokePath = newStrokePath,
@@ -109,56 +104,36 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
     }
 
-    // OPTIMIZATION: Called when the user drags their finger.
-    // This now only updates the lightweight `currentStrokePath`, preventing lag.
     fun continueDrawing(offset: Offset) {
         if (!_uiState.value.isDrawing) return
-
         _uiState.update { currentState ->
             val lastPoint = currentState.lastDrawnPoint ?: return@update currentState
-
             val newStrokePath = Path().apply {
                 addPath(currentState.currentStrokePath)
-
-                // Interpolate points for a smoother line
-                val distance = kotlin.math.sqrt(
-                    (offset.x - lastPoint.x).pow(2) + (offset.y - lastPoint.y).pow(2)
-                )
+                val distance = kotlin.math.sqrt((offset.x - lastPoint.x).pow(2) + (offset.y - lastPoint.y).pow(2))
                 val steps = (distance / (currentState.brushSize * 0.25f)).toInt().coerceAtLeast(1)
-
                 for (i in 0..steps) {
                     val t = i.toFloat() / steps
                     val interpolatedPoint = Offset(
                         lastPoint.x + (offset.x - lastPoint.x) * t,
                         lastPoint.y + (offset.y - lastPoint.y) * t
                     )
-                    val oval = androidx.compose.ui.geometry.Rect(
-                        center = interpolatedPoint,
-                        radius = currentState.brushSize / 2
-                    )
-                    addOval(oval)
+                    addOval(Rect(center = interpolatedPoint, radius = currentState.brushSize / 2))
                 }
             }
-
-            currentState.copy(
-                currentStrokePath = newStrokePath,
-                lastDrawnPoint = offset
-            )
+            currentState.copy(currentStrokePath = newStrokePath, lastDrawnPoint = offset)
         }
     }
 
-    // OPTIMIZATION: Called when the user lifts their finger.
     fun endDrawing() {
         _uiState.update { currentState ->
-            // The drawing is finished, so merge the current stroke into the main mask path.
-            // The expensive bitmap processing will happen now, just once per stroke.
             val newMaskPath = Path().apply {
                 addPath(currentState.maskPath)
                 addPath(currentState.currentStrokePath)
             }
             currentState.copy(
                 maskPath = newMaskPath,
-                currentStrokePath = Path(), // Clear the temporary stroke path.
+                currentStrokePath = Path(),
                 isDrawing = false,
                 lastDrawnPoint = null
             )
@@ -180,10 +155,9 @@ class CustomCharacterCreationViewModel @Inject constructor(
                 currentState.copy(
                     maskPath = previousPath,
                     strokeHistory = currentState.strokeHistory.dropLast(1),
-                    currentStrokePath = Path() // Ensure any in-progress drawing is cancelled
+                    currentStrokePath = Path()
                 )
             } else {
-                // If no history, clear everything.
                 currentState.copy(maskPath = Path(), currentStrokePath = Path())
             }
         }
@@ -200,10 +174,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
     }
 
     fun finishEditing() {
-        _uiState.value = _uiState.value.copy(
-            isBackgroundRemovalMode = false,
-            previewPosition = null
-        )
+        _uiState.value = _uiState.value.copy(isBackgroundRemovalMode = false, previewPosition = null)
     }
 
     fun onRopeSelected(ropeResId: Int) {
@@ -214,27 +185,53 @@ class CustomCharacterCreationViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(characterName = name)
     }
 
+    // --- FIX START: Reworked save function for background execution and UI state updates ---
     fun saveCustomCharacter(context: Context) {
+        _uiState.update { it.copy(isSaving = true) }
+
         viewModelScope.launch {
-            val state = _uiState.value
-            val imageUri = state.selectedImageUri ?: return@launch
-            val ropeResId = state.selectedRopeResId ?: return@launch
-            val characterName = state.characterName.ifBlank { "Custom Character" }
+            val success = withContext(Dispatchers.IO) {
+                try {
+                    val state = _uiState.value
+                    val imageUri = state.selectedImageUri ?: return@withContext false
+                    val ropeResId = state.selectedRopeResId ?: return@withContext false
+                    val characterName = state.characterName.ifBlank { "Custom Character" }
 
-            val processedBitmap = processImage(context, imageUri, state.maskPath, state.canvasSize)
-            val finalBitmap = combineImageAndRope(context, processedBitmap, ropeResId)
+                    val processedBitmap = processImage(context, imageUri, state.maskPath, state.canvasSize)
+                    val finalBitmap = combineImageAndRope(context, processedBitmap, ropeResId)
 
-            val file = saveBitmapAsWebp(context, finalBitmap, characterName)
-            if (file != null) {
-                val customCharacter = CustomCharacter(
-                    name = characterName,
-                    imagePath = file.absolutePath,
-                    ropeResId = ropeResId
-                )
-                characterRepository.insertCustomCharacter(customCharacter)
+                    val file = saveBitmapAsWebp(context, finalBitmap, characterName)
+                    if (file != null) {
+                        val customCharacter = CustomCharacter(
+                            name = characterName,
+                            imagePath = file.absolutePath,
+                            ropeResId = ropeResId
+                        )
+                        characterRepository.insertCustomCharacter(customCharacter)
+                        true
+                    } else {
+                        false
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    false
+                }
+            }
+
+            if (success) {
+                _uiState.update { it.copy(isSaving = false, saveComplete = true) }
+            } else {
+                // Optionally handle the error case, e.g., show a toast
+                _uiState.update { it.copy(isSaving = false) }
             }
         }
     }
+
+    fun onNavigationComplete() {
+        _uiState.update { it.copy(saveComplete = false) }
+    }
+    // --- FIX END ---
+
 
     private suspend fun processImage(
         context: Context,
@@ -243,10 +240,9 @@ class CustomCharacterCreationViewModel @Inject constructor(
         canvasSize: IntSize
     ): Bitmap = withContext(Dispatchers.IO) {
         val originalBitmap = context.contentResolver.openInputStream(imageUri).use {
-            android.graphics.BitmapFactory.decodeStream(it)
+            BitmapFactory.decodeStream(it)
         }
 
-        // Calculate the same transformation used in the UI
         val imageRatio = originalBitmap.width.toFloat() / originalBitmap.height
         val canvasRatio = canvasSize.width.toFloat() / canvasSize.height
 
@@ -255,48 +251,27 @@ class CustomCharacterCreationViewModel @Inject constructor(
 
         if (imageRatio > canvasRatio) {
             scaleFactor = canvasSize.width.toFloat() / originalBitmap.width
-            displayedImageSize = Size(
-                width = canvasSize.width.toFloat(),
-                height = originalBitmap.height * scaleFactor
-            )
+            displayedImageSize = Size(width = canvasSize.width.toFloat(), height = originalBitmap.height * scaleFactor)
         } else {
             scaleFactor = canvasSize.height.toFloat() / originalBitmap.height
-            displayedImageSize = Size(
-                width = originalBitmap.width * scaleFactor,
-                height = canvasSize.height.toFloat()
-            )
+            displayedImageSize = Size(width = originalBitmap.width * scaleFactor, height = canvasSize.height.toFloat())
         }
 
-        // Create result bitmap at displayed size
-        val resultBitmap = createBitmap(
-            displayedImageSize.width.toInt(),
-            displayedImageSize.height.toInt()
-        )
-        val resultCanvas = Canvas(resultBitmap)
+        val resultBitmap = createBitmap(displayedImageSize.width.toInt(), displayedImageSize.height.toInt())
+        val resultCanvas = android.graphics.Canvas(resultBitmap)
+        val scaledBitmap = originalBitmap.scale(displayedImageSize.width.toInt(), displayedImageSize.height.toInt())
 
-        // Scale original to displayed size
-        val scaledBitmap = originalBitmap.scale(
-            displayedImageSize.width.toInt(),
-            displayedImageSize.height.toInt()
-        )
-
-        // Draw the scaled image
         resultCanvas.drawBitmap(scaledBitmap, 0f, 0f, null)
 
-        // Apply the mask at the correct scale
-        val erasePaint = Paint().apply {
+        val erasePaint = android.graphics.Paint().apply {
             xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
             isAntiAlias = true
-            style = Paint.Style.FILL
+            style = android.graphics.Paint.Style.FILL
         }
 
-        // Scale the path to match the bitmap
-        val matrix = android.graphics.Matrix().apply {
-            setScale(scaleFactor, scaleFactor)
-        }
+        val matrix = android.graphics.Matrix().apply { setScale(scaleFactor, scaleFactor) }
         val scaledPath = android.graphics.Path()
         maskPath.asAndroidPath().transform(matrix, scaledPath)
-
         resultCanvas.drawPath(scaledPath, erasePaint)
 
         originalBitmap.recycle()
@@ -308,28 +283,22 @@ class CustomCharacterCreationViewModel @Inject constructor(
     private fun combineImageAndRope(context: Context, characterBitmap: Bitmap, ropeResId: Int): Bitmap {
         val ropeDrawable = context.getDrawable(ropeResId)
         val ropeBitmap = ropeDrawable?.toBitmap() ?: return characterBitmap
-
         val ropeWidth = ropeBitmap.width
         val ropeHeight = ropeBitmap.height
         val characterWidth = characterBitmap.width
         val characterHeight = characterBitmap.height
-
         val combinedBitmap = createBitmap(characterWidth, ropeHeight + characterHeight)
-        val canvas = Canvas(combinedBitmap)
-
+        val canvas = android.graphics.Canvas(combinedBitmap)
         val ropeX = (characterWidth - ropeWidth) / 2f
         canvas.drawBitmap(ropeBitmap, ropeX, 0f, null)
         canvas.drawBitmap(characterBitmap, 0f, ropeHeight.toFloat(), null)
-
         return combinedBitmap
     }
 
     private fun saveBitmapAsWebp(context: Context, bitmap: Bitmap, name: String): File? {
         return try {
             val directory = File(context.filesDir, "custom_characters")
-            if (!directory.exists()) {
-                directory.mkdirs()
-            }
+            if (!directory.exists()) { directory.mkdirs() }
             val file = File(directory, "${name.replace(" ", "_")}_${System.currentTimeMillis()}.webp")
             FileOutputStream(file).use { out ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -346,8 +315,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
     }
 
-
-    // Add this function to your ViewModel
     fun updateImageTransformation(transformation: ImageTransformation?) {
         _uiState.update { it.copy(imageTransformation = transformation) }
     }
