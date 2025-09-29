@@ -32,7 +32,6 @@ class SimpleOverlayManager @Inject constructor(
         var character: Characters,
         val overlayView: View,
         val imageView: ImageView,
-        val ropeImageView: ImageView,
         val params: WindowManager.LayoutParams
     ) {
         var currentFrameIndex = 0
@@ -58,50 +57,26 @@ class SimpleOverlayManager @Inject constructor(
         val rotationDamping = 0.96f // Separate damping for rotation
         val rotationSpring = 0.08f // Spring strength for rotation
 
-        private fun setupHangingCharacterVisuals() {
-            // Stop any previous animation
-            stopAnimation()
-
-            // If it's a custom character with a rope
-            if (character.isCustom && character.imagePath != null && character.ropeResId != null) {
-                // Set custom character image from file path
-                val bitmap = BitmapFactory.decodeFile(character.imagePath)
-                if (bitmap != null) {
-                    imageView.setImageBitmap(bitmap)
-                }
-                // Set rope image from drawable resource
-                ropeImageView.setImageResource(character.ropeResId!!)
-                ropeImageView.visibility = View.VISIBLE
-
-                // Apply rope transformations
-                ropeImageView.scaleX = character.ropeScale
-                ropeImageView.scaleY = character.ropeScale
-                ropeImageView.translationX = character.ropeOffsetX
-                ropeImageView.translationY = character.ropeOffsetY
-
-            } else if (character.frameIds.isNotEmpty()) {
-                // For default hanging characters (like SkullPanda)
-                imageView.setImageResource(character.frameIds[0])
-                ropeImageView.visibility = View.GONE // No rope for default ones
-            }
-
-            // Store original position for motion physics
-            originalX = params.x
-            originalY = params.y
-        }
-
         fun startAnimation() {
             if (isAnimating) return
 
+            // For hanging characters, just set the static image and handle motion
             if (character.isHanging) {
-                // FIX: Use the new setup function for all hanging characters.
-                setupHangingCharacterVisuals()
+                if (character.isCustom && character.imagePath != null) {
+                    val bitmap = BitmapFactory.decodeFile(character.imagePath)
+                    if (bitmap != null) {
+                        imageView.setImageBitmap(bitmap)
+                    }
+                } else if (character.frameIds.isNotEmpty()) {
+                    imageView.setImageResource(character.frameIds[0]) // [cite: 458]
+                }
+                // Store original position for hanging characters
+                originalX = params.x
+                originalY = params.y
                 return
             }
 
-            // This part remains for non-hanging, animated characters
             isAnimating = true
-            ropeImageView.visibility = View.GONE // Hide rope for walking characters
 
             animationRunnable = object : Runnable {
                 override fun run() {
@@ -338,8 +313,6 @@ class SimpleOverlayManager @Inject constructor(
                 val tempParent = FrameLayout(ctx)
                 val overlayView = LayoutInflater.from(ctx).inflate(R.layout.character_overlay_layout, tempParent, false)
                 val imageView = overlayView.findViewById<ImageView>(R.id.character_image_view)
-                // FIX: Find the new rope ImageView from the layout.
-                val ropeImageView = overlayView.findViewById<ImageView>(R.id.rope_image_view)
 
                 imageView.layoutParams?.apply {
                     width = (character.width * ctx.resources.displayMetrics.density).toInt()
@@ -349,8 +322,7 @@ class SimpleOverlayManager @Inject constructor(
                 val params = createWindowLayoutParams(character)
 
                 windowManager?.addView(overlayView, params)
-                // FIX: Pass the ropeImageView to the CharacterOverlay constructor.
-                val characterOverlay = CharacterOverlay(character, overlayView, imageView, ropeImageView, params)
+                val characterOverlay = CharacterOverlay(character, overlayView, imageView, params)
                 activeCharacters[character.id] = characterOverlay
                 characterOverlay.startAnimation()
 

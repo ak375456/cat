@@ -573,11 +573,7 @@ class CharacterRepository @Inject constructor(
                     category = CharacterCategory.HANGING,
                     frameIds = emptyList(), // Will be loaded from path
                     imagePath = it.imagePath,
-                    isCustom = true,
-                    ropeResId = it.ropeResId,
-                    ropeScale = it.ropeScale,
-                    ropeOffsetX = it.ropeOffsetX,
-                    ropeOffsetY = it.ropeOffsetY
+                    isCustom = true
                 )
             }
             defaultCharacters + customMapped
