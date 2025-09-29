@@ -170,7 +170,7 @@ fun RopeAdjustmentScreen(
                         Slider(
                             value = ropeOffsetY,
                             onValueChange = onRopeOffsetYChanged,
-                            valueRange = -200f..200f,
+                            valueRange = -100f..100f,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -224,14 +224,6 @@ private fun RopePreviewCanvas(
         }
     }
 
-    val transformation = remember(imageBitmap, canvasSize) {
-        if (imageBitmap == null || canvasSize == IntSize.Zero) {
-            null
-        } else {
-            calculateImageTransformation(imageBitmap!!, canvasSize)
-        }
-    }
-
     val processedBitmap = remember(imageBitmap, maskPath, currentStrokePath) {
         if (imageBitmap != null) {
             createTransparentBitmap(imageBitmap!!, maskPath, currentStrokePath)
@@ -252,30 +244,56 @@ private fun RopePreviewCanvas(
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCheckerboard()
 
-            if (transformation != null && ropeBitmap != null && processedBitmap != null) {
-                val ropeWidth = ropeBitmap!!.width * ropeScale * transformation.scaleFactor
-                val ropeHeight = ropeBitmap!!.height * ropeScale * transformation.scaleFactor
-                val ropeX = transformation.imageOffset.x +
-                        (transformation.displayedImageSize.width - ropeWidth) / 2 +
-                        ropeOffsetX * transformation.scaleFactor
-                val ropeY = transformation.imageOffset.y + ropeOffsetY * transformation.scaleFactor
+            if (ropeBitmap != null && processedBitmap != null && canvasSize != IntSize.Zero) {
+                // Calculate the total content size (rope + character)
+                val ropeScaledWidth = ropeBitmap!!.width * ropeScale
+                val ropeScaledHeight = ropeBitmap!!.height * ropeScale
+                val characterWidth = processedBitmap.width.toFloat()
+                val characterHeight = processedBitmap.height.toFloat()
 
+                // Total content dimensions
+                val totalContentHeight = ropeScaledHeight + characterHeight
+                val totalContentWidth = characterWidth.coerceAtLeast(ropeScaledWidth)
+
+                // Calculate scale to fit everything in the canvas
+                val scaleToFitWidth = size.width / totalContentWidth
+                val scaleToFitHeight = size.height / totalContentHeight
+                val scaleFactor = minOf(scaleToFitWidth, scaleToFitHeight) * 0.9f // 0.9f for padding
+
+                // Apply scale to all dimensions
+                val displayRopeWidth = ropeScaledWidth * scaleFactor
+                val displayRopeHeight = ropeScaledHeight * scaleFactor
+                val displayCharacterWidth = characterWidth * scaleFactor
+                val displayCharacterHeight = characterHeight * scaleFactor
+
+                // Calculate total display size
+                val totalDisplayHeight = displayRopeHeight + displayCharacterHeight
+                val totalDisplayWidth = displayCharacterWidth.coerceAtLeast(displayRopeWidth)
+
+                // Center the entire composition in the canvas
+                val startX = (size.width - totalDisplayWidth) / 2
+                val startY = (size.height - totalDisplayHeight) / 2
+
+                // Calculate rope position (centered horizontally with offset, at the top)
+                val ropeX = startX + (totalDisplayWidth - displayRopeWidth) / 2 + (ropeOffsetX * scaleFactor)
+                val ropeY = startY + (ropeOffsetY * scaleFactor)
+
+                // Draw rope
                 drawImage(
                     image = ropeBitmap!!,
                     dstOffset = IntOffset(ropeX.roundToInt(), ropeY.roundToInt()),
-                    dstSize = IntSize(ropeWidth.roundToInt(), ropeHeight.roundToInt())
+                    dstSize = IntSize(displayRopeWidth.roundToInt(), displayRopeHeight.roundToInt())
                 )
 
+                // Calculate character position (always below the rope, centered)
+                val characterX = startX + (totalDisplayWidth - displayCharacterWidth) / 2
+                val characterY = startY + displayRopeHeight // Character position is fixed relative to composition start
+
+                // Draw character
                 drawImage(
                     image = processedBitmap,
-                    dstOffset = IntOffset(
-                        transformation.imageOffset.x.roundToInt(),
-                        transformation.imageOffset.y.roundToInt()
-                    ),
-                    dstSize = IntSize(
-                        transformation.displayedImageSize.width.roundToInt(),
-                        transformation.displayedImageSize.height.roundToInt()
-                    )
+                    dstOffset = IntOffset(characterX.roundToInt(), characterY.roundToInt()),
+                    dstSize = IntSize(displayCharacterWidth.roundToInt(), displayCharacterHeight.roundToInt())
                 )
             }
         }

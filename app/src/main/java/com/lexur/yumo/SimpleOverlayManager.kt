@@ -195,7 +195,7 @@ class SimpleOverlayManager @Inject constructor(
                 // Calculate character position based on pendulum physics
                 // The rope attachment point stays at (originalX, originalY)
                 val targetX = originalX + (sin(angleRad) * ropeLength)
-                val targetY = originalY + (cos(angleRad) * ropeLength) - ropeLength // Subtract ropeLength to account for hanging
+                val targetY = originalY + (cos(angleRad) * ropeLength) - ropeLength
 
                 // Apply spring physics for smooth swinging motion
                 val forceX = (targetX - (originalX + currentSwayX)) * springStrength

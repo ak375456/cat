@@ -256,6 +256,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
             BitmapFactory.decodeStream(it)
         }
 
+        // Calculate transformation to match preview
         val imageRatio = originalBitmap.width.toFloat() / originalBitmap.height
         val canvasRatio = canvasSize.width.toFloat() / canvasSize.height
 
@@ -264,25 +265,42 @@ class CustomCharacterCreationViewModel @Inject constructor(
 
         if (imageRatio > canvasRatio) {
             scaleFactor = canvasSize.width.toFloat() / originalBitmap.width
-            displayedImageSize = Size(width = canvasSize.width.toFloat(), height = originalBitmap.height * scaleFactor)
+            displayedImageSize = Size(
+                width = canvasSize.width.toFloat(),
+                height = originalBitmap.height * scaleFactor
+            )
         } else {
             scaleFactor = canvasSize.height.toFloat() / originalBitmap.height
-            displayedImageSize = Size(width = originalBitmap.width * scaleFactor, height = canvasSize.height.toFloat())
+            displayedImageSize = Size(
+                width = originalBitmap.width * scaleFactor,
+                height = canvasSize.height.toFloat()
+            )
         }
 
-        val resultBitmap = createBitmap(displayedImageSize.width.toInt(), displayedImageSize.height.toInt())
+        // Create result bitmap with exact display size
+        val resultBitmap = createBitmap(
+            displayedImageSize.width.toInt(),
+            displayedImageSize.height.toInt()
+        )
         val resultCanvas = android.graphics.Canvas(resultBitmap)
-        val scaledBitmap = originalBitmap.scale(displayedImageSize.width.toInt(), displayedImageSize.height.toInt())
 
+        // Scale and draw the original bitmap
+        val scaledBitmap = originalBitmap.scale(
+            displayedImageSize.width.toInt(),
+            displayedImageSize.height.toInt()
+        )
         resultCanvas.drawBitmap(scaledBitmap, 0f, 0f, null)
 
+        // Apply mask with proper scaling
         val erasePaint = android.graphics.Paint().apply {
             xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
             isAntiAlias = true
             style = android.graphics.Paint.Style.FILL
         }
 
-        val matrix = android.graphics.Matrix().apply { setScale(scaleFactor, scaleFactor) }
+        val matrix = android.graphics.Matrix().apply {
+            setScale(scaleFactor, scaleFactor)
+        }
         val scaledPath = android.graphics.Path()
         maskPath.asAndroidPath().transform(matrix, scaledPath)
         resultCanvas.drawPath(scaledPath, erasePaint)
@@ -304,6 +322,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         val ropeDrawable = context.getDrawable(ropeResId)
         val originalRopeBitmap = ropeDrawable?.toBitmap() ?: return characterBitmap
 
+        // Scale the rope bitmap
         val scaledRopeWidth = (originalRopeBitmap.width * ropeScale).toInt()
         val scaledRopeHeight = (originalRopeBitmap.height * ropeScale).toInt()
         val ropeBitmap = Bitmap.createScaledBitmap(
@@ -316,13 +335,26 @@ class CustomCharacterCreationViewModel @Inject constructor(
         val characterWidth = characterBitmap.width
         val characterHeight = characterBitmap.height
 
-        val combinedBitmap = createBitmap(characterWidth, scaledRopeHeight + characterHeight)
+        // Calculate maximum bounds needed
+        val maxWidth = characterWidth.coerceAtLeast(scaledRopeWidth + kotlin.math.abs(ropeOffsetX.toInt()))
+        val ropeTop = ropeOffsetY.coerceAtMost(0f).toInt()
+        val totalHeight = kotlin.math.abs(ropeTop) + scaledRopeHeight + characterHeight
+
+        // Create combined bitmap
+        val combinedBitmap = createBitmap(maxWidth, totalHeight)
         val canvas = android.graphics.Canvas(combinedBitmap)
 
+        // Calculate rope position
         val ropeX = (characterWidth - scaledRopeWidth) / 2f + ropeOffsetX
-        val ropeY = ropeOffsetY
+        val ropeY = kotlin.math.abs(ropeTop).toFloat() + ropeOffsetY.coerceAtLeast(0f)
+
+        // Draw rope first
         canvas.drawBitmap(ropeBitmap, ropeX, ropeY, null)
-        canvas.drawBitmap(characterBitmap, 0f, scaledRopeHeight.toFloat(), null)
+
+        // Draw character - position is fixed below the rope start (not affected by ropeOffsetY)
+        val characterX = (maxWidth - characterWidth) / 2f
+        val characterY = kotlin.math.abs(ropeTop).toFloat() + scaledRopeHeight.toFloat()
+        canvas.drawBitmap(characterBitmap, characterX, characterY, null)
 
         originalRopeBitmap.recycle()
         ropeBitmap.recycle()
