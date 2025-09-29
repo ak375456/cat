@@ -9,5 +9,8 @@ data class CustomCharacter(
     val id: Int = 0,
     val name: String,
     val imagePath: String,
-    val ropeResId: Int
+    val ropeResId: Int,
+    val ropeScale: Float,
+    val ropeOffsetX: Float,
+    val ropeOffsetY: Float
 )

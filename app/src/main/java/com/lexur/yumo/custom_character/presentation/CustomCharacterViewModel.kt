@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
@@ -194,47 +195,53 @@ class CustomCharacterCreationViewModel @Inject constructor(
 
     // --- FIX START: Reworked save function for background execution and UI state updates ---
     fun saveCustomCharacter(context: Context) {
+        val currentState = _uiState.value
+        if (currentState.selectedImageUri == null || currentState.selectedRopeResId == null) return
+
         _uiState.update { it.copy(isSaving = true) }
 
-        viewModelScope.launch {
-            val success = withContext(Dispatchers.IO) {
-                try {
-                    val state = _uiState.value
-                    val imageUri = state.selectedImageUri ?: return@withContext false
-                    val ropeResId = state.selectedRopeResId ?: return@withContext false
-                    val characterName = state.characterName.ifBlank { "Custom Character" }
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Get the character bitmap with background removed
+                val characterBitmap = createTransparentBitmapFromUri(
+                    context,
+                    currentState.selectedImageUri,
+                    currentState.maskPath
+                )
 
-                    val processedBitmap = processImage(context, imageUri, state.maskPath, state.canvasSize)
-                    val finalBitmap = combineImageAndRope(
-                        context,
-                        processedBitmap,
-                        ropeResId,
-                        state.ropeScale,
-                        state.ropeOffsetX,
-                        state.ropeOffsetY
-                    )
-                    val file = saveBitmapAsWebp(context, finalBitmap, characterName)
-                    if (file != null) {
-                        val customCharacter = CustomCharacter(
-                            name = characterName,
-                            imagePath = file.absolutePath,
-                            ropeResId = ropeResId
-                        )
-                        characterRepository.insertCustomCharacter(customCharacter)
-                        true
-                    } else {
-                        false
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    false
-                }
-            }
+                // 2. Get the selected rope bitmap
+                val ropeBitmap = BitmapFactory.decodeResource(context.resources, currentState.selectedRopeResId)
 
-            if (success) {
+                // 3. Combine them into a single bitmap
+                val combinedBitmap = combineCharacterAndRope(
+                    characterBitmap,
+                    ropeBitmap,
+                    currentState.ropeScale,
+                    currentState.ropeOffsetX,
+                    currentState.ropeOffsetY
+                )
+
+                // 4. Save the combined bitmap to a file
+                val fileName = "custom_char_${System.currentTimeMillis()}.png"
+                val savedImagePath = saveBitmapToFile(context, combinedBitmap, fileName)
+
+                // 5. Create the database entity with the new fields
+                val character = CustomCharacter(
+                    name = currentState.characterName,
+                    imagePath = savedImagePath,
+                    ropeResId = currentState.selectedRopeResId,
+                    ropeScale = currentState.ropeScale,
+                    ropeOffsetX = currentState.ropeOffsetX,
+                    ropeOffsetY = currentState.ropeOffsetY
+                )
+
+                // 6. Insert into the database
+                characterRepository.insertCustomCharacter(character)
+
                 _uiState.update { it.copy(isSaving = false, saveComplete = true) }
-            } else {
-                // Optionally handle the error case, e.g., show a toast
+
+            } catch (e: Exception) {
+                e.printStackTrace()
                 _uiState.update { it.copy(isSaving = false) }
             }
         }
@@ -380,6 +387,84 @@ class CustomCharacterCreationViewModel @Inject constructor(
             e.printStackTrace()
             null
         }
+    }
+
+    private fun createTransparentBitmapFromUri(context: Context, imageUri: Uri, maskPath: Path): Bitmap {
+        // Load original bitmap
+        val originalBitmap = context.contentResolver.openInputStream(imageUri)?.use {
+            BitmapFactory.decodeStream(it)
+        } ?: throw IllegalStateException("Could not load bitmap from URI")
+
+        // Create a mutable copy for drawing
+        val mutableBitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(mutableBitmap)
+
+        // Create paint to "erase" parts of the bitmap
+        val erasePaint = Paint().apply {
+            isAntiAlias = true
+            style = Paint.Style.FILL
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+        }
+
+        // Apply the mask path
+        canvas.drawPath(maskPath.asAndroidPath(), erasePaint)
+
+        return mutableBitmap
+    }
+
+    private fun combineCharacterAndRope(
+        characterBitmap: Bitmap,
+        ropeBitmap: Bitmap,
+        scale: Float,
+        offsetX: Float,
+        offsetY: Float
+    ): Bitmap {
+        // Calculate dimensions based on the logic from your RopePreviewCanvas
+        val ropeScaledWidth = ropeBitmap.width * scale
+        val ropeScaledHeight = ropeBitmap.height * scale
+
+        // Total content dimensions
+        val totalContentHeight = ropeScaledHeight + characterBitmap.height
+        val totalContentWidth = characterBitmap.width.toFloat().coerceAtLeast(ropeScaledWidth)
+
+        // Create a new bitmap to hold the combined image
+        val resultBitmap = Bitmap.createBitmap(
+            totalContentWidth.toInt(),
+            totalContentHeight.toInt(),
+            Bitmap.Config.ARGB_8888
+        )
+        val canvas = Canvas(resultBitmap)
+
+        // Calculate rope position
+        val ropeX = (totalContentWidth - ropeScaledWidth) / 2 + offsetX
+        val ropeY = offsetY // Rope is at the top, with vertical offset
+
+        // Draw the rope with scale and translation
+        val ropeMatrix = Matrix()
+        ropeMatrix.postScale(scale, scale)
+        ropeMatrix.postTranslate(ropeX, ropeY)
+        canvas.drawBitmap(ropeBitmap, ropeMatrix, null)
+
+        // Calculate character position (centered horizontally, below the rope area)
+        val characterX = (totalContentWidth - characterBitmap.width) / 2
+        val characterY = ropeScaledHeight // Character is directly below the scaled rope area
+
+        // Draw the character
+        canvas.drawBitmap(characterBitmap, characterX, characterY, null)
+
+        return resultBitmap
+    }
+
+    private fun saveBitmapToFile(context: Context, bitmap: Bitmap, fileName: String): String {
+        val directory = File(context.filesDir, "custom_characters")
+        if (!directory.exists()) {
+            directory.mkdirs()
+        }
+        val file = File(directory, fileName)
+        FileOutputStream(file).use {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+        return file.absolutePath
     }
 
     fun updateImageTransformation(transformation: ImageTransformation?) {
