@@ -47,6 +47,7 @@ import android.view.MotionEvent
 import androidx.compose.foundation.clickable
 import androidx.navigation.NavController
 import kotlin.math.roundToInt
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,137 +69,192 @@ fun CustomCharacterCreationScreen(
     LaunchedEffect(uiState.saveComplete) {
         if (uiState.saveComplete) {
             navController.popBackStack()
-            viewModel.onNavigationComplete() // Reset the event
+            viewModel.onNavigationComplete()
         }
     }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        if (showRopeSelection) {
-            RopeSelectionScreen(
-                onRopeSelected = { ropeResId ->
-                    viewModel.onRopeSelected(ropeResId)
-                    showRopeSelection = false
-                    showNameDialog = true
-                },
-                onNavigateBack = { showRopeSelection = false }
-            )
-        } else if (showNameDialog) {
-            NameCharacterDialog(
-                onNameSelected = { name ->
-                    viewModel.onCharacterNameChanged(name)
-                    viewModel.saveCustomCharacter(context)
-                    showNameDialog = false
-                },
-                onDismiss = { showNameDialog = false }
-            )
-        } else {
-            Scaffold(
-                topBar = {
-                    if (uiState.selectedImageUri != null) {
-                        TopAppBar(
-                            title = { Text("Background Removal") },
-                            actions = {
-                                IconButton(onClick = { viewModel.toggleBackgroundRemovalMode() }) {
-                                    Icon(
-                                        Icons.Default.Brush,
-                                        contentDescription = "Toggle brush mode",
-                                        tint = if (uiState.isBackgroundRemovalMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                                IconButton(
-                                    onClick = { viewModel.undoLastStroke() },
-                                    enabled = uiState.strokeHistory.isNotEmpty()
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
-                                }
-                                IconButton(onClick = {
-                                    viewModel.finishEditing()
-                                    showRopeSelection = true
-                                }) {
-                                    Icon(Icons.Default.Done, contentDescription = "Done")
-                                }
-                            }
-                        )
+        when {
+            uiState.showRopeAdjustment && uiState.selectedRopeResId != null -> {
+                RopeAdjustmentScreen(
+                    imageUri = uiState.selectedImageUri!!,
+                    maskPath = uiState.maskPath,
+                    currentStrokePath = uiState.currentStrokePath,
+                    ropeResId = uiState.selectedRopeResId!!,
+                    ropeScale = uiState.ropeScale,
+                    ropeOffsetX = uiState.ropeOffsetX,
+                    ropeOffsetY = uiState.ropeOffsetY,
+                    onRopeScaleChanged = viewModel::updateRopeScale,
+                    onRopeOffsetXChanged = viewModel::updateRopeOffsetX,
+                    onRopeOffsetYChanged = viewModel::updateRopeOffsetY,
+                    onConfirm = {
+                        viewModel.finishRopeAdjustment()
+                        showNameDialog = true
+                    },
+                    onNavigateBack = {
+                        viewModel.finishRopeAdjustment()
+                        showRopeSelection = true
                     }
-                }
-            ) { paddingValues ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    when {
-                        uiState.selectedImageUri == null -> {
-                            Column(
-                                modifier = Modifier.fillMaxSize().padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Button(onClick = {
-                                    photoPickerLauncher.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                    )
-                                }) {
-                                    Text("Select Image")
+                )
+            }
+
+            showRopeSelection -> {
+                RopeSelectionScreen(
+                    onRopeSelected = { ropeResId ->
+                        viewModel.onRopeSelected(ropeResId)
+                        showRopeSelection = false
+                    },
+                    onNavigateBack = { showRopeSelection = false }
+                )
+            }
+
+            showNameDialog -> {
+                NameCharacterDialog(
+                    onNameSelected = { name ->
+                        viewModel.onCharacterNameChanged(name)
+                        viewModel.saveCustomCharacter(context)
+                        showNameDialog = false
+                    },
+                    onDismiss = { showNameDialog = false }
+                )
+            }
+
+            else -> {
+                Scaffold(
+                    topBar = {
+                        if (uiState.selectedImageUri != null) {
+                            TopAppBar(
+                                title = { Text("Background Removal") },
+                                actions = {
+                                    IconButton(onClick = { viewModel.toggleBackgroundRemovalMode() }) {
+                                        Icon(
+                                            Icons.Default.Brush,
+                                            contentDescription = "Toggle brush mode",
+                                            tint = if (uiState.isBackgroundRemovalMode)
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { viewModel.undoLastStroke() },
+                                        enabled = uiState.strokeHistory.isNotEmpty()
+                                    ) {
+                                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+                                    }
+                                    IconButton(onClick = {
+                                        viewModel.finishEditing()
+                                        showRopeSelection = true
+                                    }) {
+                                        Icon(Icons.Default.Done, contentDescription = "Done")
+                                    }
+                                }
+                            )
+                        }
+                    }
+                ) { paddingValues ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        when {
+                            uiState.selectedImageUri == null -> {
+                                Column(
+                                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Button(onClick = {
+                                        photoPickerLauncher.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    }) {
+                                        Text("Select Image")
+                                    }
                                 }
                             }
-                        }
-                        else -> {
-                            Box(
-                                modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp)
-                            ) {
-                                BackgroundRemovalCanvas(
-                                    imageUri = uiState.selectedImageUri!!,
-                                    brushSize = uiState.brushSize,
-                                    isBackgroundRemovalMode = uiState.isBackgroundRemovalMode,
-                                    maskPath = uiState.maskPath,
-                                    currentStrokePath = uiState.currentStrokePath,
-                                    previewPosition = uiState.previewPosition,
-                                    onDrawStart = viewModel::startDrawing,
-                                    onDrawContinue = viewModel::continueDrawing,
-                                    onDrawEnd = viewModel::endDrawing,
-                                    onPreviewMove = viewModel::updatePreviewPosition,
-                                    onCanvasSize = viewModel::updateCanvasSize
-                                )
-                            }
-                            if (uiState.isBackgroundRemovalMode) {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                                    shape = RoundedCornerShape(12.dp)
+                            else -> {
+                                Box(
+                                    modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp)
                                 ) {
-                                    Column(modifier = Modifier.padding(16.dp)) {
-                                        Text("Brush Size: ${uiState.brushSize.toInt()}px", style = MaterialTheme.typography.labelMedium)
-                                        Slider(
-                                            value = uiState.brushSize,
-                                            onValueChange = { viewModel.updateBrushSize(it) },
-                                            valueRange = 10f..300f,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                        Box(
-                                            modifier = Modifier.size(60.dp).align(Alignment.CenterHorizontally),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Canvas(modifier = Modifier.size(60.dp)) {
-                                                drawCheckerboard()
-                                                drawCircle(color = Color.Red.copy(alpha = 0.5f), radius = uiState.brushSize / 2, center = center)
-                                                drawCircle(color = Color.Red, radius = uiState.brushSize / 2, center = center, style = Stroke(width = 2.dp.toPx()))
+                                    BackgroundRemovalCanvas(
+                                        imageUri = uiState.selectedImageUri!!,
+                                        brushSize = uiState.brushSize,
+                                        isBackgroundRemovalMode = uiState.isBackgroundRemovalMode,
+                                        maskPath = uiState.maskPath,
+                                        currentStrokePath = uiState.currentStrokePath,
+                                        previewPosition = uiState.previewPosition,
+                                        onDrawStart = viewModel::startDrawing,
+                                        onDrawContinue = viewModel::continueDrawing,
+                                        onDrawEnd = viewModel::endDrawing,
+                                        onPreviewMove = viewModel::updatePreviewPosition,
+                                        onCanvasSize = viewModel::updateCanvasSize
+                                    )
+                                }
+                                if (uiState.isBackgroundRemovalMode) {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Column(modifier = Modifier.padding(16.dp)) {
+                                            Text(
+                                                "Brush Size: ${uiState.brushSize.toInt()}px",
+                                                style = MaterialTheme.typography.labelMedium
+                                            )
+                                            Slider(
+                                                value = uiState.brushSize,
+                                                onValueChange = { viewModel.updateBrushSize(it) },
+                                                valueRange = 10f..300f,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(60.dp)
+                                                    .align(Alignment.CenterHorizontally),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Canvas(modifier = Modifier.size(60.dp)) {
+                                                    drawCheckerboard()
+                                                    drawCircle(
+                                                        color = Color.Red.copy(alpha = 0.5f),
+                                                        radius = uiState.brushSize / 2,
+                                                        center = center
+                                                    )
+                                                    drawCircle(
+                                                        color = Color.Red,
+                                                        radius = uiState.brushSize / 2,
+                                                        center = center,
+                                                        style = Stroke(width = 2.dp.toPx())
+                                                    )
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                OutlinedButton(onClick = { viewModel.resetImage() }, modifier = Modifier.weight(1f)) { Text("Reset") }
-                                Button(
-                                    onClick = {
-                                        viewModel.finishEditing()
-                                        showRopeSelection = true
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                ) { Text("Next") }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { viewModel.resetImage() },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Reset")
+                                    }
+                                    Button(
+                                        onClick = {
+                                            viewModel.finishEditing()
+                                            showRopeSelection = true
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Next")
+                                    }
+                                }
                             }
                         }
                     }
@@ -548,7 +604,7 @@ private fun calculateLoupePosition(
     )
 }
 
-private fun DrawScope.drawCheckerboard() {
+fun DrawScope.drawCheckerboard() {
     val checkSize = 20.dp.toPx()
     val lightGray = Color.LightGray.copy(alpha = 0.3f)
     val darkGray = Color.Gray.copy(alpha = 0.3f)
@@ -612,7 +668,7 @@ fun calculateImageTransformation(
     return ImageTransformation(scaleFactor, imageOffset, displayedImageSize)
 }
 
-private fun createTransparentBitmap(
+fun createTransparentBitmap(
     originalBitmap: ImageBitmap,
     maskPath: Path,
     currentStrokePath: Path

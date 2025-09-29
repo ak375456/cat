@@ -38,13 +38,10 @@ data class CustomCharacterUiState(
     val selectedImageUri: Uri? = null,
     val isBackgroundRemovalMode: Boolean = false,
     val brushSize: Float = 30f,
-    // This now holds only the completed strokes.
     val maskPath: Path = Path(),
-    // OPTIMIZATION: A separate path for the stroke currently being drawn.
     val currentStrokePath: Path = Path(),
     val previewPosition: Offset? = null,
     val canvasSize: IntSize = IntSize.Zero,
-    // Stores the state of maskPath before each new stroke.
     val strokeHistory: List<Path> = emptyList(),
     val isDrawing: Boolean = false,
     val lastDrawnPoint: Offset? = null,
@@ -52,7 +49,11 @@ data class CustomCharacterUiState(
     val characterName: String = "",
     val imageTransformation: ImageTransformation? = null,
     val isSaving: Boolean = false,
-    val saveComplete: Boolean = false
+    val saveComplete: Boolean = false,
+    val ropeScale: Float = 1f,
+    val ropeOffsetX: Float = 0f,
+    val ropeOffsetY: Float = 0f,
+    val showRopeAdjustment: Boolean = false
 )
 
 @HiltViewModel
@@ -178,7 +179,13 @@ class CustomCharacterCreationViewModel @Inject constructor(
     }
 
     fun onRopeSelected(ropeResId: Int) {
-        _uiState.value = _uiState.value.copy(selectedRopeResId = ropeResId)
+        _uiState.update { it.copy(
+            selectedRopeResId = ropeResId,
+            showRopeAdjustment = true,
+            ropeScale = 1f,
+            ropeOffsetX = 0f,
+            ropeOffsetY = 0f
+        )}
     }
 
     fun onCharacterNameChanged(name: String) {
@@ -198,8 +205,14 @@ class CustomCharacterCreationViewModel @Inject constructor(
                     val characterName = state.characterName.ifBlank { "Custom Character" }
 
                     val processedBitmap = processImage(context, imageUri, state.maskPath, state.canvasSize)
-                    val finalBitmap = combineImageAndRope(context, processedBitmap, ropeResId)
-
+                    val finalBitmap = combineImageAndRope(
+                        context,
+                        processedBitmap,
+                        ropeResId,
+                        state.ropeScale,
+                        state.ropeOffsetX,
+                        state.ropeOffsetY
+                    )
                     val file = saveBitmapAsWebp(context, finalBitmap, characterName)
                     if (file != null) {
                         val customCharacter = CustomCharacter(
@@ -280,18 +293,40 @@ class CustomCharacterCreationViewModel @Inject constructor(
         return@withContext resultBitmap
     }
 
-    private fun combineImageAndRope(context: Context, characterBitmap: Bitmap, ropeResId: Int): Bitmap {
+    private fun combineImageAndRope(
+        context: Context,
+        characterBitmap: Bitmap,
+        ropeResId: Int,
+        ropeScale: Float = 1f,
+        ropeOffsetX: Float = 0f,
+        ropeOffsetY: Float = 0f
+    ): Bitmap {
         val ropeDrawable = context.getDrawable(ropeResId)
-        val ropeBitmap = ropeDrawable?.toBitmap() ?: return characterBitmap
-        val ropeWidth = ropeBitmap.width
-        val ropeHeight = ropeBitmap.height
+        val originalRopeBitmap = ropeDrawable?.toBitmap() ?: return characterBitmap
+
+        val scaledRopeWidth = (originalRopeBitmap.width * ropeScale).toInt()
+        val scaledRopeHeight = (originalRopeBitmap.height * ropeScale).toInt()
+        val ropeBitmap = Bitmap.createScaledBitmap(
+            originalRopeBitmap,
+            scaledRopeWidth,
+            scaledRopeHeight,
+            true
+        )
+
         val characterWidth = characterBitmap.width
         val characterHeight = characterBitmap.height
-        val combinedBitmap = createBitmap(characterWidth, ropeHeight + characterHeight)
+
+        val combinedBitmap = createBitmap(characterWidth, scaledRopeHeight + characterHeight)
         val canvas = android.graphics.Canvas(combinedBitmap)
-        val ropeX = (characterWidth - ropeWidth) / 2f
-        canvas.drawBitmap(ropeBitmap, ropeX, 0f, null)
-        canvas.drawBitmap(characterBitmap, 0f, ropeHeight.toFloat(), null)
+
+        val ropeX = (characterWidth - scaledRopeWidth) / 2f + ropeOffsetX
+        val ropeY = ropeOffsetY
+        canvas.drawBitmap(ropeBitmap, ropeX, ropeY, null)
+        canvas.drawBitmap(characterBitmap, 0f, scaledRopeHeight.toFloat(), null)
+
+        originalRopeBitmap.recycle()
+        ropeBitmap.recycle()
+
         return combinedBitmap
     }
 
@@ -317,5 +352,21 @@ class CustomCharacterCreationViewModel @Inject constructor(
 
     fun updateImageTransformation(transformation: ImageTransformation?) {
         _uiState.update { it.copy(imageTransformation = transformation) }
+    }
+
+    fun updateRopeScale(scale: Float) {
+        _uiState.update { it.copy(ropeScale = scale) }
+    }
+
+    fun updateRopeOffsetX(offsetX: Float) {
+        _uiState.update { it.copy(ropeOffsetX = offsetX) }
+    }
+
+    fun updateRopeOffsetY(offsetY: Float) {
+        _uiState.update { it.copy(ropeOffsetY = offsetY) }
+    }
+
+    fun finishRopeAdjustment() {
+        _uiState.update { it.copy(showRopeAdjustment = false) }
     }
 }
