@@ -65,16 +65,12 @@ fun CustomCharacterCreationScreen(
     var showRopeSelection by remember { mutableStateOf(false) }
     var showNameDialog by remember { mutableStateOf(false) }
 
-    // --- FIX START: Handle navigation as a side effect when saving is complete ---
     LaunchedEffect(uiState.saveComplete) {
         if (uiState.saveComplete) {
             navController.popBackStack()
             viewModel.onNavigationComplete() // Reset the event
         }
     }
-    // --- FIX END ---
-
-    // --- FIX START: Add a Box to host the loading overlay ---
     Box(modifier = Modifier.fillMaxSize()) {
         if (showRopeSelection) {
             RopeSelectionScreen(
@@ -90,7 +86,6 @@ fun CustomCharacterCreationScreen(
                 onNameSelected = { name ->
                     viewModel.onCharacterNameChanged(name)
                     viewModel.saveCustomCharacter(context)
-                    // --- FIX: Remove navigation from here, it's now handled by LaunchedEffect ---
                     showNameDialog = false
                 },
                 onDismiss = { showNameDialog = false }
@@ -211,13 +206,12 @@ fun CustomCharacterCreationScreen(
             }
         }
 
-        // --- FIX START: Show a loading overlay when isSaving is true ---
         if (uiState.isSaving) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.5f))
-                    .clickable(enabled = false, onClick = {}), // Block interactions
+                    .clickable(enabled = false, onClick = {}),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -234,7 +228,6 @@ fun CustomCharacterCreationScreen(
                 }
             }
         }
-        // --- FIX END ---
     }
 }
 

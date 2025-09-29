@@ -1,6 +1,7 @@
 package com.lexur.yumo
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.graphics.PixelFormat
 import android.os.*
 import android.view.*
@@ -61,8 +62,13 @@ class SimpleOverlayManager @Inject constructor(
 
             // For hanging characters, just set the static image and handle motion
             if (character.isHanging) {
-                if (character.frameIds.isNotEmpty()) {
-                    imageView.setImageResource(character.frameIds[0])
+                if (character.isCustom && character.imagePath != null) {
+                    val bitmap = BitmapFactory.decodeFile(character.imagePath)
+                    if (bitmap != null) {
+                        imageView.setImageBitmap(bitmap)
+                    }
+                } else if (character.frameIds.isNotEmpty()) {
+                    imageView.setImageResource(character.frameIds[0]) // [cite: 458]
                 }
                 // Store original position for hanging characters
                 originalX = params.x
@@ -129,7 +135,12 @@ class SimpleOverlayManager @Inject constructor(
                     if (isNowHanging) {
                         // Stop animation for hanging character
                         stopAnimation()
-                        if (character.frameIds.isNotEmpty()) {
+                        if (character.isCustom && character.imagePath != null) {
+                            val bitmap = BitmapFactory.decodeFile(character.imagePath)
+                            if (bitmap != null) {
+                                imageView.setImageBitmap(bitmap)
+                            }
+                        } else if (character.frameIds.isNotEmpty()) {
                             imageView.setImageResource(character.frameIds[0])
                         }
                         // Position hanging character at specified X position
@@ -145,7 +156,12 @@ class SimpleOverlayManager @Inject constructor(
                     }
                 } else if (isNowHanging) {
                     // Update static image and position for hanging character
-                    if (character.frameIds.isNotEmpty()) {
+                    if (character.isCustom && character.imagePath != null) {
+                        val bitmap = BitmapFactory.decodeFile(character.imagePath)
+                        if (bitmap != null) {
+                            imageView.setImageBitmap(bitmap)
+                        }
+                    } else if (character.frameIds.isNotEmpty()) {
                         imageView.setImageResource(character.frameIds[0])
                     }
                     params.x = character.xPosition

@@ -10,6 +10,7 @@ import com.lexur.yumo.R
 import com.lexur.yumo.custom_character.domain.CustomCharacter
 import com.lexur.yumo.custom_character.domain.CustomCharacterDao
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -579,9 +580,10 @@ class CharacterRepository @Inject constructor(
         }
     }
 
-    fun getCharacterById(id: String): Characters? {
-        val characters = loadCharacters()
-        return characters[id]
+    suspend fun getCharacterById(id: String): Characters? {
+        // This now correctly finds a character by its ID from the combined list
+        // of default and custom characters.
+        return getAllCharacters().first().find { it.id == id }
     }
 
     fun getCharactersByCategory(category: CharacterCategory): List<Characters> {
