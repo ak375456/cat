@@ -53,7 +53,7 @@ data class CustomCharacterUiState(
     val ropeScale: Float = 1f,
     val ropeOffsetX: Float = 0f,
     val ropeOffsetY: Float = 0f,
-    val showRopeAdjustment: Boolean = false
+    val showRopeAdjustment: Boolean = false,
 )
 
 @HiltViewModel
@@ -111,7 +111,9 @@ class CustomCharacterCreationViewModel @Inject constructor(
             val lastPoint = currentState.lastDrawnPoint ?: return@update currentState
             val newStrokePath = Path().apply {
                 addPath(currentState.currentStrokePath)
-                val distance = kotlin.math.sqrt((offset.x - lastPoint.x).pow(2) + (offset.y - lastPoint.y).pow(2))
+                val distance = kotlin.math.sqrt(
+                    (offset.x - lastPoint.x).pow(2) + (offset.y - lastPoint.y).pow(2)
+                )
                 val steps = (distance / (currentState.brushSize * 0.25f)).toInt().coerceAtLeast(1)
                 for (i in 0..steps) {
                     val t = i.toFloat() / steps
@@ -175,17 +177,20 @@ class CustomCharacterCreationViewModel @Inject constructor(
     }
 
     fun finishEditing() {
-        _uiState.value = _uiState.value.copy(isBackgroundRemovalMode = false, previewPosition = null)
+        _uiState.value =
+            _uiState.value.copy(isBackgroundRemovalMode = false, previewPosition = null)
     }
 
     fun onRopeSelected(ropeResId: Int) {
-        _uiState.update { it.copy(
-            selectedRopeResId = ropeResId,
-            showRopeAdjustment = true,
-            ropeScale = 1f,
-            ropeOffsetX = 0f,
-            ropeOffsetY = 0f
-        )}
+        _uiState.update {
+            it.copy(
+                selectedRopeResId = ropeResId,
+                showRopeAdjustment = true,
+                ropeScale = 1f,
+                ropeOffsetX = 0f,
+                ropeOffsetY = 0f
+            )
+        }
     }
 
     fun onCharacterNameChanged(name: String) {
@@ -204,7 +209,8 @@ class CustomCharacterCreationViewModel @Inject constructor(
                     val ropeResId = state.selectedRopeResId ?: return@withContext false
                     val characterName = state.characterName.ifBlank { "Custom Character" }
 
-                    val processedBitmap = processImage(context, imageUri, state.maskPath, state.canvasSize)
+                    val processedBitmap =
+                        processImage(context, imageUri, state.maskPath, state.canvasSize)
                     val finalBitmap = combineImageAndRope(
                         context,
                         processedBitmap,
@@ -218,7 +224,10 @@ class CustomCharacterCreationViewModel @Inject constructor(
                         val customCharacter = CustomCharacter(
                             name = characterName,
                             imagePath = file.absolutePath,
-                            ropeResId = ropeResId
+                            ropeResId = ropeResId,
+                            ropeScale = uiState.value.ropeScale,
+                            ropeOffsetX = uiState.value.ropeOffsetX,
+                            ropeOffsetY = uiState.value.ropeOffsetY
                         )
                         characterRepository.insertCustomCharacter(customCharacter)
                         true
@@ -250,7 +259,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         context: Context,
         imageUri: Uri,
         maskPath: Path,
-        canvasSize: IntSize
+        canvasSize: IntSize,
     ): Bitmap = withContext(Dispatchers.IO) {
         val originalBitmap = context.contentResolver.openInputStream(imageUri).use {
             BitmapFactory.decodeStream(it)
@@ -317,7 +326,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         ropeResId: Int,
         ropeScale: Float = 1f,
         ropeOffsetX: Float = 0f,
-        ropeOffsetY: Float = 0f
+        ropeOffsetY: Float = 0f,
     ): Bitmap {
         val ropeDrawable = context.getDrawable(ropeResId)
         val originalRopeBitmap = ropeDrawable?.toBitmap() ?: return characterBitmap
@@ -336,7 +345,8 @@ class CustomCharacterCreationViewModel @Inject constructor(
         val characterHeight = characterBitmap.height
 
         // Calculate maximum bounds needed
-        val maxWidth = characterWidth.coerceAtLeast(scaledRopeWidth + kotlin.math.abs(ropeOffsetX.toInt()))
+        val maxWidth =
+            characterWidth.coerceAtLeast(scaledRopeWidth + kotlin.math.abs(ropeOffsetX.toInt()))
         val ropeTop = ropeOffsetY.coerceAtMost(0f).toInt()
         val totalHeight = kotlin.math.abs(ropeTop) + scaledRopeHeight + characterHeight
 
@@ -365,8 +375,11 @@ class CustomCharacterCreationViewModel @Inject constructor(
     private fun saveBitmapAsWebp(context: Context, bitmap: Bitmap, name: String): File? {
         return try {
             val directory = File(context.filesDir, "custom_characters")
-            if (!directory.exists()) { directory.mkdirs() }
-            val file = File(directory, "${name.replace(" ", "_")}_${System.currentTimeMillis()}.webp")
+            if (!directory.exists()) {
+                directory.mkdirs()
+            }
+            val file =
+                File(directory, "${name.replace(" ", "_")}_${System.currentTimeMillis()}.webp")
             FileOutputStream(file).use { out ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, out)

@@ -18,7 +18,11 @@ data class Characters(
     val speed: Int = 3, // pixels per frame
     val animationDelay: Long = 100L, // milliseconds
     val isCustom: Boolean = false,
-    val imagePath: String? = null
+    val imagePath: String? = null,
+    val ropeResId: Int? = null,
+    val ropeScale: Float = 1f,
+    val ropeOffsetX: Float = 0f,
+    val ropeOffsetY: Float = 0f
 ) : Parcelable {
 
     // Helper property to check if character is hanging (static)
