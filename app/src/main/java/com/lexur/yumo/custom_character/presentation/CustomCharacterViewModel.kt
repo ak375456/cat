@@ -46,7 +46,7 @@ data class CustomCharacterUiState(
     val imageTransformation: ImageTransformation? = null,
     val isSaving: Boolean = false,
     val saveComplete: Boolean = false,
-    val ropeScale: Float = 1f,
+    val ropeScale: Float = 0.7f,
     val ropeOffsetX: Float = 0f,
     val ropeOffsetY: Float = 0f,
     val showRopeAdjustment: Boolean = false,

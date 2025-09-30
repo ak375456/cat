@@ -175,7 +175,7 @@ fun RopeAdjustmentScreen(
                         Slider(
                             value = ropeOffsetX,
                             onValueChange = onRopeOffsetXChanged,
-                            valueRange = -200f..200f,
+                            valueRange = -1000f..1000f,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -200,7 +200,7 @@ fun RopeAdjustmentScreen(
                         Slider(
                             value = ropeOffsetY,
                             onValueChange = onRopeOffsetYChanged,
-                            valueRange = -100f..100f,
+                            valueRange = -1000f..1000f,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
