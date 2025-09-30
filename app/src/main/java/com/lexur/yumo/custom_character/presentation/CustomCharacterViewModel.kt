@@ -4,19 +4,15 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.net.Uri
-import android.os.Build
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.unit.IntSize
-import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lexur.yumo.custom_character.domain.CustomCharacter
@@ -33,7 +29,6 @@ import kotlin.math.pow
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 data class CustomCharacterUiState(
     val selectedImageUri: Uri? = null,
@@ -258,144 +253,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
     fun onNavigationComplete() {
         _uiState.update { it.copy(saveComplete = false) }
     }
-    // --- FIX END ---
-
-
-    private suspend fun processImage(
-        context: Context,
-        imageUri: Uri,
-        maskPath: Path,
-        canvasSize: IntSize
-    ): Bitmap = withContext(Dispatchers.IO) {
-        val originalBitmap = context.contentResolver.openInputStream(imageUri).use {
-            BitmapFactory.decodeStream(it)
-        }
-
-        // Calculate transformation to match preview
-        val imageRatio = originalBitmap.width.toFloat() / originalBitmap.height
-        val canvasRatio = canvasSize.width.toFloat() / canvasSize.height
-
-        val scaleFactor: Float
-        val displayedImageSize: Size
-
-        if (imageRatio > canvasRatio) {
-            scaleFactor = canvasSize.width.toFloat() / originalBitmap.width
-            displayedImageSize = Size(
-                width = canvasSize.width.toFloat(),
-                height = originalBitmap.height * scaleFactor
-            )
-        } else {
-            scaleFactor = canvasSize.height.toFloat() / originalBitmap.height
-            displayedImageSize = Size(
-                width = originalBitmap.width * scaleFactor,
-                height = canvasSize.height.toFloat()
-            )
-        }
-
-        // Create result bitmap with exact display size
-        val resultBitmap = createBitmap(
-            displayedImageSize.width.toInt(),
-            displayedImageSize.height.toInt()
-        )
-        val resultCanvas = android.graphics.Canvas(resultBitmap)
-
-        // Scale and draw the original bitmap
-        val scaledBitmap = originalBitmap.scale(
-            displayedImageSize.width.toInt(),
-            displayedImageSize.height.toInt()
-        )
-        resultCanvas.drawBitmap(scaledBitmap, 0f, 0f, null)
-
-        // Apply mask with proper scaling
-        val erasePaint = android.graphics.Paint().apply {
-            xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
-            isAntiAlias = true
-            style = android.graphics.Paint.Style.FILL
-        }
-
-        val matrix = android.graphics.Matrix().apply {
-            setScale(scaleFactor, scaleFactor)
-        }
-        val scaledPath = android.graphics.Path()
-        maskPath.asAndroidPath().transform(matrix, scaledPath)
-        resultCanvas.drawPath(scaledPath, erasePaint)
-
-        originalBitmap.recycle()
-        scaledBitmap.recycle()
-
-        return@withContext resultBitmap
-    }
-
-    private fun combineImageAndRope(
-        context: Context,
-        characterBitmap: Bitmap,
-        ropeResId: Int,
-        ropeScale: Float = 1f,
-        ropeOffsetX: Float = 0f,
-        ropeOffsetY: Float = 0f
-    ): Bitmap {
-        val ropeDrawable = context.getDrawable(ropeResId)
-        val originalRopeBitmap = ropeDrawable?.toBitmap() ?: return characterBitmap
-
-        // Scale the rope bitmap
-        val scaledRopeWidth = (originalRopeBitmap.width * ropeScale).toInt()
-        val scaledRopeHeight = (originalRopeBitmap.height * ropeScale).toInt()
-        val ropeBitmap = Bitmap.createScaledBitmap(
-            originalRopeBitmap,
-            scaledRopeWidth,
-            scaledRopeHeight,
-            true
-        )
-
-        val characterWidth = characterBitmap.width
-        val characterHeight = characterBitmap.height
-
-        // Calculate maximum bounds needed
-        val maxWidth = characterWidth.coerceAtLeast(scaledRopeWidth + kotlin.math.abs(ropeOffsetX.toInt()))
-        val ropeTop = ropeOffsetY.coerceAtMost(0f).toInt()
-        val totalHeight = kotlin.math.abs(ropeTop) + scaledRopeHeight + characterHeight
-
-        // Create combined bitmap
-        val combinedBitmap = createBitmap(maxWidth, totalHeight)
-        val canvas = android.graphics.Canvas(combinedBitmap)
-
-        // Calculate rope position
-        val ropeX = (characterWidth - scaledRopeWidth) / 2f + ropeOffsetX
-        val ropeY = kotlin.math.abs(ropeTop).toFloat() + ropeOffsetY.coerceAtLeast(0f)
-
-        // Draw rope first
-        canvas.drawBitmap(ropeBitmap, ropeX, ropeY, null)
-
-        // Draw character - position is fixed below the rope start (not affected by ropeOffsetY)
-        val characterX = (maxWidth - characterWidth) / 2f
-        val characterY = kotlin.math.abs(ropeTop).toFloat() + scaledRopeHeight.toFloat()
-        canvas.drawBitmap(characterBitmap, characterX, characterY, null)
-
-        originalRopeBitmap.recycle()
-        ropeBitmap.recycle()
-
-        return combinedBitmap
-    }
-
-    private fun saveBitmapAsWebp(context: Context, bitmap: Bitmap, name: String): File? {
-        return try {
-            val directory = File(context.filesDir, "custom_characters")
-            if (!directory.exists()) { directory.mkdirs() }
-            val file = File(directory, "${name.replace(" ", "_")}_${System.currentTimeMillis()}.webp")
-            FileOutputStream(file).use { out ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, out)
-                } else {
-                    @Suppress("DEPRECATION")
-                    bitmap.compress(Bitmap.CompressFormat.WEBP, 80, out)
-                }
-            }
-            file
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
 
     private fun createTransparentBitmapFromUri(context: Context, imageUri: Uri, maskPath: Path): Bitmap {
         // Load original bitmap
@@ -426,27 +283,18 @@ class CustomCharacterCreationViewModel @Inject constructor(
         ropeScale: Float,
         ropeOffsetX: Float,
         ropeOffsetY: Float,
-        characterScale: Float // ADD THIS PARAMETER
+        characterScale: Float, // ADD THIS PARAMETER
     ): Bitmap {
         // Scale the rope bitmap
         val scaledRopeWidth = (ropeBitmap.width * ropeScale).toInt()
         val scaledRopeHeight = (ropeBitmap.height * ropeScale).toInt()
-        val scaledRopeBitmap = Bitmap.createScaledBitmap(
-            ropeBitmap,
-            scaledRopeWidth,
-            scaledRopeHeight,
-            true
-        )
+        val scaledRopeBitmap = ropeBitmap.scale(scaledRopeWidth, scaledRopeHeight)
 
         // Scale the character bitmap - ADD THIS
         val scaledCharacterWidth = (characterBitmap.width * characterScale).toInt()
         val scaledCharacterHeight = (characterBitmap.height * characterScale).toInt()
-        val scaledCharacterBitmap = Bitmap.createScaledBitmap(
-            characterBitmap,
-            scaledCharacterWidth,
-            scaledCharacterHeight,
-            true
-        )
+        val scaledCharacterBitmap =
+            characterBitmap.scale(scaledCharacterWidth, scaledCharacterHeight)
 
         // Calculate maximum bounds needed
         val maxWidth = scaledCharacterWidth.coerceAtLeast(scaledRopeWidth + kotlin.math.abs(ropeOffsetX.toInt()))
@@ -455,7 +303,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
 
         // Create combined bitmap
         val combinedBitmap = createBitmap(maxWidth, totalHeight)
-        val canvas = android.graphics.Canvas(combinedBitmap)
+        val canvas = Canvas(combinedBitmap)
 
         // Calculate rope position
         val ropeX = (scaledCharacterWidth - scaledRopeWidth) / 2f + ropeOffsetX
@@ -485,10 +333,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
         }
         return file.absolutePath
-    }
-
-    fun updateImageTransformation(transformation: ImageTransformation?) {
-        _uiState.update { it.copy(imageTransformation = transformation) }
     }
 
     fun updateRopeScale(scale: Float) {

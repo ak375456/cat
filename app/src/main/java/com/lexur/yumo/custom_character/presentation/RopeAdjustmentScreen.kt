@@ -5,15 +5,11 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -27,6 +23,8 @@ import androidx.core.graphics.drawable.toBitmap
 import android.net.Uri
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,7 +45,6 @@ fun RopeAdjustmentScreen(
     characterScale: Float,
     onCharacterScaleChanged: (Float) -> Unit,
 ) {
-    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -55,7 +52,7 @@ fun RopeAdjustmentScreen(
                 title = { Text("Adjust Rope Position") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -122,7 +119,7 @@ fun RopeAdjustmentScreen(
                         Slider(
                             value = characterScale,
                             onValueChange = onCharacterScaleChanged,
-                            valueRange = 0.3f..3.0f,
+                            valueRange = 0.3f..5.0f,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
