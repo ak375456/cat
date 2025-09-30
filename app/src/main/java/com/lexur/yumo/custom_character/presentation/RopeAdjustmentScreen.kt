@@ -95,34 +95,35 @@ fun RopeAdjustmentScreen(
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Character Size",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "${(characterScale * 100).toInt()}%",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Slider(
-                        value = characterScale,
-                        onValueChange = onCharacterScaleChanged,
-                        valueRange = 0.3f..3.0f,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                HorizontalDivider()
+
 
                 Column(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Character Size",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "${(characterScale * 100).toInt()}%",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Slider(
+                            value = characterScale,
+                            onValueChange = onCharacterScaleChanged,
+                            valueRange = 0.3f..3.0f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    HorizontalDivider()
                     Text(
                         text = "Rope Adjustments",
                         style = MaterialTheme.typography.titleMedium,
