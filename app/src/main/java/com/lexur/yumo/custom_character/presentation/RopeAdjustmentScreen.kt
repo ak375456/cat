@@ -41,7 +41,9 @@ fun RopeAdjustmentScreen(
     onRopeOffsetXChanged: (Float) -> Unit,
     onRopeOffsetYChanged: (Float) -> Unit,
     onConfirm: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    characterScale: Float,
+    onCharacterScaleChanged: (Float) -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -81,7 +83,8 @@ fun RopeAdjustmentScreen(
                     ropeResId = ropeResId,
                     ropeScale = ropeScale,
                     ropeOffsetX = ropeOffsetX,
-                    ropeOffsetY = ropeOffsetY
+                    ropeOffsetY = ropeOffsetY,
+                    characterScale = characterScale
                 )
             }
 
@@ -92,6 +95,30 @@ fun RopeAdjustmentScreen(
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Character Size",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "${(characterScale * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Slider(
+                        value = characterScale,
+                        onValueChange = onCharacterScaleChanged,
+                        valueRange = 0.3f..3.0f,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                HorizontalDivider()
+
                 Column(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -180,6 +207,7 @@ fun RopeAdjustmentScreen(
                             onRopeScaleChanged(1f)
                             onRopeOffsetXChanged(0f)
                             onRopeOffsetYChanged(0f)
+                            onCharacterScaleChanged(1f)
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -199,7 +227,8 @@ private fun RopePreviewCanvas(
     ropeResId: Int,
     ropeScale: Float,
     ropeOffsetX: Float,
-    ropeOffsetY: Float
+    ropeOffsetY: Float,
+    characterScale: Float
 ) {
     val context = LocalContext.current
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
@@ -248,8 +277,8 @@ private fun RopePreviewCanvas(
                 // Calculate the total content size (rope + character)
                 val ropeScaledWidth = ropeBitmap!!.width * ropeScale
                 val ropeScaledHeight = ropeBitmap!!.height * ropeScale
-                val characterWidth = processedBitmap.width.toFloat()
-                val characterHeight = processedBitmap.height.toFloat()
+                val characterWidth = processedBitmap.width.toFloat() * characterScale
+                val characterHeight = processedBitmap.height.toFloat() * characterScale
 
                 // Total content dimensions
                 val totalContentHeight = ropeScaledHeight + characterHeight

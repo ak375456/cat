@@ -94,7 +94,9 @@ fun CustomCharacterCreationScreen(
                     onNavigateBack = {
                         viewModel.finishRopeAdjustment()
                         showRopeSelection = true
-                    }
+                    },
+                    characterScale = uiState.characterScale,
+                    onCharacterScaleChanged = viewModel::updateCharacterScale,
                 )
             }
 

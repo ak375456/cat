@@ -12,5 +12,6 @@ data class CustomCharacter(
     val ropeResId: Int,
     val ropeScale: Float,
     val ropeOffsetX: Float,
-    val ropeOffsetY: Float
+    val ropeOffsetY: Float,
+    val characterScale: Float = 1f
 )

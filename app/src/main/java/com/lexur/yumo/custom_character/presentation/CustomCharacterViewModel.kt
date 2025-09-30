@@ -54,7 +54,8 @@ data class CustomCharacterUiState(
     val ropeScale: Float = 1f,
     val ropeOffsetX: Float = 0f,
     val ropeOffsetY: Float = 0f,
-    val showRopeAdjustment: Boolean = false
+    val showRopeAdjustment: Boolean = false,
+    val characterScale: Float = 1f,
 )
 
 @HiltViewModel
@@ -185,12 +186,17 @@ class CustomCharacterCreationViewModel @Inject constructor(
             showRopeAdjustment = true,
             ropeScale = 1f,
             ropeOffsetX = 0f,
-            ropeOffsetY = 0f
+            ropeOffsetY = 0f,
+            characterScale = 1f
         )}
     }
 
     fun onCharacterNameChanged(name: String) {
         _uiState.value = _uiState.value.copy(characterName = name)
+    }
+
+    fun updateCharacterScale(scale: Float) {
+        _uiState.update { it.copy(characterScale = scale) }
     }
 
     // --- FIX START: Reworked save function for background execution and UI state updates ---
@@ -218,7 +224,8 @@ class CustomCharacterCreationViewModel @Inject constructor(
                     ropeBitmap,
                     currentState.ropeScale,
                     currentState.ropeOffsetX,
-                    currentState.ropeOffsetY
+                    currentState.ropeOffsetY,
+                    currentState.characterScale
                 )
 
                 // 4. Save the combined bitmap to a file
@@ -232,7 +239,8 @@ class CustomCharacterCreationViewModel @Inject constructor(
                     ropeResId = currentState.selectedRopeResId,
                     ropeScale = currentState.ropeScale,
                     ropeOffsetX = currentState.ropeOffsetX,
-                    ropeOffsetY = currentState.ropeOffsetY
+                    ropeOffsetY = currentState.ropeOffsetY,
+                    characterScale = currentState.characterScale
                 )
 
                 // 6. Insert into the database
@@ -415,44 +423,56 @@ class CustomCharacterCreationViewModel @Inject constructor(
     private fun combineCharacterAndRope(
         characterBitmap: Bitmap,
         ropeBitmap: Bitmap,
-        scale: Float,
-        offsetX: Float,
-        offsetY: Float
+        ropeScale: Float,
+        ropeOffsetX: Float,
+        ropeOffsetY: Float,
+        characterScale: Float // ADD THIS PARAMETER
     ): Bitmap {
-        // Calculate dimensions based on the logic from your RopePreviewCanvas
-        val ropeScaledWidth = ropeBitmap.width * scale
-        val ropeScaledHeight = ropeBitmap.height * scale
-
-        // Total content dimensions
-        val totalContentHeight = ropeScaledHeight + characterBitmap.height
-        val totalContentWidth = characterBitmap.width.toFloat().coerceAtLeast(ropeScaledWidth)
-
-        // Create a new bitmap to hold the combined image
-        val resultBitmap = Bitmap.createBitmap(
-            totalContentWidth.toInt(),
-            totalContentHeight.toInt(),
-            Bitmap.Config.ARGB_8888
+        // Scale the rope bitmap
+        val scaledRopeWidth = (ropeBitmap.width * ropeScale).toInt()
+        val scaledRopeHeight = (ropeBitmap.height * ropeScale).toInt()
+        val scaledRopeBitmap = Bitmap.createScaledBitmap(
+            ropeBitmap,
+            scaledRopeWidth,
+            scaledRopeHeight,
+            true
         )
-        val canvas = Canvas(resultBitmap)
+
+        // Scale the character bitmap - ADD THIS
+        val scaledCharacterWidth = (characterBitmap.width * characterScale).toInt()
+        val scaledCharacterHeight = (characterBitmap.height * characterScale).toInt()
+        val scaledCharacterBitmap = Bitmap.createScaledBitmap(
+            characterBitmap,
+            scaledCharacterWidth,
+            scaledCharacterHeight,
+            true
+        )
+
+        // Calculate maximum bounds needed
+        val maxWidth = scaledCharacterWidth.coerceAtLeast(scaledRopeWidth + kotlin.math.abs(ropeOffsetX.toInt()))
+        val ropeTop = ropeOffsetY.coerceAtMost(0f).toInt()
+        val totalHeight = kotlin.math.abs(ropeTop) + scaledRopeHeight + scaledCharacterHeight
+
+        // Create combined bitmap
+        val combinedBitmap = createBitmap(maxWidth, totalHeight)
+        val canvas = android.graphics.Canvas(combinedBitmap)
 
         // Calculate rope position
-        val ropeX = (totalContentWidth - ropeScaledWidth) / 2 + offsetX
-        val ropeY = offsetY // Rope is at the top, with vertical offset
+        val ropeX = (scaledCharacterWidth - scaledRopeWidth) / 2f + ropeOffsetX
+        val ropeY = kotlin.math.abs(ropeTop).toFloat() + ropeOffsetY.coerceAtLeast(0f)
 
-        // Draw the rope with scale and translation
-        val ropeMatrix = Matrix()
-        ropeMatrix.postScale(scale, scale)
-        ropeMatrix.postTranslate(ropeX, ropeY)
-        canvas.drawBitmap(ropeBitmap, ropeMatrix, null)
+        // Draw rope first
+        canvas.drawBitmap(scaledRopeBitmap, ropeX, ropeY, null)
 
-        // Calculate character position (centered horizontally, below the rope area)
-        val characterX = (totalContentWidth - characterBitmap.width) / 2
-        val characterY = ropeScaledHeight // Character is directly below the scaled rope area
+        // Draw scaled character
+        val characterX = (maxWidth - scaledCharacterWidth) / 2f
+        val characterY = kotlin.math.abs(ropeTop).toFloat() + scaledRopeHeight.toFloat()
+        canvas.drawBitmap(scaledCharacterBitmap, characterX, characterY, null)
 
-        // Draw the character
-        canvas.drawBitmap(characterBitmap, characterX, characterY, null)
+        scaledRopeBitmap.recycle()
+        scaledCharacterBitmap.recycle()
 
-        return resultBitmap
+        return combinedBitmap
     }
 
     private fun saveBitmapToFile(context: Context, bitmap: Bitmap, fileName: String): String {
