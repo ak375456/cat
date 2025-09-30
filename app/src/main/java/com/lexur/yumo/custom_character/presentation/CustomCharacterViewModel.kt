@@ -277,48 +277,123 @@ class CustomCharacterCreationViewModel @Inject constructor(
         return mutableBitmap
     }
 
+    private fun cropTransparentBorders(bitmap: Bitmap): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+
+        var top = 0
+        var bottom = height
+        var left = 0
+        var right = width
+
+        // Find top boundary
+        topLoop@ for (y in 0 until height) {
+            for (x in 0 until width) {
+                if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+                    top = y
+                    break@topLoop
+                }
+            }
+        }
+
+        // Find bottom boundary
+        bottomLoop@ for (y in height - 1 downTo top) {
+            for (x in 0 until width) {
+                if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+                    bottom = y + 1
+                    break@bottomLoop
+                }
+            }
+        }
+
+        // Find left boundary
+        leftLoop@ for (x in 0 until width) {
+            for (y in top until bottom) {
+                if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+                    left = x
+                    break@leftLoop
+                }
+            }
+        }
+
+        // Find right boundary
+        rightLoop@ for (x in width - 1 downTo left) {
+            for (y in top until bottom) {
+                if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+                    right = x + 1
+                    break@rightLoop
+                }
+            }
+        }
+
+        // If no non-transparent pixels found, return original
+        if (top >= bottom || left >= right) {
+            return bitmap
+        }
+
+        // Create cropped bitmap
+        val croppedWidth = right - left
+        val croppedHeight = bottom - top
+
+        return Bitmap.createBitmap(bitmap, left, top, croppedWidth, croppedHeight)
+    }
+
+    // Replace your existing combineCharacterAndRope function
     private fun combineCharacterAndRope(
         characterBitmap: Bitmap,
         ropeBitmap: Bitmap,
         ropeScale: Float,
         ropeOffsetX: Float,
         ropeOffsetY: Float,
-        characterScale: Float, // ADD THIS PARAMETER
+        characterScale: Float,
     ): Bitmap {
+        // Crop transparent borders from character
+        val croppedCharacterBitmap = cropTransparentBorders(characterBitmap)
+
+        // Scale the cropped character bitmap
+        val scaledCharacterWidth = (croppedCharacterBitmap.width * characterScale).toInt()
+        val scaledCharacterHeight = (croppedCharacterBitmap.height * characterScale).toInt()
+        val scaledCharacterBitmap = croppedCharacterBitmap.scale(scaledCharacterWidth, scaledCharacterHeight)
+
         // Scale the rope bitmap
         val scaledRopeWidth = (ropeBitmap.width * ropeScale).toInt()
         val scaledRopeHeight = (ropeBitmap.height * ropeScale).toInt()
         val scaledRopeBitmap = ropeBitmap.scale(scaledRopeWidth, scaledRopeHeight)
 
-        // Scale the character bitmap - ADD THIS
-        val scaledCharacterWidth = (characterBitmap.width * characterScale).toInt()
-        val scaledCharacterHeight = (characterBitmap.height * characterScale).toInt()
-        val scaledCharacterBitmap =
-            characterBitmap.scale(scaledCharacterWidth, scaledCharacterHeight)
+        // Calculate total content dimensions
+        val totalContentWidth = scaledCharacterWidth.coerceAtLeast(scaledRopeWidth)
+        val totalContentHeight = scaledRopeHeight + scaledCharacterHeight
 
-        // Calculate maximum bounds needed
-        val maxWidth = scaledCharacterWidth.coerceAtLeast(scaledRopeWidth + kotlin.math.abs(ropeOffsetX.toInt()))
-        val ropeTop = ropeOffsetY.coerceAtMost(0f).toInt()
-        val totalHeight = kotlin.math.abs(ropeTop) + scaledRopeHeight + scaledCharacterHeight
+        // Add padding for offsets
+        val paddingTop = kotlin.math.max(0f, -ropeOffsetY).toInt()
+        val paddingBottom = kotlin.math.max(0f, ropeOffsetY).toInt()
+        val paddingLeft = kotlin.math.max(0f, -ropeOffsetX).toInt()
+        val paddingRight = kotlin.math.max(0f, ropeOffsetX).toInt()
+
+        val canvasWidth = totalContentWidth + paddingLeft + paddingRight
+        val canvasHeight = totalContentHeight + paddingTop + paddingBottom
 
         // Create combined bitmap
-        val combinedBitmap = createBitmap(maxWidth, totalHeight)
+        val combinedBitmap = createBitmap(canvasWidth, canvasHeight)
         val canvas = Canvas(combinedBitmap)
 
         // Calculate rope position
-        val ropeX = (scaledCharacterWidth - scaledRopeWidth) / 2f + ropeOffsetX
-        val ropeY = kotlin.math.abs(ropeTop).toFloat() + ropeOffsetY.coerceAtLeast(0f)
+        val ropeX = paddingLeft + (totalContentWidth - scaledRopeWidth) / 2f + ropeOffsetX
+        val ropeY = paddingTop + ropeOffsetY
 
         // Draw rope first
         canvas.drawBitmap(scaledRopeBitmap, ropeX, ropeY, null)
 
-        // Draw scaled character
-        val characterX = (maxWidth - scaledCharacterWidth) / 2f
-        val characterY = kotlin.math.abs(ropeTop).toFloat() + scaledRopeHeight.toFloat()
+        // Calculate character position (directly below rope)
+        val characterX = paddingLeft + (totalContentWidth - scaledCharacterWidth) / 2f
+        val characterY = paddingTop + scaledRopeHeight.toFloat()
+
+        // Draw character
         canvas.drawBitmap(scaledCharacterBitmap, characterX, characterY, null)
 
         scaledRopeBitmap.recycle()
         scaledCharacterBitmap.recycle()
+        croppedCharacterBitmap.recycle()
 
         return combinedBitmap
     }

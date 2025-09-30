@@ -1,5 +1,6 @@
 package com.lexur.yumo.custom_character.presentation
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -25,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.graphics.asAndroidBitmap
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -254,9 +256,14 @@ private fun RopePreviewCanvas(
         }
     }
 
+    // Create processed AND cropped bitmap
     val processedBitmap = remember(imageBitmap, maskPath, currentStrokePath) {
         if (imageBitmap != null) {
-            createTransparentBitmap(imageBitmap!!, maskPath, currentStrokePath)
+            val transparent = createTransparentBitmap(imageBitmap!!, maskPath, currentStrokePath)
+            // Convert to Android Bitmap, crop, then back to ImageBitmap
+            val androidBitmap = transparent.asAndroidBitmap()
+            val cropped = cropTransparentBordersForPreview(androidBitmap)
+            cropped.asImageBitmap()
         } else null
     }
 
@@ -275,7 +282,7 @@ private fun RopePreviewCanvas(
             drawCheckerboard()
 
             if (ropeBitmap != null && processedBitmap != null && canvasSize != IntSize.Zero) {
-                // Calculate the total content size (rope + character)
+                // Calculate scaled dimensions
                 val ropeScaledWidth = ropeBitmap!!.width * ropeScale
                 val ropeScaledHeight = ropeBitmap!!.height * ropeScale
                 val characterWidth = processedBitmap.width.toFloat() * characterScale
@@ -285,10 +292,10 @@ private fun RopePreviewCanvas(
                 val totalContentHeight = ropeScaledHeight + characterHeight
                 val totalContentWidth = characterWidth.coerceAtLeast(ropeScaledWidth)
 
-                // Calculate scale to fit everything in the canvas
+                // Calculate scale to fit
                 val scaleToFitWidth = size.width / totalContentWidth
                 val scaleToFitHeight = size.height / totalContentHeight
-                val scaleFactor = minOf(scaleToFitWidth, scaleToFitHeight) * 0.9f // 0.9f for padding
+                val scaleFactor = minOf(scaleToFitWidth, scaleToFitHeight) * 0.9f
 
                 // Apply scale to all dimensions
                 val displayRopeWidth = ropeScaledWidth * scaleFactor
@@ -300,11 +307,11 @@ private fun RopePreviewCanvas(
                 val totalDisplayHeight = displayRopeHeight + displayCharacterHeight
                 val totalDisplayWidth = displayCharacterWidth.coerceAtLeast(displayRopeWidth)
 
-                // Center the entire composition in the canvas
+                // Center in canvas
                 val startX = (size.width - totalDisplayWidth) / 2
                 val startY = (size.height - totalDisplayHeight) / 2
 
-                // Calculate rope position (centered horizontally with offset, at the top)
+                // Rope position
                 val ropeX = startX + (totalDisplayWidth - displayRopeWidth) / 2 + (ropeOffsetX * scaleFactor)
                 val ropeY = startY + (ropeOffsetY * scaleFactor)
 
@@ -315,9 +322,9 @@ private fun RopePreviewCanvas(
                     dstSize = IntSize(displayRopeWidth.roundToInt(), displayRopeHeight.roundToInt())
                 )
 
-                // Calculate character position (always below the rope, centered)
+                // Character position (directly below rope)
                 val characterX = startX + (totalDisplayWidth - displayCharacterWidth) / 2
-                val characterY = startY + displayRopeHeight // Character position is fixed relative to composition start
+                val characterY = startY + displayRopeHeight
 
                 // Draw character
                 drawImage(
@@ -328,4 +335,60 @@ private fun RopePreviewCanvas(
             }
         }
     }
+}
+
+// Add this helper function at the file level (outside the composable)
+private fun cropTransparentBordersForPreview(bitmap: Bitmap): Bitmap {
+    val width = bitmap.width
+    val height = bitmap.height
+
+    var top = 0
+    var bottom = height
+    var left = 0
+    var right = width
+
+    topLoop@ for (y in 0 until height) {
+        for (x in 0 until width) {
+            if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+                top = y
+                break@topLoop
+            }
+        }
+    }
+
+    bottomLoop@ for (y in height - 1 downTo top) {
+        for (x in 0 until width) {
+            if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+                bottom = y + 1
+                break@bottomLoop
+            }
+        }
+    }
+
+    leftLoop@ for (x in 0 until width) {
+        for (y in top until bottom) {
+            if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+                left = x
+                break@leftLoop
+            }
+        }
+    }
+
+    rightLoop@ for (x in width - 1 downTo left) {
+        for (y in top until bottom) {
+            if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+                right = x + 1
+                break@rightLoop
+            }
+        }
+    }
+
+    if (top >= bottom || left >= right) {
+        return bitmap
+    }
+
+    val croppedWidth = right - left
+    val croppedHeight = bottom - top
+
+    return Bitmap.createBitmap(bitmap, left, top, croppedWidth, croppedHeight)
 }
