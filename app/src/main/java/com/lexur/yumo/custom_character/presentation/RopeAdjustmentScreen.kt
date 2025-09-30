@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.graphics.asAndroidBitmap
 import kotlin.math.roundToInt
+import androidx.core.graphics.get
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,12 +148,6 @@ fun RopeAdjustmentScreen(
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        Slider(
-                            value = ropeScale,
-                            onValueChange = onRopeScaleChanged,
-                            valueRange = 0.5f..2.0f,
-                            modifier = Modifier.fillMaxWidth()
-                        )
                     }
 
                     HorizontalDivider()
@@ -231,7 +226,7 @@ private fun RopePreviewCanvas(
     ropeScale: Float,
     ropeOffsetX: Float,
     ropeOffsetY: Float,
-    characterScale: Float
+    characterScale: Float,
 ) {
     val context = LocalContext.current
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
@@ -349,7 +344,7 @@ private fun cropTransparentBordersForPreview(bitmap: Bitmap): Bitmap {
 
     topLoop@ for (y in 0 until height) {
         for (x in 0 until width) {
-            if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+            if (android.graphics.Color.alpha(bitmap[x, y]) > 0) {
                 top = y
                 break@topLoop
             }
@@ -358,7 +353,7 @@ private fun cropTransparentBordersForPreview(bitmap: Bitmap): Bitmap {
 
     bottomLoop@ for (y in height - 1 downTo top) {
         for (x in 0 until width) {
-            if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+            if (android.graphics.Color.alpha(bitmap[x, y]) > 0) {
                 bottom = y + 1
                 break@bottomLoop
             }
@@ -367,7 +362,7 @@ private fun cropTransparentBordersForPreview(bitmap: Bitmap): Bitmap {
 
     leftLoop@ for (x in 0 until width) {
         for (y in top until bottom) {
-            if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+            if (android.graphics.Color.alpha(bitmap[x, y]) > 0) {
                 left = x
                 break@leftLoop
             }
@@ -376,7 +371,7 @@ private fun cropTransparentBordersForPreview(bitmap: Bitmap): Bitmap {
 
     rightLoop@ for (x in width - 1 downTo left) {
         for (y in top until bottom) {
-            if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+            if (android.graphics.Color.alpha(bitmap[x, y]) > 0) {
                 right = x + 1
                 break@rightLoop
             }
