@@ -27,6 +27,7 @@ import com.lexur.yumo.home_screen.presentation.components.AnimatedCharacterPrevi
 import com.lexur.yumo.home_screen.presentation.components.CategoryFilterSection
 import com.lexur.yumo.home_screen.presentation.components.EnhancedPermissionWarningCard
 import com.lexur.yumo.ui.theme.Background
+import com.lexur.yumo.ui.theme.ButtonPrimary
 import com.lexur.yumo.ui.theme.IconOnPrimary
 import com.lexur.yumo.ui.theme.OnTopBar
 import com.lexur.yumo.ui.theme.TopBarBackground
@@ -134,8 +135,12 @@ fun HomeScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { navController.navigate("custom_character_creation") },
+                containerColor = ButtonPrimary
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add custom character")
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add custom character",
+                )
             }
         }
     ) { innerPadding ->
