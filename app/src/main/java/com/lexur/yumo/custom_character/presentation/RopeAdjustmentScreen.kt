@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import android.net.Uri
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,7 +73,7 @@ fun RopeAdjustmentScreen(
         ) {
             Box(
                 modifier = Modifier
-                    .weight(1f)
+                    .weight(0.7f)
                     .fillMaxWidth()
                     .padding(16.dp)
                     .background(Color.LightGray.copy(alpha = 0.1f))
@@ -91,6 +93,7 @@ fun RopeAdjustmentScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(0.3f)
                     .padding(16.dp),
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -98,7 +101,7 @@ fun RopeAdjustmentScreen(
 
 
                 Column(
-                    modifier = Modifier.padding(20.dp),
+                    modifier = Modifier.padding(20.dp).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Column {
