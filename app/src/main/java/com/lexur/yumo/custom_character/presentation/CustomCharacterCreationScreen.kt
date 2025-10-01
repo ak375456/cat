@@ -210,7 +210,7 @@ fun CustomCharacterCreationScreen(
                                             Slider(
                                                 value = uiState.brushSize,
                                                 onValueChange = { viewModel.updateBrushSize(it) },
-                                                valueRange = 10f..300f,
+                                                valueRange = 10f..100f,
                                                 modifier = Modifier.fillMaxWidth()
                                             )
                                             Box(
@@ -544,19 +544,6 @@ private fun MagnifierPreview(
         // Draw brush preview in magnifier
         val brushRadiusInLoupe = (brushSize / 2) / transformation.scaleFactor * magnification
         val center = this.center
-
-        drawCircle(
-            color = Color.Red.copy(alpha = 0.3f),
-            radius = brushRadiusInLoupe,
-            center = center,
-            style = Fill
-        )
-        drawCircle(
-            color = Color.Red,
-            radius = brushRadiusInLoupe,
-            center = center,
-            style = Stroke(width = 1.dp.toPx())
-        )
 
         // Draw crosshair
         val crosshairSize = 8.dp.toPx()
