@@ -85,13 +85,14 @@ class CustomCharacterCreationViewModel @Inject constructor(
     fun toggleBackgroundRemovalMode() {
         _uiState.update {
             val newMode = !it.isBackgroundRemovalMode
+            // If we are turning the mode OFF, also turn off panning mode as it's a sub-mode.
+            val panningMode = if (newMode) it.isPanningMode else false
             it.copy(
                 isBackgroundRemovalMode = newMode,
-                previewPosition = null,
-                // Reset pan/zoom and mode when turning off background removal
-                isPanningMode = if (!newMode) false else it.isPanningMode,
-                canvasOffset = if (!newMode) Offset.Zero else it.canvasOffset,
-                canvasScale = if (!newMode) 1f else it.canvasScale
+                isPanningMode = panningMode,
+                previewPosition = null
+                // The canvas transform state is now intentionally preserved here.
+                // It will only be reset via resetImage() or finishEditing().
             )
         }
     }
@@ -409,3 +410,4 @@ class CustomCharacterCreationViewModel @Inject constructor(
         _uiState.update { it.copy(showRopeAdjustment = false) }
     }
 }
+
