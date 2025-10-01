@@ -51,6 +51,11 @@ data class CustomCharacterUiState(
     val ropeOffsetY: Float = 0f,
     val showRopeAdjustment: Boolean = false,
     val characterScale: Float = 1f,
+
+    // New states for pan and zoom
+    val isPanningMode: Boolean = false,
+    val canvasOffset: Offset = Offset.Zero,
+    val canvasScale: Float = 1f,
 )
 
 @HiltViewModel
@@ -66,19 +71,46 @@ class CustomCharacterCreationViewModel @Inject constructor(
             it.copy(
                 selectedImageUri = uri,
                 isBackgroundRemovalMode = false,
+                isPanningMode = false,
                 maskPath = Path(),
                 currentStrokePath = Path(),
                 strokeHistory = emptyList(),
-                lastDrawnPoint = null
+                lastDrawnPoint = null,
+                canvasOffset = Offset.Zero,
+                canvasScale = 1f
             )
         }
     }
 
     fun toggleBackgroundRemovalMode() {
         _uiState.update {
+            val newMode = !it.isBackgroundRemovalMode
             it.copy(
-                isBackgroundRemovalMode = !it.isBackgroundRemovalMode,
-                previewPosition = null
+                isBackgroundRemovalMode = newMode,
+                previewPosition = null,
+                // Reset pan/zoom and mode when turning off background removal
+                isPanningMode = if (!newMode) false else it.isPanningMode,
+                canvasOffset = if (!newMode) Offset.Zero else it.canvasOffset,
+                canvasScale = if (!newMode) 1f else it.canvasScale
+            )
+        }
+    }
+
+    fun togglePanningMode() {
+        _uiState.update {
+            if (!it.isBackgroundRemovalMode) return@update it
+            it.copy(isPanningMode = !it.isPanningMode, previewPosition = null)
+        }
+    }
+
+    fun onCanvasTransform(centroid: Offset, pan: Offset, zoom: Float) {
+        _uiState.update { currentState ->
+            val newScale = (currentState.canvasScale * zoom).coerceIn(0.5f, 5f)
+            // Formula to adjust offset to zoom around the centroid
+            val newOffset = currentState.canvasOffset + centroid - (centroid * newScale / currentState.canvasScale) + pan
+            currentState.copy(
+                canvasScale = newScale,
+                canvasOffset = newOffset
             )
         }
     }
@@ -167,12 +199,21 @@ class CustomCharacterCreationViewModel @Inject constructor(
             currentStrokePath = Path(),
             strokeHistory = emptyList(),
             isBackgroundRemovalMode = false,
-            lastDrawnPoint = null
+            lastDrawnPoint = null,
+            canvasScale = 1f,
+            canvasOffset = Offset.Zero,
+            isPanningMode = false
         )
     }
 
     fun finishEditing() {
-        _uiState.value = _uiState.value.copy(isBackgroundRemovalMode = false, previewPosition = null)
+        _uiState.value = _uiState.value.copy(
+            isBackgroundRemovalMode = false,
+            previewPosition = null,
+            isPanningMode = false,
+            canvasScale = 1f,
+            canvasOffset = Offset.Zero
+        )
     }
 
     fun onRopeSelected(ropeResId: Int) {
@@ -194,7 +235,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
         _uiState.update { it.copy(characterScale = scale) }
     }
 
-    // --- FIX START: Reworked save function for background execution and UI state updates ---
     fun saveCustomCharacter(context: Context) {
         val currentState = _uiState.value
         if (currentState.selectedImageUri == null || currentState.selectedRopeResId == null) return
@@ -203,17 +243,12 @@ class CustomCharacterCreationViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // 1. Get the character bitmap with background removed
                 val characterBitmap = createTransparentBitmapFromUri(
                     context,
                     currentState.selectedImageUri,
                     currentState.maskPath
                 )
-
-                // 2. Get the selected rope bitmap
                 val ropeBitmap = BitmapFactory.decodeResource(context.resources, currentState.selectedRopeResId)
-
-                // 3. Combine them into a single bitmap
                 val combinedBitmap = combineCharacterAndRope(
                     characterBitmap,
                     ropeBitmap,
@@ -222,12 +257,8 @@ class CustomCharacterCreationViewModel @Inject constructor(
                     currentState.ropeOffsetY,
                     currentState.characterScale
                 )
-
-                // 4. Save the combined bitmap to a file
                 val fileName = "custom_char_${System.currentTimeMillis()}.png"
                 val savedImagePath = saveBitmapToFile(context, combinedBitmap, fileName)
-
-                // 5. Create the database entity with the new fields
                 val character = CustomCharacter(
                     name = currentState.characterName,
                     imagePath = savedImagePath,
@@ -237,12 +268,8 @@ class CustomCharacterCreationViewModel @Inject constructor(
                     ropeOffsetY = currentState.ropeOffsetY,
                     characterScale = currentState.characterScale
                 )
-
-                // 6. Insert into the database
                 characterRepository.insertCustomCharacter(character)
-
                 _uiState.update { it.copy(isSaving = false, saveComplete = true) }
-
             } catch (e: Exception) {
                 e.printStackTrace()
                 _uiState.update { it.copy(isSaving = false) }
@@ -255,38 +282,28 @@ class CustomCharacterCreationViewModel @Inject constructor(
     }
 
     private fun createTransparentBitmapFromUri(context: Context, imageUri: Uri, maskPath: Path): Bitmap {
-        // Load original bitmap
         val originalBitmap = context.contentResolver.openInputStream(imageUri)?.use {
             BitmapFactory.decodeStream(it)
         } ?: throw IllegalStateException("Could not load bitmap from URI")
-
-        // Create a mutable copy for drawing
         val mutableBitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(mutableBitmap)
-
-        // Create paint to "erase" parts of the bitmap
         val erasePaint = Paint().apply {
             isAntiAlias = true
             style = Paint.Style.FILL
             xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
         }
-
-        // Apply the mask path
         canvas.drawPath(maskPath.asAndroidPath(), erasePaint)
-
         return mutableBitmap
     }
 
     private fun cropTransparentBorders(bitmap: Bitmap): Bitmap {
         val width = bitmap.width
         val height = bitmap.height
-
         var top = 0
         var bottom = height
         var left = 0
         var right = width
 
-        // Find top boundary
         topLoop@ for (y in 0 until height) {
             for (x in 0 until width) {
                 if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
@@ -295,8 +312,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
                 }
             }
         }
-
-        // Find bottom boundary
         bottomLoop@ for (y in height - 1 downTo top) {
             for (x in 0 until width) {
                 if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
@@ -305,8 +320,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
                 }
             }
         }
-
-        // Find left boundary
         leftLoop@ for (x in 0 until width) {
             for (y in top until bottom) {
                 if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
@@ -315,8 +328,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
                 }
             }
         }
-
-        // Find right boundary
         rightLoop@ for (x in width - 1 downTo left) {
             for (y in top until bottom) {
                 if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
@@ -325,20 +336,14 @@ class CustomCharacterCreationViewModel @Inject constructor(
                 }
             }
         }
-
-        // If no non-transparent pixels found, return original
         if (top >= bottom || left >= right) {
             return bitmap
         }
-
-        // Create cropped bitmap
         val croppedWidth = right - left
         val croppedHeight = bottom - top
-
         return Bitmap.createBitmap(bitmap, left, top, croppedWidth, croppedHeight)
     }
 
-    // Replace your existing combineCharacterAndRope function
     private fun combineCharacterAndRope(
         characterBitmap: Bitmap,
         ropeBitmap: Bitmap,
@@ -347,54 +352,32 @@ class CustomCharacterCreationViewModel @Inject constructor(
         ropeOffsetY: Float,
         characterScale: Float,
     ): Bitmap {
-        // Crop transparent borders from character
         val croppedCharacterBitmap = cropTransparentBorders(characterBitmap)
-
-        // Scale the cropped character bitmap
         val scaledCharacterWidth = (croppedCharacterBitmap.width * characterScale).toInt()
         val scaledCharacterHeight = (croppedCharacterBitmap.height * characterScale).toInt()
         val scaledCharacterBitmap = croppedCharacterBitmap.scale(scaledCharacterWidth, scaledCharacterHeight)
-
-        // Scale the rope bitmap
         val scaledRopeWidth = (ropeBitmap.width * ropeScale).toInt()
         val scaledRopeHeight = (ropeBitmap.height * ropeScale).toInt()
         val scaledRopeBitmap = ropeBitmap.scale(scaledRopeWidth, scaledRopeHeight)
-
-        // Calculate total content dimensions
         val totalContentWidth = scaledCharacterWidth.coerceAtLeast(scaledRopeWidth)
         val totalContentHeight = scaledRopeHeight + scaledCharacterHeight
-
-        // Add padding for offsets
         val paddingTop = kotlin.math.max(0f, -ropeOffsetY).toInt()
         val paddingBottom = kotlin.math.max(0f, ropeOffsetY).toInt()
         val paddingLeft = kotlin.math.max(0f, -ropeOffsetX).toInt()
         val paddingRight = kotlin.math.max(0f, ropeOffsetX).toInt()
-
         val canvasWidth = totalContentWidth + paddingLeft + paddingRight
         val canvasHeight = totalContentHeight + paddingTop + paddingBottom
-
-        // Create combined bitmap
         val combinedBitmap = createBitmap(canvasWidth, canvasHeight)
         val canvas = Canvas(combinedBitmap)
-
-        // Calculate rope position
         val ropeX = paddingLeft + (totalContentWidth - scaledRopeWidth) / 2f + ropeOffsetX
         val ropeY = paddingTop + ropeOffsetY
-
-        // Draw rope first
         canvas.drawBitmap(scaledRopeBitmap, ropeX, ropeY, null)
-
-        // Calculate character position (directly below rope)
         val characterX = paddingLeft + (totalContentWidth - scaledCharacterWidth) / 2f
         val characterY = paddingTop + scaledRopeHeight.toFloat()
-
-        // Draw character
         canvas.drawBitmap(scaledCharacterBitmap, characterX, characterY, null)
-
         scaledRopeBitmap.recycle()
         scaledCharacterBitmap.recycle()
         croppedCharacterBitmap.recycle()
-
         return combinedBitmap
     }
 

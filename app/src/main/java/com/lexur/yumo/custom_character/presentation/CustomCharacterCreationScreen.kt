@@ -31,7 +31,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
@@ -45,6 +44,9 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import android.view.MotionEvent
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.material.icons.filled.PanTool
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.navigation.NavController
 import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.Color
@@ -128,22 +130,38 @@ fun CustomCharacterCreationScreen(
                             TopAppBar(
                                 title = { Text("Background Removal") },
                                 actions = {
+                                    // Toggle Brush Mode
                                     IconButton(onClick = { viewModel.toggleBackgroundRemovalMode() }) {
                                         Icon(
                                             Icons.Default.Brush,
-                                            contentDescription = "Toggle brush mode",
-                                            tint = if (uiState.isBackgroundRemovalMode)
+                                            contentDescription = "Toggle background removal mode",
+                                            tint = if (uiState.isBackgroundRemovalMode && !uiState.isPanningMode)
                                                 MaterialTheme.colorScheme.primary
                                             else
                                                 MaterialTheme.colorScheme.onSurface
                                         )
                                     }
+                                    // Toggle Pan Mode
+                                    if (uiState.isBackgroundRemovalMode) {
+                                        IconButton(onClick = { viewModel.togglePanningMode() }) {
+                                            Icon(
+                                                Icons.Default.PanTool,
+                                                contentDescription = "Toggle pan mode",
+                                                tint = if (uiState.isPanningMode)
+                                                    MaterialTheme.colorScheme.primary
+                                                else
+                                                    MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                    // Undo
                                     IconButton(
                                         onClick = { viewModel.undoLastStroke() },
-                                        enabled = uiState.strokeHistory.isNotEmpty()
+                                        enabled = uiState.strokeHistory.isNotEmpty() && !uiState.isPanningMode
                                     ) {
                                         Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
                                     }
+                                    // Done
                                     IconButton(onClick = {
                                         viewModel.finishEditing()
                                         showRopeSelection = true
@@ -185,17 +203,21 @@ fun CustomCharacterCreationScreen(
                                         imageUri = uiState.selectedImageUri!!,
                                         brushSize = uiState.brushSize,
                                         isBackgroundRemovalMode = uiState.isBackgroundRemovalMode,
+                                        isPanningMode = uiState.isPanningMode,
                                         maskPath = uiState.maskPath,
                                         currentStrokePath = uiState.currentStrokePath,
                                         previewPosition = uiState.previewPosition,
+                                        canvasOffset = uiState.canvasOffset,
+                                        canvasScale = uiState.canvasScale,
                                         onDrawStart = viewModel::startDrawing,
                                         onDrawContinue = viewModel::continueDrawing,
                                         onDrawEnd = viewModel::endDrawing,
                                         onPreviewMove = viewModel::updatePreviewPosition,
-                                        onCanvasSize = viewModel::updateCanvasSize
+                                        onCanvasSize = viewModel::updateCanvasSize,
+                                        onCanvasTransform = viewModel::onCanvasTransform
                                     )
                                 }
-                                if (uiState.isBackgroundRemovalMode) {
+                                if (uiState.isBackgroundRemovalMode && !uiState.isPanningMode) {
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -210,7 +232,7 @@ fun CustomCharacterCreationScreen(
                                             Slider(
                                                 value = uiState.brushSize,
                                                 onValueChange = { viewModel.updateBrushSize(it) },
-                                                valueRange = 10f..100f,
+                                                valueRange = 10f..300f,
                                                 modifier = Modifier.fillMaxWidth()
                                             )
                                             Box(
@@ -329,14 +351,18 @@ private fun BackgroundRemovalCanvas(
     imageUri: Uri,
     brushSize: Float,
     isBackgroundRemovalMode: Boolean,
+    isPanningMode: Boolean,
     maskPath: Path,
     currentStrokePath: Path,
     previewPosition: Offset?,
+    canvasOffset: Offset,
+    canvasScale: Float,
     onDrawStart: (Offset) -> Unit,
     onDrawContinue: (Offset) -> Unit,
     onDrawEnd: () -> Unit,
     onPreviewMove: (Offset?) -> Unit,
     onCanvasSize: (IntSize) -> Unit,
+    onCanvasTransform: (centroid: Offset, pan: Offset, zoom: Float) -> Unit,
 ) {
     val context = LocalContext.current
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
@@ -360,11 +386,52 @@ private fun BackgroundRemovalCanvas(
         }
     }
 
-    // Create processed bitmap with transparency applied
     val processedBitmap = remember(imageBitmap, maskPath, currentStrokePath) {
         if (imageBitmap != null) {
             createTransparentBitmap(imageBitmap!!, maskPath, currentStrokePath)
         } else null
+    }
+
+    val interactionModifier = if (isBackgroundRemovalMode && transformation != null) {
+        if (isPanningMode) {
+            Modifier.pointerInput(Unit) {
+                detectTransformGestures { centroid, pan, zoom, _ ->
+                    onCanvasTransform(centroid, pan, zoom)
+                }
+            }
+        } else {
+            Modifier.pointerInteropFilter { event ->
+                val canvasTouchPos = Offset(event.x, event.y)
+                // Convert canvas coordinates to image coordinates for accurate drawing
+                val imageTouchPos = canvasToImageCoordinates(
+                    canvasTouchPos,
+                    transformation,
+                    canvasOffset,
+                    canvasScale
+                )
+
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        onDrawStart(imageTouchPos)
+                        onPreviewMove(canvasTouchPos)
+                        true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        onDrawContinue(imageTouchPos)
+                        onPreviewMove(canvasTouchPos)
+                        true
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        onDrawEnd()
+                        onPreviewMove(null)
+                        true
+                    }
+                    else -> false
+                }
+            }
+        }
+    } else {
+        Modifier
     }
 
     Box(
@@ -378,43 +445,36 @@ private fun BackgroundRemovalCanvas(
                     onCanvasSize(coordinates.size)
                 }
             }
+            .then(interactionModifier)
     ) {
-        // Layer 1: Checkerboard background (for transparency visualization)
-        Canvas(modifier = Modifier.fillMaxSize()) {
+        // Layer 1 & 2: Checkerboard and Image (transformed together)
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    translationX = canvasOffset.x
+                    translationY = canvasOffset.y
+                    scaleX = canvasScale
+                    scaleY = canvasScale
+                }
+        ) {
             drawCheckerboard()
-        }
-
-        // Layer 2: Image with transparent areas
-        if (processedBitmap != null && transformation != null) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
+            if (processedBitmap != null && transformation != null) {
                 drawImage(
                     image = processedBitmap,
-                    dstOffset = IntOffset(
-                        transformation.imageOffset.x.roundToInt(),
-                        transformation.imageOffset.y.roundToInt()
-                    ),
-                    dstSize = IntSize(
-                        transformation.displayedImageSize.width.roundToInt(),
-                        transformation.displayedImageSize.height.roundToInt()
-                    )
+                    dstOffset = IntOffset(transformation.imageOffset.x.roundToInt(), transformation.imageOffset.y.roundToInt()),
+                    dstSize = IntSize(transformation.displayedImageSize.width.roundToInt(), transformation.displayedImageSize.height.roundToInt())
                 )
-            }
-        } else if (imageBitmap != null && transformation != null) {
-            // Fallback to original image if processing failed
-            Canvas(modifier = Modifier.fillMaxSize()) {
+            } else if (imageBitmap != null && transformation != null) {
                 drawImage(
                     image = imageBitmap!!,
-                    dstOffset = IntOffset(
-                        transformation.imageOffset.x.roundToInt(),
-                        transformation.imageOffset.y.roundToInt()
-                    ),
-                    dstSize = IntSize(
-                        transformation.displayedImageSize.width.roundToInt(),
-                        transformation.displayedImageSize.height.roundToInt()
-                    )
+                    dstOffset = IntOffset(transformation.imageOffset.x.roundToInt(), transformation.imageOffset.y.roundToInt()),
+                    dstSize = IntSize(transformation.displayedImageSize.width.roundToInt(), transformation.displayedImageSize.height.roundToInt())
                 )
             }
-        } else {
+        }
+
+        if (imageBitmap == null) {
             Image(
                 painter = rememberAsyncImagePainter(model = imageUri),
                 contentDescription = "Character Image",
@@ -423,52 +483,20 @@ private fun BackgroundRemovalCanvas(
             )
         }
 
-        // Layer 3: Drawing interaction and preview
-        if (isBackgroundRemovalMode) {
-            Canvas(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInteropFilter { event ->
-                        if (transformation == null) return@pointerInteropFilter false
-
-                        val canvasOffset = Offset(event.x, event.y)
-                        // Convert to image coordinates for accurate drawing
-                        val imageOffset = Offset(
-                            (canvasOffset.x - transformation.imageOffset.x) / transformation.scaleFactor,
-                            (canvasOffset.y - transformation.imageOffset.y) / transformation.scaleFactor
-                        )
-
-                        when (event.action) {
-                            MotionEvent.ACTION_DOWN -> {
-                                onDrawStart(imageOffset)
-                                onPreviewMove(canvasOffset)
-                                true
-                            }
-                            MotionEvent.ACTION_MOVE -> {
-                                onDrawContinue(imageOffset)
-                                onPreviewMove(canvasOffset)
-                                true
-                            }
-                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                                onDrawEnd()
-                                onPreviewMove(null)
-                                true
-                            }
-                            else -> false
-                        }
-                    }
-            ) {
-                // Draw brush preview cursor
+        // Layer 3: Drawing interaction and preview (on top, not transformed by graphicsLayer)
+        if (isBackgroundRemovalMode && !isPanningMode) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
                 previewPosition?.let { position ->
+                    val scaledBrushRadius = (brushSize / 2 * (transformation?.scaleFactor ?: 1f) * canvasScale)
                     drawCircle(
                         color = Color.White,
-                        radius = brushSize / 2 * (transformation?.scaleFactor ?: 1f) + 2.dp.toPx(),
+                        radius = scaledBrushRadius + 2.dp.toPx(),
                         center = position,
                         style = Stroke(width = 2.dp.toPx())
                     )
                     drawCircle(
                         color = Color.Red,
-                        radius = brushSize / 2 * (transformation?.scaleFactor ?: 1f),
+                        radius = scaledBrushRadius,
                         center = position,
                         style = Stroke(width = 2.dp.toPx())
                     )
@@ -477,43 +505,60 @@ private fun BackgroundRemovalCanvas(
         }
 
         // Magnifier
-        if (isBackgroundRemovalMode &&
+        val currentImageBitmap = imageBitmap
+        if (isBackgroundRemovalMode && !isPanningMode &&
             previewPosition != null &&
-            imageBitmap != null &&
-            transformation != null) {
+            currentImageBitmap != null &&
+            transformation != null
+        ) {
             MagnifierPreview(
                 position = previewPosition,
-                imageBitmap = imageBitmap!!,
+                imageBitmap = currentImageBitmap,
                 transformation = transformation,
-                brushSize = brushSize
+                canvasOffset = canvasOffset,
+                canvasScale = canvasScale
             )
         }
     }
+}
+
+private fun canvasToImageCoordinates(
+    canvasPosition: Offset,
+    transformation: ImageTransformation,
+    canvasOffset: Offset,
+    canvasScale: Float
+): Offset {
+    // Reverse the graphicsLayer transformation
+    val untransformedCanvasPos = (canvasPosition - canvasOffset) / canvasScale
+
+    // Reverse the initial fit transformation
+    return Offset(
+        x = (untransformedCanvasPos.x - transformation.imageOffset.x) / transformation.scaleFactor,
+        y = (untransformedCanvasPos.y - transformation.imageOffset.y) / transformation.scaleFactor
+    )
 }
 @Composable
 private fun MagnifierPreview(
     position: Offset,
     imageBitmap: ImageBitmap,
     transformation: ImageTransformation,
-    brushSize: Float
+    canvasOffset: Offset,
+    canvasScale: Float
 ) {
     val loupeSize = 120.dp
     val magnification = 2.5f
     val loupeSizePx = with(LocalDensity.current) { loupeSize.toPx() }
 
-    // Calculate the actual position on the original image
-    val imagePosition = calculateImagePosition(position, transformation)
+    val imagePosition = canvasToImageCoordinates(position, transformation, canvasOffset, canvasScale)
 
-    // Only show magnifier if the position is within the image bounds
     if (imagePosition.x < 0 || imagePosition.y < 0 ||
         imagePosition.x >= imageBitmap.width || imagePosition.y >= imageBitmap.height) {
         return
     }
 
-    // Calculate source rectangle for the magnifier
     val srcSize = IntSize(
-        (loupeSizePx / magnification).roundToInt(),
-        (loupeSizePx / magnification).roundToInt()
+        (loupeSizePx / (magnification * canvasScale)).roundToInt(),
+        (loupeSizePx / (magnification * canvasScale)).roundToInt()
     )
 
     val srcOffset = IntOffset(
@@ -521,7 +566,6 @@ private fun MagnifierPreview(
         (imagePosition.y - srcSize.height / 2).coerceIn(0f, (imageBitmap.height - srcSize.height).toFloat()).roundToInt()
     )
 
-    // Calculate magnifier position (avoid going off-screen)
     val loupeOffset = calculateLoupePosition(position, loupeSizePx, transformation.displayedImageSize)
 
     Canvas(
@@ -533,19 +577,13 @@ private fun MagnifierPreview(
             .background(Color.White)
             .border(2.dp, Color.DarkGray, CircleShape)
     ) {
-        // Draw magnified image
         drawImage(
             image = imageBitmap,
             srcOffset = srcOffset,
             srcSize = srcSize,
             dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt())
         )
-
-        // Draw brush preview in magnifier
-        val brushRadiusInLoupe = (brushSize / 2) / transformation.scaleFactor * magnification
         val center = this.center
-
-        // Draw crosshair
         val crosshairSize = 8.dp.toPx()
         drawLine(
             Color.Black.copy(alpha = 0.5f),
@@ -563,10 +601,8 @@ private fun MagnifierPreview(
 }
 
 private fun calculateImagePosition(touchPosition: Offset, transformation: ImageTransformation): Offset {
-    // Convert touch position to image coordinates
     val imageX = (touchPosition.x - transformation.imageOffset.x) / transformation.scaleFactor
     val imageY = (touchPosition.y - transformation.imageOffset.y) / transformation.scaleFactor
-
     return Offset(imageX, imageY)
 }
 
@@ -631,7 +667,6 @@ fun calculateImageTransformation(
     val imageOffset: Offset
 
     if (imageRatio > canvasRatio) {
-        // Image is wider than canvas - fit to width
         scaleFactor = canvasSize.width.toFloat() / imageBitmap.width
         displayedImageSize = Size(
             width = canvasSize.width.toFloat(),
@@ -642,7 +677,6 @@ fun calculateImageTransformation(
             y = (canvasSize.height - displayedImageSize.height) / 2
         )
     } else {
-        // Image is taller than canvas - fit to height
         scaleFactor = canvasSize.height.toFloat() / imageBitmap.height
         displayedImageSize = Size(
             width = imageBitmap.width * scaleFactor,
@@ -662,31 +696,18 @@ fun createTransparentBitmap(
     maskPath: Path,
     currentStrokePath: Path
 ): ImageBitmap {
-    // Convert ImageBitmap to Android Bitmap for processing
     val androidBitmap = originalBitmap.asAndroidBitmap()
-
-    // Create a mutable copy with ARGB_8888 config for transparency support
     val mutableBitmap = androidBitmap.copy(Bitmap.Config.ARGB_8888, true)
-
-    // Create canvas to draw on the bitmap
     val canvas = android.graphics.Canvas(mutableBitmap)
-
-    // Create paint for erasing (making transparent)
     val erasePaint = android.graphics.Paint().apply {
         isAntiAlias = true
         style = android.graphics.Paint.Style.FILL
-        // This blend mode will make the drawn areas transparent
         xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
     }
-
-    // Convert Compose Path to Android Path and apply mask
     val androidMaskPath = maskPath.asAndroidPath()
     val androidCurrentPath = currentStrokePath.asAndroidPath()
-
-    // Erase the masked areas (make them transparent)
     canvas.drawPath(androidMaskPath, erasePaint)
     canvas.drawPath(androidCurrentPath, erasePaint)
-
-    // Convert back to ImageBitmap
     return mutableBitmap.asImageBitmap()
 }
+
