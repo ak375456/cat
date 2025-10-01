@@ -402,6 +402,7 @@ private fun BackgroundRemovalCanvas(
         } else {
             Modifier.pointerInteropFilter { event ->
                 val canvasTouchPos = Offset(event.x, event.y)
+
                 // Convert canvas coordinates to image coordinates for accurate drawing
                 val imageTouchPos = canvasToImageCoordinates(
                     canvasTouchPos,
@@ -410,15 +411,24 @@ private fun BackgroundRemovalCanvas(
                     canvasScale
                 )
 
+                // DEBUG: Print coordinates
+                android.util.Log.d("TouchDebug", """
+        Raw Touch: (${event.x}, ${event.y})
+        Canvas Offset: $canvasOffset
+        Canvas Scale: $canvasScale
+        Transformation: offset=${transformation.imageOffset}, scale=${transformation.scaleFactor}
+        Image Touch: $imageTouchPos
+    """.trimIndent())
+
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         onDrawStart(imageTouchPos)
-                        onPreviewMove(canvasTouchPos)
+                        onPreviewMove(imageTouchPos)
                         true
                     }
                     MotionEvent.ACTION_MOVE -> {
                         onDrawContinue(imageTouchPos)
-                        onPreviewMove(canvasTouchPos)
+                        onPreviewMove(imageTouchPos)
                         true
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -487,17 +497,28 @@ private fun BackgroundRemovalCanvas(
         if (isBackgroundRemovalMode && !isPanningMode) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 previewPosition?.let { position ->
-                    val scaledBrushRadius = (brushSize / 2 * (transformation?.scaleFactor ?: 1f) * canvasScale)
+                    // Convert image coordinates back to screen coordinates for preview
+                    val screenPosition = Offset(
+                        x = position.x * transformation!!.scaleFactor + transformation.imageOffset.x,
+                        y = position.y * transformation.scaleFactor + transformation.imageOffset.y
+                    ).let { untransformed ->
+                        Offset(
+                            x = untransformed.x * canvasScale + canvasOffset.x,
+                            y = untransformed.y * canvasScale + canvasOffset.y
+                        )
+                    }
+
+                    val scaledBrushRadius = (brushSize / 2 * transformation.scaleFactor * canvasScale)
                     drawCircle(
                         color = Color.White,
                         radius = scaledBrushRadius + 2.dp.toPx(),
-                        center = position,
+                        center = screenPosition,
                         style = Stroke(width = 2.dp.toPx())
                     )
                     drawCircle(
                         color = Color.Red,
                         radius = scaledBrushRadius,
-                        center = position,
+                        center = screenPosition,
                         style = Stroke(width = 2.dp.toPx())
                     )
                 }
@@ -528,14 +549,26 @@ private fun canvasToImageCoordinates(
     canvasOffset: Offset,
     canvasScale: Float
 ): Offset {
-    // Reverse the graphicsLayer transformation
-    val untransformedCanvasPos = (canvasPosition - canvasOffset) / canvasScale
+    // graphicsLayer scales around center, so we need to account for that
+    // But for translation, it's straightforward
 
-    // Reverse the initial fit transformation
-    return Offset(
-        x = (untransformedCanvasPos.x - transformation.imageOffset.x) / transformation.scaleFactor,
-        y = (untransformedCanvasPos.y - transformation.imageOffset.y) / transformation.scaleFactor
+    // Step 1: Reverse the translation
+    val untranslated = Offset(
+        canvasPosition.x - canvasOffset.x,
+        canvasPosition.y - canvasOffset.y
     )
+
+    // Step 2: Reverse the scale (scale is applied AFTER translation in graphicsLayer)
+    val unscaled = Offset(
+        untranslated.x / canvasScale,
+        untranslated.y / canvasScale
+    )
+
+    // Step 3: Reverse the initial fit transformation
+    val imageX = (unscaled.x - transformation.imageOffset.x) / transformation.scaleFactor
+    val imageY = (unscaled.y - transformation.imageOffset.y) / transformation.scaleFactor
+
+    return Offset(imageX, imageY)
 }
 @Composable
 private fun MagnifierPreview(

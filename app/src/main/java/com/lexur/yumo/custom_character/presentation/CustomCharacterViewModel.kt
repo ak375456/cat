@@ -122,6 +122,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
 
     fun startDrawing(offset: Offset) {
         _uiState.update { currentState ->
+            // offset is already in image coordinates from canvasToImageCoordinates
             val newHistory = currentState.strokeHistory + currentState.maskPath
             val newStrokePath = Path().apply {
                 addOval(Rect(center = offset, radius = currentState.brushSize / 2))
@@ -139,6 +140,8 @@ class CustomCharacterCreationViewModel @Inject constructor(
         if (!_uiState.value.isDrawing) return
         _uiState.update { currentState ->
             val lastPoint = currentState.lastDrawnPoint ?: return@update currentState
+
+            // offset is already in image coordinates from canvasToImageCoordinates
             val newStrokePath = Path().apply {
                 addPath(currentState.currentStrokePath)
                 val distance = kotlin.math.sqrt((offset.x - lastPoint.x).pow(2) + (offset.y - lastPoint.y).pow(2))
@@ -156,6 +159,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
     }
 
+
     fun endDrawing() {
         _uiState.update { currentState ->
             val newMaskPath = Path().apply {
@@ -172,9 +176,9 @@ class CustomCharacterCreationViewModel @Inject constructor(
     }
 
     fun updatePreviewPosition(position: Offset?) {
+        // position is now in image coordinates from the UI
         _uiState.value = _uiState.value.copy(previewPosition = position)
     }
-
     fun updateCanvasSize(size: IntSize) {
         _uiState.value = _uiState.value.copy(canvasSize = size)
     }
