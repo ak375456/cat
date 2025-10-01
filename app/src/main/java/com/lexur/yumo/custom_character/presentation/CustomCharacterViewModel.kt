@@ -414,4 +414,3 @@ class CustomCharacterCreationViewModel @Inject constructor(
         _uiState.update { it.copy(showRopeAdjustment = false) }
     }
 }
-

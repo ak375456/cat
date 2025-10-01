@@ -405,20 +405,12 @@ private fun BackgroundRemovalCanvas(
 
                 // Convert canvas coordinates to image coordinates for accurate drawing
                 val imageTouchPos = canvasToImageCoordinates(
-                    canvasTouchPos,
-                    transformation,
-                    canvasOffset,
-                    canvasScale
+                    screenPosition = canvasTouchPos,
+                    transformation = transformation,
+                    canvasOffset = canvasOffset,
+                    canvasScale = canvasScale,
+                    canvasSize = canvasSize
                 )
-
-                // DEBUG: Print coordinates
-                android.util.Log.d("TouchDebug", """
-        Raw Touch: (${event.x}, ${event.y})
-        Canvas Offset: $canvasOffset
-        Canvas Scale: $canvasScale
-        Transformation: offset=${transformation.imageOffset}, scale=${transformation.scaleFactor}
-        Image Touch: $imageTouchPos
-    """.trimIndent())
 
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
@@ -466,6 +458,7 @@ private fun BackgroundRemovalCanvas(
                     translationY = canvasOffset.y
                     scaleX = canvasScale
                     scaleY = canvasScale
+                    // The default pivot is center, which is what our math now assumes
                 }
         ) {
             drawCheckerboard()
@@ -494,19 +487,20 @@ private fun BackgroundRemovalCanvas(
         }
 
         // Layer 3: Drawing interaction and preview (on top, not transformed by graphicsLayer)
-        if (isBackgroundRemovalMode && !isPanningMode) {
+        if (isBackgroundRemovalMode && !isPanningMode && canvasSize != IntSize.Zero) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 previewPosition?.let { position ->
-                    // Convert image coordinates back to screen coordinates for preview
-                    val screenPosition = Offset(
+                    // Convert image coordinates back to screen coordinates for preview cursor
+                    val canvasCenter = Offset(size.width / 2f, size.height / 2f)
+
+                    // 1. Convert from image coordinates to the inner Canvas's layer coordinates
+                    val layerPos = Offset(
                         x = position.x * transformation!!.scaleFactor + transformation.imageOffset.x,
                         y = position.y * transformation.scaleFactor + transformation.imageOffset.y
-                    ).let { untransformed ->
-                        Offset(
-                            x = untransformed.x * canvasScale + canvasOffset.x,
-                            y = untransformed.y * canvasScale + canvasOffset.y
-                        )
-                    }
+                    )
+
+                    // 2. Apply the graphicsLayer transformations (scaling around center, then translation)
+                    val screenPosition = ((layerPos - canvasCenter) * canvasScale) + canvasCenter + canvasOffset
 
                     val scaledBrushRadius = (brushSize / 2 * transformation.scaleFactor * canvasScale)
                     drawCircle(
@@ -530,59 +524,75 @@ private fun BackgroundRemovalCanvas(
         if (isBackgroundRemovalMode && !isPanningMode &&
             previewPosition != null &&
             currentImageBitmap != null &&
-            transformation != null
+            transformation != null &&
+            canvasSize != IntSize.Zero
         ) {
             MagnifierPreview(
                 position = previewPosition,
                 imageBitmap = currentImageBitmap,
                 transformation = transformation,
                 canvasOffset = canvasOffset,
-                canvasScale = canvasScale
+                canvasScale = canvasScale,
+                canvasSize = canvasSize
             )
         }
     }
 }
 
 private fun canvasToImageCoordinates(
-    canvasPosition: Offset,
+    screenPosition: Offset,
     transformation: ImageTransformation,
     canvasOffset: Offset,
-    canvasScale: Float
+    canvasScale: Float,
+    canvasSize: IntSize
 ): Offset {
-    // graphicsLayer scales around center, so we need to account for that
-    // But for translation, it's straightforward
+    // The center of the canvas is the pivot point for the graphicsLayer scale
+    val canvasCenter = Offset(canvasSize.width / 2f, canvasSize.height / 2f)
 
-    // Step 1: Reverse the translation
-    val untranslated = Offset(
-        canvasPosition.x - canvasOffset.x,
-        canvasPosition.y - canvasOffset.y
-    )
+    // The forward transformation is: screen_pos = ( (layer_pos - center) * scale ) + center + offset
+    // We need to reverse this to find layer_pos from screen_pos.
 
-    // Step 2: Reverse the scale (scale is applied AFTER translation in graphicsLayer)
-    val unscaled = Offset(
-        untranslated.x / canvasScale,
-        untranslated.y / canvasScale
-    )
+    // 1. Reverse the canvasOffset translation
+    val posAfterOffsetUndo = screenPosition - canvasOffset
 
-    // Step 3: Reverse the initial fit transformation
-    val imageX = (unscaled.x - transformation.imageOffset.x) / transformation.scaleFactor
-    val imageY = (unscaled.y - transformation.imageOffset.y) / transformation.scaleFactor
+    // 2. Reverse the scaling around the center pivot
+    val layerPosition = ((posAfterOffsetUndo - canvasCenter) / canvasScale) + canvasCenter
+
+    // `layerPosition` is now the coordinate within the inner Canvas's coordinate space.
+    // This is the coordinate system where the image is drawn with the fit-transformation.
+
+    // 3. Reverse the initial fit transformation to get the coordinate on the original image.
+    val imageX = (layerPosition.x - transformation.imageOffset.x) / transformation.scaleFactor
+    val imageY = (layerPosition.y - transformation.imageOffset.y) / transformation.scaleFactor
 
     return Offset(imageX, imageY)
 }
+
 @Composable
 private fun MagnifierPreview(
-    position: Offset,
+    position: Offset, // This is an image coordinate
     imageBitmap: ImageBitmap,
     transformation: ImageTransformation,
     canvasOffset: Offset,
-    canvasScale: Float
+    canvasScale: Float,
+    canvasSize: IntSize
 ) {
     val loupeSize = 120.dp
     val magnification = 2.5f
     val loupeSizePx = with(LocalDensity.current) { loupeSize.toPx() }
 
-    val imagePosition = canvasToImageCoordinates(position, transformation, canvasOffset, canvasScale)
+    // First, calculate the screen position that corresponds to the image position.
+    // This is where the user's finger is, and where the loupe should be positioned relative to.
+    val canvasCenter = Offset(canvasSize.width / 2f, canvasSize.height / 2f)
+    val layerPos = Offset(
+        x = position.x * transformation.scaleFactor + transformation.imageOffset.x,
+        y = position.y * transformation.scaleFactor + transformation.imageOffset.y
+    )
+    val screenTouchPosition = ((layerPos - canvasCenter) * canvasScale) + canvasCenter + canvasOffset
+
+
+    // The center of the magnified area is the input `position` (image coordinate).
+    val imagePosition = position
 
     if (imagePosition.x < 0 || imagePosition.y < 0 ||
         imagePosition.x >= imageBitmap.width || imagePosition.y >= imageBitmap.height) {
@@ -590,8 +600,8 @@ private fun MagnifierPreview(
     }
 
     val srcSize = IntSize(
-        (loupeSizePx / (magnification * canvasScale)).roundToInt(),
-        (loupeSizePx / (magnification * canvasScale)).roundToInt()
+        (loupeSizePx / magnification).roundToInt(),
+        (loupeSizePx / magnification).roundToInt()
     )
 
     val srcOffset = IntOffset(
@@ -599,7 +609,12 @@ private fun MagnifierPreview(
         (imagePosition.y - srcSize.height / 2).coerceIn(0f, (imageBitmap.height - srcSize.height).toFloat()).roundToInt()
     )
 
-    val loupeOffset = calculateLoupePosition(position, loupeSizePx, transformation.displayedImageSize)
+    // The loupe's physical position on the screen is based on the finger's touch position.
+    val loupeOffset = calculateLoupePosition(
+        touchPosition = screenTouchPosition,
+        loupeSizePx = loupeSizePx,
+        containerSize = Size(canvasSize.width.toFloat(), canvasSize.height.toFloat())
+    )
 
     Canvas(
         modifier = Modifier
@@ -643,21 +658,26 @@ private fun calculateImagePosition(touchPosition: Offset, transformation: ImageT
 private fun calculateLoupePosition(
     touchPosition: Offset,
     loupeSizePx: Float,
-    imageSize: Size
+    containerSize: Size
 ): Offset {
     val density = LocalDensity.current
     val margin = with(density) { 16.dp.toPx() }
 
-    val loupeRadius = loupeSizePx / 2
+    // Position the loupe above the finger, with a small margin.
+    val yPos = touchPosition.y - loupeSizePx - margin
 
+    // Center the loupe horizontally on the finger.
+    val xPos = touchPosition.x - (loupeSizePx / 2f)
+
+    // Ensure the loupe stays within the screen bounds.
     return Offset(
-        x = (touchPosition.x - loupeRadius).coerceIn(
+        x = xPos.coerceIn(
             margin,
-            imageSize.width - loupeSizePx - margin
+            containerSize.width - loupeSizePx - margin
         ),
-        y = (touchPosition.y - loupeSizePx - margin).coerceIn(
+        y = yPos.coerceIn(
             margin,
-            imageSize.height - loupeSizePx - margin
+            containerSize.height - loupeSizePx - margin
         )
     )
 }
@@ -743,4 +763,3 @@ fun createTransparentBitmap(
     canvas.drawPath(androidCurrentPath, erasePaint)
     return mutableBitmap.asImageBitmap()
 }
-
