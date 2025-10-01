@@ -29,6 +29,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.graphics.asAndroidBitmap
 import kotlin.math.roundToInt
 import androidx.core.graphics.get
+import com.lexur.yumo.ui.theme.OutlineVariant
+import com.lexur.yumo.ui.theme.Primary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,7 +125,12 @@ fun RopeAdjustmentScreen(
                             value = characterScale,
                             onValueChange = onCharacterScaleChanged,
                             valueRange = 0.3f..5.0f,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = SliderDefaults.colors(
+                                thumbColor = Primary,
+                                activeTrackColor = Primary.copy(alpha = 0.7f),
+                                inactiveTrackColor = OutlineVariant
+                            )
                         )
                     }
                     HorizontalDivider()
@@ -171,7 +178,12 @@ fun RopeAdjustmentScreen(
                             value = ropeOffsetX,
                             onValueChange = onRopeOffsetXChanged,
                             valueRange = -1000f..1000f,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = SliderDefaults.colors(
+                                thumbColor = Primary,
+                                activeTrackColor = Primary.copy(alpha = 0.7f),
+                                inactiveTrackColor = OutlineVariant
+                            )
                         )
                     }
 
@@ -196,7 +208,12 @@ fun RopeAdjustmentScreen(
                             value = ropeOffsetY,
                             onValueChange = onRopeOffsetYChanged,
                             valueRange = -1000f..1000f,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = SliderDefaults.colors(
+                                thumbColor = Primary,
+                                activeTrackColor = Primary.copy(alpha = 0.7f),
+                                inactiveTrackColor = OutlineVariant
+                            )
                         )
                     }
 
