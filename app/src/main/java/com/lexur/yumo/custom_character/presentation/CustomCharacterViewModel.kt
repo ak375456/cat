@@ -108,7 +108,8 @@ class CustomCharacterCreationViewModel @Inject constructor(
         _uiState.update { currentState ->
             val newScale = (currentState.canvasScale * zoom).coerceIn(0.5f, 5f)
             // Formula to adjust offset to zoom around the centroid
-            val newOffset = currentState.canvasOffset + centroid - (centroid * newScale / currentState.canvasScale) + pan
+            val newOffset =
+                currentState.canvasOffset + centroid - (centroid * newScale / currentState.canvasScale) + pan
             currentState.copy(
                 canvasScale = newScale,
                 canvasOffset = newOffset
@@ -144,7 +145,9 @@ class CustomCharacterCreationViewModel @Inject constructor(
             // offset is already in image coordinates from canvasToImageCoordinates
             val newStrokePath = Path().apply {
                 addPath(currentState.currentStrokePath)
-                val distance = kotlin.math.sqrt((offset.x - lastPoint.x).pow(2) + (offset.y - lastPoint.y).pow(2))
+                val distance = kotlin.math.sqrt(
+                    (offset.x - lastPoint.x).pow(2) + (offset.y - lastPoint.y).pow(2)
+                )
                 val steps = (distance / (currentState.brushSize * 0.25f)).toInt().coerceAtLeast(1)
                 for (i in 0..steps) {
                     val t = i.toFloat() / steps
@@ -179,6 +182,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         // position is now in image coordinates from the UI
         _uiState.value = _uiState.value.copy(previewPosition = position)
     }
+
     fun updateCanvasSize(size: IntSize) {
         _uiState.value = _uiState.value.copy(canvasSize = size)
     }
@@ -222,14 +226,16 @@ class CustomCharacterCreationViewModel @Inject constructor(
     }
 
     fun onRopeSelected(ropeResId: Int) {
-        _uiState.update { it.copy(
-            selectedRopeResId = ropeResId,
-            showRopeAdjustment = true,
-            ropeScale = 1f,
-            ropeOffsetX = 0f,
-            ropeOffsetY = 0f,
-            characterScale = 1f
-        )}
+        _uiState.update {
+            it.copy(
+                selectedRopeResId = ropeResId,
+                showRopeAdjustment = true,
+                ropeScale = 1f,
+                ropeOffsetX = 0f,
+                ropeOffsetY = 0f,
+                characterScale = 1f
+            )
+        }
     }
 
     fun onCharacterNameChanged(name: String) {
@@ -253,7 +259,8 @@ class CustomCharacterCreationViewModel @Inject constructor(
                     currentState.selectedImageUri,
                     currentState.maskPath
                 )
-                val ropeBitmap = BitmapFactory.decodeResource(context.resources, currentState.selectedRopeResId)
+                val ropeBitmap =
+                    BitmapFactory.decodeResource(context.resources, currentState.selectedRopeResId)
                 val combinedBitmap = combineCharacterAndRope(
                     characterBitmap,
                     ropeBitmap,
@@ -286,7 +293,11 @@ class CustomCharacterCreationViewModel @Inject constructor(
         _uiState.update { it.copy(saveComplete = false) }
     }
 
-    private fun createTransparentBitmapFromUri(context: Context, imageUri: Uri, maskPath: Path): Bitmap {
+    private fun createTransparentBitmapFromUri(
+        context: Context,
+        imageUri: Uri,
+        maskPath: Path,
+    ): Bitmap {
         val originalBitmap = context.contentResolver.openInputStream(imageUri)?.use {
             BitmapFactory.decodeStream(it)
         } ?: throw IllegalStateException("Could not load bitmap from URI")
@@ -360,7 +371,8 @@ class CustomCharacterCreationViewModel @Inject constructor(
         val croppedCharacterBitmap = cropTransparentBorders(characterBitmap)
         val scaledCharacterWidth = (croppedCharacterBitmap.width * characterScale).toInt()
         val scaledCharacterHeight = (croppedCharacterBitmap.height * characterScale).toInt()
-        val scaledCharacterBitmap = croppedCharacterBitmap.scale(scaledCharacterWidth, scaledCharacterHeight)
+        val scaledCharacterBitmap =
+            croppedCharacterBitmap.scale(scaledCharacterWidth, scaledCharacterHeight)
         val scaledRopeWidth = (ropeBitmap.width * ropeScale).toInt()
         val scaledRopeHeight = (ropeBitmap.height * ropeScale).toInt()
         val scaledRopeBitmap = ropeBitmap.scale(scaledRopeWidth, scaledRopeHeight)

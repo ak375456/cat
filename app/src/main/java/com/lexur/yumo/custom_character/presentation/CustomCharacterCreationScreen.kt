@@ -232,7 +232,7 @@ fun CustomCharacterCreationScreen(
                                             Slider(
                                                 value = uiState.brushSize,
                                                 onValueChange = { viewModel.updateBrushSize(it) },
-                                                valueRange = 10f..100f,
+                                                valueRange = 10f..300f,
                                                 modifier = Modifier.fillMaxWidth()
                                             )
                                             Box(
@@ -533,7 +533,9 @@ private fun BackgroundRemovalCanvas(
                 transformation = transformation,
                 canvasOffset = canvasOffset,
                 canvasScale = canvasScale,
-                canvasSize = canvasSize
+                canvasSize = canvasSize,
+                maskPath = maskPath,
+                currentStrokePath = currentStrokePath
             )
         }
     }
@@ -575,14 +577,14 @@ private fun MagnifierPreview(
     transformation: ImageTransformation,
     canvasOffset: Offset,
     canvasScale: Float,
-    canvasSize: IntSize
+    canvasSize: IntSize,
+    maskPath: Path,
+    currentStrokePath: Path
 ) {
     val loupeSize = 120.dp
     val magnification = 2.5f
     val loupeSizePx = with(LocalDensity.current) { loupeSize.toPx() }
 
-    // First, calculate the screen position that corresponds to the image position.
-    // This is where the user's finger is, and where the loupe should be positioned relative to.
     val canvasCenter = Offset(canvasSize.width / 2f, canvasSize.height / 2f)
     val layerPos = Offset(
         x = position.x * transformation.scaleFactor + transformation.imageOffset.x,
@@ -590,8 +592,6 @@ private fun MagnifierPreview(
     )
     val screenTouchPosition = ((layerPos - canvasCenter) * canvasScale) + canvasCenter + canvasOffset
 
-
-    // The center of the magnified area is the input `position` (image coordinate).
     val imagePosition = position
 
     if (imagePosition.x < 0 || imagePosition.y < 0 ||
@@ -599,22 +599,42 @@ private fun MagnifierPreview(
         return
     }
 
-    val srcSize = IntSize(
-        (loupeSizePx / magnification).roundToInt(),
-        (loupeSizePx / magnification).roundToInt()
-    )
+    // FIX: Use a fixed size in image pixels, not dependent on screen pixel density
+    // This gives us a consistent view area regardless of zoom level
+    val srcSizeInPixels = 80 // Fixed image pixel area to show
 
-    val srcOffset = IntOffset(
-        (imagePosition.x - srcSize.width / 2).coerceIn(0f, (imageBitmap.width - srcSize.width).toFloat()).roundToInt(),
-        (imagePosition.y - srcSize.height / 2).coerceIn(0f, (imageBitmap.height - srcSize.height).toFloat()).roundToInt()
-    )
+    val srcSize = IntSize(srcSizeInPixels, srcSizeInPixels)
 
-    // The loupe's physical position on the screen is based on the finger's touch position.
+    // Calculate the source offset, ensuring we stay within bounds
+    val idealSrcX = (imagePosition.x - srcSizeInPixels / 2)
+    val idealSrcY = (imagePosition.y - srcSizeInPixels / 2)
+
+    // Clamp to valid image bounds
+    val srcX = idealSrcX.coerceIn(0f, (imageBitmap.width - srcSizeInPixels).coerceAtLeast(0).toFloat())
+    val srcY = idealSrcY.coerceIn(0f, (imageBitmap.height - srcSizeInPixels).coerceAtLeast(0).toFloat())
+
+    val srcOffset = IntOffset(srcX.roundToInt(), srcY.roundToInt())
+
+    // Ensure source size doesn't exceed image bounds from the offset position
+    val actualSrcWidth = srcSizeInPixels.coerceAtMost(imageBitmap.width - srcOffset.x)
+    val actualSrcHeight = srcSizeInPixels.coerceAtMost(imageBitmap.height - srcOffset.y)
+
+    // Early return if we have no valid area to show
+    if (actualSrcWidth <= 0 || actualSrcHeight <= 0) {
+        return
+    }
+
+    val clampedSrcSize = IntSize(actualSrcWidth, actualSrcHeight)
+
     val loupeOffset = calculateLoupePosition(
         touchPosition = screenTouchPosition,
         loupeSizePx = loupeSizePx,
         containerSize = Size(canvasSize.width.toFloat(), canvasSize.height.toFloat())
     )
+
+    val processedBitmap = remember(imageBitmap, maskPath, currentStrokePath) {
+        createTransparentBitmap(imageBitmap, maskPath, currentStrokePath)
+    }
 
     Canvas(
         modifier = Modifier
@@ -625,12 +645,15 @@ private fun MagnifierPreview(
             .background(Color.White)
             .border(2.dp, Color.DarkGray, CircleShape)
     ) {
+        drawCheckerboard()
+
         drawImage(
-            image = imageBitmap,
+            image = processedBitmap,
             srcOffset = srcOffset,
-            srcSize = srcSize,
+            srcSize = clampedSrcSize,
             dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt())
         )
+
         val center = this.center
         val crosshairSize = 8.dp.toPx()
         drawLine(
