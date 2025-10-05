@@ -232,7 +232,7 @@ fun CustomCharacterCreationScreen(
                                             Slider(
                                                 value = uiState.brushSize,
                                                 onValueChange = { viewModel.updateBrushSize(it) },
-                                                valueRange = 10f..300f,
+                                                valueRange = 10f..100f,
                                                 modifier = Modifier.fillMaxWidth()
                                             )
                                             Box(
