@@ -535,7 +535,8 @@ private fun BackgroundRemovalCanvas(
                 canvasScale = canvasScale,
                 canvasSize = canvasSize,
                 maskPath = maskPath,
-                currentStrokePath = currentStrokePath
+                currentStrokePath = currentStrokePath,
+                brushSize = brushSize  // ADD THIS
             )
         }
     }
@@ -572,17 +573,17 @@ private fun canvasToImageCoordinates(
 
 @Composable
 private fun MagnifierPreview(
-    position: Offset, // This is an image coordinate
+    position: Offset,
     imageBitmap: ImageBitmap,
     transformation: ImageTransformation,
     canvasOffset: Offset,
     canvasScale: Float,
     canvasSize: IntSize,
     maskPath: Path,
-    currentStrokePath: Path
+    currentStrokePath: Path,
+    brushSize: Float
 ) {
     val loupeSize = 120.dp
-    val magnification = 2.5f
     val loupeSizePx = with(LocalDensity.current) { loupeSize.toPx() }
 
     val canvasCenter = Offset(canvasSize.width / 2f, canvasSize.height / 2f)
@@ -599,32 +600,36 @@ private fun MagnifierPreview(
         return
     }
 
-    // FIX: Use a fixed size in image pixels, not dependent on screen pixel density
-    // This gives us a consistent view area regardless of zoom level
-    val srcSizeInPixels = 80 // Fixed image pixel area to show
+    // This is the actual issue - we need to get the brush size from uiState
+    // But since we don't have access to it here, we need to pass it as a parameter
+    // For now, let's use a calculation that works regardless of brush size
 
-    val srcSize = IntSize(srcSizeInPixels, srcSizeInPixels)
+    // The magnifier should always show the same relative area
+    // Let's use a fixed reasonable size that shows context around the brush
+    val viewportSize = (brushSize * 2.5f).coerceIn(100f, 400f) // Show 150 pixels of the actual image
 
-    // Calculate the source offset, ensuring we stay within bounds
-    val idealSrcX = (imagePosition.x - srcSizeInPixels / 2)
-    val idealSrcY = (imagePosition.y - srcSizeInPixels / 2)
+    val srcSize = IntSize(
+        viewportSize.toInt(),
+        viewportSize.toInt()
+    )
 
-    // Clamp to valid image bounds
-    val srcX = idealSrcX.coerceIn(0f, (imageBitmap.width - srcSizeInPixels).coerceAtLeast(0).toFloat())
-    val srcY = idealSrcY.coerceIn(0f, (imageBitmap.height - srcSizeInPixels).coerceAtLeast(0).toFloat())
+    val srcOffset = IntOffset(
+        (imagePosition.x - srcSize.width / 2)
+            .coerceIn(0f, (imageBitmap.width - srcSize.width).coerceAtLeast(0).toFloat())
+            .roundToInt(),
+        (imagePosition.y - srcSize.height / 2)
+            .coerceIn(0f, (imageBitmap.height - srcSize.height).coerceAtLeast(0).toFloat())
+            .roundToInt()
+    )
 
-    val srcOffset = IntOffset(srcX.roundToInt(), srcY.roundToInt())
+    val clampedSrcSize = IntSize(
+        srcSize.width.coerceAtMost(imageBitmap.width - srcOffset.x).coerceAtLeast(1),
+        srcSize.height.coerceAtMost(imageBitmap.height - srcOffset.y).coerceAtLeast(1)
+    )
 
-    // Ensure source size doesn't exceed image bounds from the offset position
-    val actualSrcWidth = srcSizeInPixels.coerceAtMost(imageBitmap.width - srcOffset.x)
-    val actualSrcHeight = srcSizeInPixels.coerceAtMost(imageBitmap.height - srcOffset.y)
-
-    // Early return if we have no valid area to show
-    if (actualSrcWidth <= 0 || actualSrcHeight <= 0) {
+    if (clampedSrcSize.width <= 0 || clampedSrcSize.height <= 0) {
         return
     }
-
-    val clampedSrcSize = IntSize(actualSrcWidth, actualSrcHeight)
 
     val loupeOffset = calculateLoupePosition(
         touchPosition = screenTouchPosition,
