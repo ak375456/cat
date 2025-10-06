@@ -12,6 +12,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.consumeAsFlow
 
 @HiltViewModel
 class CharacterSettingsViewModel @Inject constructor(
@@ -30,6 +34,11 @@ class CharacterSettingsViewModel @Inject constructor(
         private const val ANIMATION_DELAY_SUFFIX = "_animation_delay"
         private const val Y_POSITION_SUFFIX = "_y_position"
         private const val X_POSITION_SUFFIX = "_x_position"
+
+        // Debounce delay for slider updates (milliseconds)
+        private const val SLIDER_DEBOUNCE_MS = 150L
+        // No debounce for button controls - but we'll use a channel for throttling
+        private const val BUTTON_THROTTLE_MS = 16L // ~60fps
     }
 
     private val _character = MutableStateFlow<Characters?>(null)
@@ -50,22 +59,39 @@ class CharacterSettingsViewModel @Inject constructor(
     private val _xPosition = MutableStateFlow(0)
     val xPosition: StateFlow<Int> = _xPosition
 
-    // Track if character is currently running for live updates
     private val _isCharacterRunning = MutableStateFlow(false)
     val isCharacterRunning: StateFlow<Boolean> = _isCharacterRunning
 
-    // Motion sensing toggle
     private val _motionSensingEnabled = MutableStateFlow(true)
     val motionSensingEnabled: StateFlow<Boolean> = _motionSensingEnabled
 
-    // Button controls toggle
     private val _useButtonControls = MutableStateFlow(false)
     val useButtonControls: StateFlow<Boolean> = _useButtonControls
+
+    // Debouncing jobs for different update types
+    private var speedUpdateJob: Job? = null
+    private var sizeUpdateJob: Job? = null
+    private var animationUpdateJob: Job? = null
+    private var positionUpdateJob: Job? = null
+
+    // Channel for button position updates
+    private val positionUpdateChannel = Channel<Pair<Int, Int>>(Channel.CONFLATED)
 
     init {
         // Load global preferences
         _motionSensingEnabled.value = sharedPreferences.getBoolean(MOTION_SENSING_KEY, true)
         _useButtonControls.value = sharedPreferences.getBoolean(USE_BUTTON_CONTROLS_KEY, false)
+
+        // Setup position update flow with throttling
+        viewModelScope.launch {
+            positionUpdateChannel.consumeAsFlow()
+                .collect { (x, y) ->
+                    _xPosition.value = x
+                    _yPosition.value = y
+                    updateLiveCharacterImmediate()
+                    delay(BUTTON_THROTTLE_MS)
+                }
+        }
     }
 
     fun loadCharacter(characterId: String) {
@@ -73,8 +99,6 @@ class CharacterSettingsViewModel @Inject constructor(
             val loadedCharacter = characterRepository.getCharacterById(characterId)
             _character.value = loadedCharacter
             loadedCharacter?.let { character ->
-                // Load character-specific settings from SharedPreferences
-                // If no saved settings exist, use the character's default values
                 _speed.value = sharedPreferences.getInt(
                     characterId + SPEED_SUFFIX,
                     character.speed
@@ -115,17 +139,14 @@ class CharacterSettingsViewModel @Inject constructor(
 
     fun setMotionSensingEnabled(enabled: Boolean) {
         _motionSensingEnabled.value = enabled
-        // Save global preference
         sharedPreferences.edit {
             putBoolean(MOTION_SENSING_KEY, enabled)
         }
-        // Update overlay manager immediately
         overlayManager.setMotionSensingEnabled(enabled)
     }
 
     fun setUseButtonControls(useButtons: Boolean) {
         _useButtonControls.value = useButtons
-        // Save global preference
         sharedPreferences.edit {
             putBoolean(USE_BUTTON_CONTROLS_KEY, useButtons)
         }
@@ -133,57 +154,72 @@ class CharacterSettingsViewModel @Inject constructor(
 
     fun updateSpeed(newSpeed: Int) {
         _speed.value = newSpeed
-        updateLiveCharacterIfRunning()
+        updateLiveCharacterDebounced(speedUpdateJob) { job ->
+            speedUpdateJob = job
+        }
     }
 
     fun updateSize(newSize: Int) {
         _size.value = newSize
-        updateLiveCharacterIfRunning()
+        updateLiveCharacterDebounced(sizeUpdateJob) { job ->
+            sizeUpdateJob = job
+        }
     }
 
     fun updateAnimationDelay(newDelay: Long) {
         _animationDelay.value = newDelay
-        updateLiveCharacterIfRunning()
+        updateLiveCharacterDebounced(animationUpdateJob) { job ->
+            animationUpdateJob = job
+        }
     }
 
     fun updateYPosition(newYPosition: Int) {
         _yPosition.value = newYPosition
-        updateLiveCharacterIfRunning()
+        updateLiveCharacterDebounced(positionUpdateJob) { job ->
+            positionUpdateJob = job
+        }
     }
 
     fun updateXPosition(newXPosition: Int) {
         _xPosition.value = newXPosition
-        updateLiveCharacterIfRunning()
+        updateLiveCharacterDebounced(positionUpdateJob) { job ->
+            positionUpdateJob = job
+        }
     }
 
     fun movePosition(deltaX: Int, deltaY: Int) {
         val newX = (_xPosition.value + deltaX).coerceIn(0, 1000)
         val newY = (_yPosition.value + deltaY).coerceIn(0, 300)
 
-        _xPosition.value = newX
-        _yPosition.value = newY
-        updateLiveCharacterIfRunning()
+        // Use channel for throttled updates
+        positionUpdateChannel.trySend(newX to newY)
     }
 
-    private fun updateLiveCharacterIfRunning() {
-        if (_isCharacterRunning.value) {
-            updateLiveCharacter()
+    private fun updateLiveCharacterDebounced(currentJob: Job?, setJob: (Job) -> Unit) {
+        if (!_isCharacterRunning.value) return
+
+        currentJob?.cancel()
+        val newJob = viewModelScope.launch {
+            delay(SLIDER_DEBOUNCE_MS)
+            updateLiveCharacterImmediate()
         }
+        setJob(newJob)
     }
 
-    private fun updateLiveCharacter() {
+    private fun updateLiveCharacterImmediate() {
+        if (!_isCharacterRunning.value) return
+
         viewModelScope.launch {
             _character.value?.let { current ->
                 val updated = current.copy(
                     speed = _speed.value,
                     width = _size.value,
-                    height = _size.value, // Use same value for both width and height
+                    height = _size.value,
                     animationDelay = _animationDelay.value,
                     yPosition = _yPosition.value,
                     xPosition = _xPosition.value
                 )
 
-                // Send live update to service
                 sendLiveUpdateToService(updated)
             }
         }
@@ -200,19 +236,17 @@ class CharacterSettingsViewModel @Inject constructor(
     fun saveSettings() {
         viewModelScope.launch {
             _character.value?.let { current ->
-                // Save character-specific settings to SharedPreferences
                 saveCharacterSpecificSettings(current.id)
 
                 val updated = current.copy(
                     speed = _speed.value,
                     width = _size.value,
-                    height = _size.value, // Use same value for both width and height
+                    height = _size.value,
                     animationDelay = _animationDelay.value,
                     yPosition = _yPosition.value,
                     xPosition = _xPosition.value
                 )
 
-                // Send final update to service if running
                 if (_isCharacterRunning.value) {
                     sendLiveUpdateToService(updated)
                 }
@@ -249,7 +283,6 @@ class CharacterSettingsViewModel @Inject constructor(
     fun resetToDefaults() {
         viewModelScope.launch {
             _character.value?.let { character ->
-                // Remove character-specific settings from SharedPreferences
                 sharedPreferences.edit {
                     remove(character.id + SPEED_SUFFIX)
                     remove(character.id + SIZE_SUFFIX)
@@ -258,7 +291,6 @@ class CharacterSettingsViewModel @Inject constructor(
                     remove(character.id + X_POSITION_SUFFIX)
                 }
 
-                // Reset to original character values
                 val defaultCharacter = characterRepository.getDefaultCharacter(character.id)
                 defaultCharacter?.let { default ->
                     _speed.value = default.speed
@@ -267,12 +299,16 @@ class CharacterSettingsViewModel @Inject constructor(
                     _yPosition.value = default.yPosition
                     _xPosition.value = default.xPosition
 
-                    // Send live update to service if running
                     if (_isCharacterRunning.value) {
                         sendLiveUpdateToService(default)
                     }
                 }
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        positionUpdateChannel.close()
     }
 }

@@ -31,6 +31,8 @@ import java.io.FileOutputStream
 import javax.inject.Inject
 import kotlin.math.pow
 import kotlinx.coroutines.Dispatchers
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.get
 
 data class CustomCharacterUiState(
     val selectedImageUri: Uri? = null,
@@ -314,7 +316,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
         val offsetXY = IntArray(2)
         val outlineBitmap = input.extractAlpha(blurPaint, offsetXY)
-        val finalBitmap = Bitmap.createBitmap(outlineBitmap.width, outlineBitmap.height, Bitmap.Config.ARGB_8888)
+        val finalBitmap = createBitmap(outlineBitmap.width, outlineBitmap.height)
         val canvas = Canvas(finalBitmap)
         canvas.drawBitmap(outlineBitmap, 0f, 0f, null)
         outlineBitmap.recycle()
@@ -330,7 +332,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         context: Context,
         imageUri: Uri,
         maskPath: Path,
-        featheringSize: Float
+        featheringSize: Float,
     ): Bitmap {
         val originalBitmap = loadScaledBitmapFromUri(context, imageUri)
 
@@ -342,11 +344,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
 
         // Mask exists - apply background removal
-        val mutableBitmap = Bitmap.createBitmap(
-            originalBitmap.width,
-            originalBitmap.height,
-            Bitmap.Config.ARGB_8888
-        )
+        val mutableBitmap = createBitmap(originalBitmap.width, originalBitmap.height)
         val canvas = Canvas(mutableBitmap)
 
         // Draw original bitmap first
@@ -376,7 +374,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
 
         topLoop@ for (y in 0 until height) {
             for (x in 0 until width) {
-                if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+                if (android.graphics.Color.alpha(bitmap[x, y]) > 0) {
                     top = y
                     break@topLoop
                 }
@@ -384,7 +382,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
         bottomLoop@ for (y in height - 1 downTo top) {
             for (x in 0 until width) {
-                if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+                if (android.graphics.Color.alpha(bitmap[x, y]) > 0) {
                     bottom = y + 1
                     break@bottomLoop
                 }
@@ -392,7 +390,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
         leftLoop@ for (x in 0 until width) {
             for (y in top until bottom) {
-                if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+                if (android.graphics.Color.alpha(bitmap[x, y]) > 0) {
                     left = x
                     break@leftLoop
                 }
@@ -400,7 +398,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
         rightLoop@ for (x in width - 1 downTo left) {
             for (y in top until bottom) {
-                if (android.graphics.Color.alpha(bitmap.getPixel(x, y)) > 0) {
+                if (android.graphics.Color.alpha(bitmap[x, y]) > 0) {
                     right = x + 1
                     break@rightLoop
                 }
@@ -422,7 +420,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         ropeOffsetY: Float,
         characterScale: Float,
         isStrokeEnabled: Boolean,
-        strokeColor: Int
+        strokeColor: Int,
     ): Bitmap {
         var croppedCharacterBitmap = cropTransparentBorders(characterBitmap)
 
@@ -487,11 +485,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
 
         // CRITICAL: Manual scaling with proper transparency handling
-        val scaledCharacterBitmap = Bitmap.createBitmap(
-            scaledCharacterWidth,
-            scaledCharacterHeight,
-            Bitmap.Config.ARGB_8888
-        )
+        val scaledCharacterBitmap = createBitmap(scaledCharacterWidth, scaledCharacterHeight)
         Canvas(scaledCharacterBitmap).apply {
             val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
             val srcRect = Rect(0, 0, croppedCharacterBitmap.width, croppedCharacterBitmap.height)
@@ -499,11 +493,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
             drawBitmap(croppedCharacterBitmap, srcRect, dstRect, paint)
         }
 
-        val scaledRopeBitmap = Bitmap.createBitmap(
-            scaledRopeWidth,
-            scaledRopeHeight,
-            Bitmap.Config.ARGB_8888
-        )
+        val scaledRopeBitmap = createBitmap(scaledRopeWidth, scaledRopeHeight)
         Canvas(scaledRopeBitmap).apply {
             val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
             val srcRect = Rect(0, 0, ropeBitmap.width, ropeBitmap.height)
@@ -512,7 +502,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         }
 
         // CRITICAL: Create transparent canvas - DO NOT call eraseColor or drawColor
-        val combinedBitmap = Bitmap.createBitmap(canvasWidth, canvasHeight, Bitmap.Config.ARGB_8888)
+        val combinedBitmap = createBitmap(canvasWidth, canvasHeight)
         val canvas = Canvas(combinedBitmap)
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
@@ -596,7 +586,7 @@ fun loadScaledBitmapFromUri(
     context: Context,
     imageUri: Uri,
     reqWidth: Int = 2048,
-    reqHeight: Int = 2048
+    reqHeight: Int = 2048,
 ): Bitmap {
     val options = BitmapFactory.Options().apply {
         inJustDecodeBounds = true

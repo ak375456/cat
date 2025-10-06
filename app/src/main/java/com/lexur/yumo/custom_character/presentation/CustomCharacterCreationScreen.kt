@@ -64,24 +64,27 @@ import com.lexur.yumo.ui.theme.ButtonSecondary
 import com.lexur.yumo.ui.theme.CardBackground
 import com.lexur.yumo.ui.theme.Container
 import com.lexur.yumo.ui.theme.DialogBackground
+import com.lexur.yumo.ui.theme.Disabled
 import com.lexur.yumo.ui.theme.IconDisabled
 import com.lexur.yumo.ui.theme.IconPrimary
 import com.lexur.yumo.ui.theme.IconSecondary
+import com.lexur.yumo.ui.theme.InputBackground
+import com.lexur.yumo.ui.theme.InputBorder
+import com.lexur.yumo.ui.theme.InputBorderFocused
+import com.lexur.yumo.ui.theme.InputPlaceholder
+import com.lexur.yumo.ui.theme.InputText
 import com.lexur.yumo.ui.theme.OnBackground
 import com.lexur.yumo.ui.theme.OnButtonPrimary
 import com.lexur.yumo.ui.theme.OnButtonSecondary
 import com.lexur.yumo.ui.theme.OnCard
-import com.lexur.yumo.ui.theme.OnContainer
 import com.lexur.yumo.ui.theme.OnContainerVariant
 import com.lexur.yumo.ui.theme.OnDialog
-import com.lexur.yumo.ui.theme.OnSurface
+import com.lexur.yumo.ui.theme.OnDisabled
 import com.lexur.yumo.ui.theme.OnTopBar
 import com.lexur.yumo.ui.theme.OutlinePrimary
 import com.lexur.yumo.ui.theme.OutlineSecondary
 import com.lexur.yumo.ui.theme.OutlineVariant
 import com.lexur.yumo.ui.theme.Primary
-import com.lexur.yumo.ui.theme.PrimaryVariant
-import com.lexur.yumo.ui.theme.Surface
 import com.lexur.yumo.ui.theme.TopBarBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -264,7 +267,7 @@ fun CustomCharacterCreationScreen(
                                 ) {
                                     // Header Section
                                     Text(
-                                        "Create Character",
+                                        "Create Hanging Character",
                                         style = MaterialTheme.typography.displaySmall.copy(
                                             fontWeight = FontWeight.SemiBold,
                                             letterSpacing = (-0.5).sp
@@ -625,28 +628,97 @@ fun NameCharacterDialog(
     onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Name Your Character") },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Character Name") },
-                singleLine = true
+        containerColor = DialogBackground,
+        shape = RoundedCornerShape(24.dp),
+        title = {
+            Text(
+                "Name Your Character",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = OnDialog
             )
+        },
+        text = {
+            Column(
+                modifier = Modifier.padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    "Give your character a unique name",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = OnContainerVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = {
+                        Text(
+                            "Character Name",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = InputBackground,
+                        unfocusedContainerColor = InputBackground,
+                        focusedBorderColor = InputBorderFocused,
+                        unfocusedBorderColor = InputBorder,
+                        focusedLabelColor = Primary,
+                        unfocusedLabelColor = InputPlaceholder,
+                        cursorColor = Primary,
+                        focusedTextColor = InputText,
+                        unfocusedTextColor = InputText
+                    )
+                )
+            }
         },
         confirmButton = {
             Button(
                 onClick = { onNameSelected(name) },
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank(),
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ButtonPrimary,
+                    contentColor = OnButtonPrimary,
+                    disabledContainerColor = Disabled,
+                    disabledContentColor = OnDisabled
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 0.dp,
+                    pressedElevation = 2.dp
+                ),
+                modifier = Modifier.height(44.dp)
             ) {
-                Text("Save")
+                Text(
+                    "Save",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Medium
+                    )
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
+            TextButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = OnButtonSecondary
+                ),
+                modifier = Modifier.height(44.dp)
+            ) {
+                Text(
+                    "Cancel",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Medium
+                    )
+                )
             }
         }
     )
@@ -985,12 +1057,6 @@ private fun MagnifierPreview(
             strokeWidth = 1.dp.toPx()
         )
     }
-}
-
-private fun calculateImagePosition(touchPosition: Offset, transformation: ImageTransformation): Offset {
-    val imageX = (touchPosition.x - transformation.imageOffset.x) / transformation.scaleFactor
-    val imageY = (touchPosition.y - transformation.imageOffset.y) / transformation.scaleFactor
-    return Offset(imageX, imageY)
 }
 
 @Composable

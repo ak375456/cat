@@ -1,11 +1,7 @@
 package com.lexur.yumo.home_screen.data
 
-import android.content.SharedPreferences
 import com.lexur.yumo.home_screen.data.model.CharacterCategory
 import com.lexur.yumo.home_screen.data.model.Characters
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import androidx.core.content.edit
 import com.lexur.yumo.R
 import com.lexur.yumo.custom_character.domain.CustomCharacter
 import com.lexur.yumo.custom_character.domain.CustomCharacterDao
@@ -17,13 +13,8 @@ import javax.inject.Singleton
 
 @Singleton
 class CharacterRepository @Inject constructor(
-    private val sharedPreferences: SharedPreferences,
-    private val gson: Gson,
     private val customCharacterDao: CustomCharacterDao
 ) {
-    companion object {
-        private const val CHARACTERS_KEY = "saved_characters"
-    }
 
     // Default characters - these are the base templates
     private val defaultCharacters = listOf(
@@ -247,23 +238,6 @@ class CharacterRepository @Inject constructor(
             animationDelay = 120L
         ),
         Characters(
-            id = "naruto_running",
-            name = "Naruto",
-            category = CharacterCategory.ANIMATED,
-            frameIds = listOf(
-                R.drawable.naruto_01,
-                R.drawable.naruto_02,
-                R.drawable.naruto_03,
-                R.drawable.naruto_04,
-                R.drawable.naruto_05,
-                R.drawable.naruto_06,
-            ),
-            width = 18,
-            height = 18,
-            speed = 4,
-            animationDelay = 120L
-        ),
-        Characters(
             id = "bird",
             name = "Bird",
             category = CharacterCategory.ANIMATED,
@@ -294,18 +268,6 @@ class CharacterRepository @Inject constructor(
                 R.drawable.girl_walk_04,
                 R.drawable.girl_walk_05,
                 R.drawable.girl_walk_06,
-            ),
-            width = 18,
-            height = 18,
-            speed = 4,
-            animationDelay = 120L
-        ),
-        Characters(
-            id = "lightning_mcQueen",
-            name = "McQueen",
-            category = CharacterCategory.ANIMATED,
-            frameIds = listOf(
-                R.drawable.lightning_mcqueen_01,
             ),
             width = 18,
             height = 18,
@@ -362,24 +324,6 @@ class CharacterRepository @Inject constructor(
             xPosition = 150,
             speed = 0, // No movement
             animationDelay = 0L // No animation
-        ),
-        Characters(
-            id = "doraemon_walking",
-            name = "Doraemon",
-            category = CharacterCategory.ANIMATED,
-            frameIds = listOf(
-                R.drawable.doraemon_01,
-                R.drawable.doraemon_02,
-                R.drawable.doraemon_03,
-                R.drawable.doraemon_04,
-                R.drawable.doraemon_05,
-                R.drawable.doraemon_05,
-            ),
-            width = 18,
-            height = 18,
-            yPosition = 20,
-            speed = 4,
-            animationDelay = 120L
         ),
         Characters(
             id = "wingman_hanging",
@@ -518,50 +462,11 @@ class CharacterRepository @Inject constructor(
             speed = 0,
             animationDelay = 0L
         ),
-        Characters(
-            id = "minion_hanging",
-            name = "Minion",
-            category = CharacterCategory.HANGING,
-            frameIds = listOf(
-                R.drawable.minion,
-            ),
-            width = 30,
-            height = 30,
-            yPosition = 20,
-            xPosition = 150,
-            speed = 0,
-            animationDelay = 0L
-        ),
-
     )
 
 
     suspend fun insertCustomCharacter(character: CustomCharacter) {
         customCharacterDao.insertCharacter(character)
-    }
-
-    private fun loadCharacters(): Map<String, Characters> {
-        val savedJson = sharedPreferences.getString(CHARACTERS_KEY, null)
-        return if (savedJson != null) {
-            try {
-                val type = object : TypeToken<Map<String, Characters>>() {}.type
-                gson.fromJson(savedJson, type) ?: getDefaultCharactersMap()
-            } catch (e: Exception) {
-                getDefaultCharactersMap()
-            }
-        } else {
-            getDefaultCharactersMap()
-        }
-    }
-
-    private fun getDefaultCharactersMap(): Map<String, Characters> {
-        return defaultCharacters.associateBy { it.id }
-    }
-
-    // Save characters to SharedPreferences
-    private fun saveCharacters(characters: Map<String, Characters>) {
-        val json = gson.toJson(characters)
-        sharedPreferences.edit { putString(CHARACTERS_KEY, json) }
     }
 
     fun getAllCharacters(): Flow<List<Characters>> {
@@ -584,29 +489,6 @@ class CharacterRepository @Inject constructor(
         // This now correctly finds a character by its ID from the combined list
         // of default and custom characters.
         return getAllCharacters().first().find { it.id == id }
-    }
-
-    fun getCharactersByCategory(category: CharacterCategory): List<Characters> {
-        return loadCharacters().values.filter { it.category == category }
-    }
-
-    // New method to get hanging characters specifically
-    fun getHangingCharacters(): List<Characters> {
-        return loadCharacters().values.filter { it.isHanging }
-    }
-
-    fun updateCharacter(updatedCharacter: Characters) {
-        val characters = loadCharacters().toMutableMap()
-        characters[updatedCharacter.id] = updatedCharacter.copy()
-        saveCharacters(characters)
-    }
-
-    // Method to reset a character to its default settings
-    fun resetCharacterToDefault(characterId: String) {
-        val defaultCharacter = defaultCharacters.find { it.id == characterId }
-        if (defaultCharacter != null) {
-            updateCharacter(defaultCharacter)
-        }
     }
 
     // Method to get default character (useful for reset functionality)

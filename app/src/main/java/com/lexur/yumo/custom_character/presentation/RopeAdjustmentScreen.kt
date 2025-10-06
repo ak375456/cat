@@ -1,7 +1,6 @@
 package com.lexur.yumo.custom_character.presentation
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -36,7 +35,6 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import androidx.core.graphics.get
 import com.lexur.yumo.ui.theme.*
@@ -529,8 +527,8 @@ private fun RopePreviewCanvas(
                     image = ropeBitmap!!,
                     dstOffset = IntOffset(ropeX.roundToInt(), ropeY.roundToInt()),
                     dstSize = IntSize(
-                        displayRopeWidth.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION.toInt()),
-                        displayRopeHeight.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION.toInt())
+                        displayRopeWidth.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION),
+                        displayRopeHeight.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION)
                     )
                 )
 
@@ -549,8 +547,8 @@ private fun RopePreviewCanvas(
                                     (characterY + dy * strokeWidthPx).roundToInt()
                                 ),
                                 dstSize = IntSize(
-                                    displayCharacterWidth.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION.toInt()),
-                                    displayCharacterHeight.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION.toInt())
+                                    displayCharacterWidth.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION),
+                                    displayCharacterHeight.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION)
                                 ),
                                 colorFilter = ColorFilter.tint(strokeColor, blendMode = BlendMode.SrcIn)
                             )
@@ -562,8 +560,8 @@ private fun RopePreviewCanvas(
                     image = processedBitmap,
                     dstOffset = IntOffset(characterX.roundToInt(), characterY.roundToInt()),
                     dstSize = IntSize(
-                        displayCharacterWidth.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION.toInt()),
-                        displayCharacterHeight.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION.toInt())
+                        displayCharacterWidth.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION),
+                        displayCharacterHeight.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION)
                     )
                 )
             }
