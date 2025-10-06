@@ -3,6 +3,7 @@ package com.lexur.yumo.custom_character.presentation
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.PorterDuff
@@ -52,10 +53,11 @@ data class CustomCharacterUiState(
     val showRopeAdjustment: Boolean = false,
     val characterScale: Float = 1f,
 
-    // New states for pan and zoom
     val isPanningMode: Boolean = false,
     val canvasOffset: Offset = Offset.Zero,
     val canvasScale: Float = 1f,
+
+    val featheringSize: Float = 10f,
 )
 
 @HiltViewModel
@@ -119,6 +121,10 @@ class CustomCharacterCreationViewModel @Inject constructor(
 
     fun updateBrushSize(size: Float) {
         _uiState.update { it.copy(brushSize = size) }
+    }
+
+    fun updateFeatheringSize(size: Float) {
+        _uiState.update { it.copy(featheringSize = size) }
     }
 
     fun startDrawing(offset: Offset) {
@@ -254,10 +260,12 @@ class CustomCharacterCreationViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                // Pass the feathering value from the UI state to the bitmap creation function
                 val characterBitmap = createTransparentBitmapFromUri(
                     context,
                     currentState.selectedImageUri,
-                    currentState.maskPath
+                    currentState.maskPath,
+                    currentState.featheringSize
                 )
                 val ropeBitmap =
                     BitmapFactory.decodeResource(context.resources, currentState.selectedRopeResId)
@@ -297,6 +305,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
         context: Context,
         imageUri: Uri,
         maskPath: Path,
+        featheringSize: Float
     ): Bitmap {
         val originalBitmap = context.contentResolver.openInputStream(imageUri)?.use {
             BitmapFactory.decodeStream(it)
@@ -307,6 +316,10 @@ class CustomCharacterCreationViewModel @Inject constructor(
             isAntiAlias = true
             style = Paint.Style.FILL
             xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+            // If featheringSize is greater than 0, apply a blur effect to the erase tool
+            if (featheringSize > 0f) {
+                maskFilter = BlurMaskFilter(featheringSize, BlurMaskFilter.Blur.NORMAL)
+            }
         }
         canvas.drawPath(maskPath.asAndroidPath(), erasePaint)
         return mutableBitmap

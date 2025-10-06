@@ -3,6 +3,7 @@ package com.lexur.yumo.custom_character.presentation
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.BlurMaskFilter
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.net.Uri
@@ -99,6 +100,7 @@ fun CustomCharacterCreationScreen(
                     },
                     characterScale = uiState.characterScale,
                     onCharacterScaleChanged = viewModel::updateCharacterScale,
+                    featheringSize = uiState.featheringSize
                 )
             }
 
@@ -209,6 +211,7 @@ fun CustomCharacterCreationScreen(
                                         previewPosition = uiState.previewPosition,
                                         canvasOffset = uiState.canvasOffset,
                                         canvasScale = uiState.canvasScale,
+                                        featheringSize = uiState.featheringSize,
                                         onDrawStart = viewModel::startDrawing,
                                         onDrawContinue = viewModel::continueDrawing,
                                         onDrawEnd = viewModel::endDrawing,
@@ -256,6 +259,25 @@ fun CustomCharacterCreationScreen(
                                                     )
                                                 }
                                             }
+                                        }
+                                    }
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Column(modifier = Modifier.padding(16.dp)) {
+                                            Text(
+                                                "Edge Softness: ${uiState.featheringSize.toInt()}",
+                                                style = MaterialTheme. typography.labelMedium
+                                            )
+                                            Slider(
+                                                value = uiState.featheringSize,
+                                                onValueChange = { viewModel.updateFeatheringSize(it) },
+                                                valueRange = 0f..50f, // 0 means sharp edge
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
                                         }
                                     }
                                 }
@@ -357,6 +379,7 @@ private fun BackgroundRemovalCanvas(
     previewPosition: Offset?,
     canvasOffset: Offset,
     canvasScale: Float,
+    featheringSize: Float,
     onDrawStart: (Offset) -> Unit,
     onDrawContinue: (Offset) -> Unit,
     onDrawEnd: () -> Unit,
@@ -386,9 +409,9 @@ private fun BackgroundRemovalCanvas(
         }
     }
 
-    val processedBitmap = remember(imageBitmap, maskPath, currentStrokePath) {
+    val processedBitmap = remember(imageBitmap, maskPath, currentStrokePath, featheringSize) {
         if (imageBitmap != null) {
-            createTransparentBitmap(imageBitmap!!, maskPath, currentStrokePath)
+            createTransparentBitmap(imageBitmap!!, maskPath, currentStrokePath, featheringSize)
         } else null
     }
 
@@ -536,6 +559,7 @@ private fun BackgroundRemovalCanvas(
                 canvasSize = canvasSize,
                 maskPath = maskPath,
                 currentStrokePath = currentStrokePath,
+                featheringSize = featheringSize,
                 brushSize = brushSize  // ADD THIS
             )
         }
@@ -581,7 +605,8 @@ private fun MagnifierPreview(
     canvasSize: IntSize,
     maskPath: Path,
     currentStrokePath: Path,
-    brushSize: Float
+    brushSize: Float,
+    featheringSize: Float
 ) {
     val loupeSize = 120.dp
     val loupeSizePx = with(LocalDensity.current) { loupeSize.toPx() }
@@ -637,8 +662,8 @@ private fun MagnifierPreview(
         containerSize = Size(canvasSize.width.toFloat(), canvasSize.height.toFloat())
     )
 
-    val processedBitmap = remember(imageBitmap, maskPath, currentStrokePath) {
-        createTransparentBitmap(imageBitmap, maskPath, currentStrokePath)
+    val processedBitmap = remember(imageBitmap, maskPath, currentStrokePath, featheringSize) {
+        createTransparentBitmap(imageBitmap, maskPath, currentStrokePath, featheringSize)
     }
 
     Canvas(
@@ -775,7 +800,8 @@ fun calculateImageTransformation(
 fun createTransparentBitmap(
     originalBitmap: ImageBitmap,
     maskPath: Path,
-    currentStrokePath: Path
+    currentStrokePath: Path,
+    featheringSize: Float
 ): ImageBitmap {
     val androidBitmap = originalBitmap.asAndroidBitmap()
     val mutableBitmap = androidBitmap.copy(Bitmap.Config.ARGB_8888, true)
@@ -784,6 +810,10 @@ fun createTransparentBitmap(
         isAntiAlias = true
         style = android.graphics.Paint.Style.FILL
         xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+        // If featheringSize is greater than 0, apply a blur effect to the erase tool
+        if (featheringSize > 0f) {
+            maskFilter = BlurMaskFilter(featheringSize, BlurMaskFilter.Blur.NORMAL)
+        }
     }
     val androidMaskPath = maskPath.asAndroidPath()
     val androidCurrentPath = currentStrokePath.asAndroidPath()
@@ -791,3 +821,4 @@ fun createTransparentBitmap(
     canvas.drawPath(androidCurrentPath, erasePaint)
     return mutableBitmap.asImageBitmap()
 }
+

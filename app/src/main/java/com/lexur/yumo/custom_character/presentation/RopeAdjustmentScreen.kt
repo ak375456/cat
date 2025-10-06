@@ -42,6 +42,7 @@ fun RopeAdjustmentScreen(
     ropeScale: Float,
     ropeOffsetX: Float,
     ropeOffsetY: Float,
+    featheringSize: Float,
     onRopeScaleChanged: (Float) -> Unit,
     onRopeOffsetXChanged: (Float) -> Unit,
     onRopeOffsetYChanged: (Float) -> Unit,
@@ -88,7 +89,8 @@ fun RopeAdjustmentScreen(
                     ropeScale = ropeScale,
                     ropeOffsetX = ropeOffsetX,
                     ropeOffsetY = ropeOffsetY,
-                    characterScale = characterScale
+                    characterScale = characterScale,
+                    featheringSize = featheringSize
                 )
             }
 
@@ -244,6 +246,7 @@ private fun RopePreviewCanvas(
     ropeOffsetX: Float,
     ropeOffsetY: Float,
     characterScale: Float,
+    featheringSize:Float
 ) {
     val context = LocalContext.current
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
@@ -271,7 +274,7 @@ private fun RopePreviewCanvas(
     // Create processed AND cropped bitmap
     val processedBitmap = remember(imageBitmap, maskPath, currentStrokePath) {
         if (imageBitmap != null) {
-            val transparent = createTransparentBitmap(imageBitmap!!, maskPath, currentStrokePath)
+            val transparent = createTransparentBitmap(imageBitmap!!, maskPath, currentStrokePath, featheringSize)
             // Convert to Android Bitmap, crop, then back to ImageBitmap
             val androidBitmap = transparent.asAndroidBitmap()
             val cropped = cropTransparentBordersForPreview(androidBitmap)
