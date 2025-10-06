@@ -335,7 +335,7 @@ private fun RopePreviewCanvas(
         modifier = Modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
+            .background(Color.Transparent)
             .onGloballyPositioned { coordinates ->
                 if (canvasSize != coordinates.size) {
                     canvasSize = coordinates.size

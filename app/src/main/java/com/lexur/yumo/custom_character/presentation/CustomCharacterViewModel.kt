@@ -8,9 +8,10 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
 import android.net.Uri
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Rect as ComposeRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asAndroidPath
@@ -29,8 +30,6 @@ import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
 import kotlin.math.pow
-import androidx.core.graphics.createBitmap
-import androidx.core.graphics.scale
 import kotlinx.coroutines.Dispatchers
 
 data class CustomCharacterUiState(
@@ -54,13 +53,10 @@ data class CustomCharacterUiState(
     val ropeOffsetY: Float = 0f,
     val showRopeAdjustment: Boolean = false,
     val characterScale: Float = 1f,
-
     val isPanningMode: Boolean = false,
     val canvasOffset: Offset = Offset.Zero,
     val canvasScale: Float = 1f,
-
     val featheringSize: Float = 10f,
-
     val isStrokeEnabled: Boolean = false,
     val strokeColor: Color = Color.White,
 )
@@ -74,10 +70,8 @@ class CustomCharacterCreationViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
 
     companion object {
-        private const val MAX_BITMAP_DIMENSION = 4096 // Maximum width or height
-        private const val MAX_BITMAP_MEMORY_MB = 50 // Maximum memory usage in MB
-
-        // Calculate max pixels based on memory limit (assuming ARGB_8888 = 4 bytes per pixel)
+        private const val MAX_BITMAP_DIMENSION = 4096
+        private const val MAX_BITMAP_MEMORY_MB = 50
         private const val MAX_PIXELS = (MAX_BITMAP_MEMORY_MB * 1024 * 1024) / 4
     }
 
@@ -100,14 +94,11 @@ class CustomCharacterCreationViewModel @Inject constructor(
     fun toggleBackgroundRemovalMode() {
         _uiState.update {
             val newMode = !it.isBackgroundRemovalMode
-            // If we are turning the mode OFF, also turn off panning mode as it's a sub-mode.
             val panningMode = if (newMode) it.isPanningMode else false
             it.copy(
                 isBackgroundRemovalMode = newMode,
                 isPanningMode = panningMode,
                 previewPosition = null
-                // The canvas transform state is now intentionally preserved here.
-                // It will only be reset via resetImage() or finishEditing().
             )
         }
     }
@@ -130,7 +121,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
     fun onCanvasTransform(centroid: Offset, pan: Offset, zoom: Float) {
         _uiState.update { currentState ->
             val newScale = (currentState.canvasScale * zoom).coerceIn(0.5f, 5f)
-            // Formula to adjust offset to zoom around the centroid
             val newOffset =
                 currentState.canvasOffset + centroid - (centroid * newScale / currentState.canvasScale) + pan
             currentState.copy(
@@ -150,10 +140,9 @@ class CustomCharacterCreationViewModel @Inject constructor(
 
     fun startDrawing(offset: Offset) {
         _uiState.update { currentState ->
-            // offset is already in image coordinates from canvasToImageCoordinates
             val newHistory = currentState.strokeHistory + currentState.maskPath
             val newStrokePath = Path().apply {
-                addOval(Rect(center = offset, radius = currentState.brushSize / 2))
+                addOval(ComposeRect(center = offset, radius = currentState.brushSize / 2))
             }
             currentState.copy(
                 currentStrokePath = newStrokePath,
@@ -168,8 +157,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
         if (!_uiState.value.isDrawing) return
         _uiState.update { currentState ->
             val lastPoint = currentState.lastDrawnPoint ?: return@update currentState
-
-            // offset is already in image coordinates from canvasToImageCoordinates
             val newStrokePath = Path().apply {
                 addPath(currentState.currentStrokePath)
                 val distance = kotlin.math.sqrt(
@@ -182,13 +169,12 @@ class CustomCharacterCreationViewModel @Inject constructor(
                         lastPoint.x + (offset.x - lastPoint.x) * t,
                         lastPoint.y + (offset.y - lastPoint.y) * t
                     )
-                    addOval(Rect(center = interpolatedPoint, radius = currentState.brushSize / 2))
+                    addOval(ComposeRect(center = interpolatedPoint, radius = currentState.brushSize / 2))
                 }
             }
             currentState.copy(currentStrokePath = newStrokePath, lastDrawnPoint = offset)
         }
     }
-
 
     fun endDrawing() {
         _uiState.update { currentState ->
@@ -206,7 +192,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
     }
 
     fun updatePreviewPosition(position: Offset?) {
-        // position is now in image coordinates from the UI
         _uiState.value = _uiState.value.copy(previewPosition = position)
     }
 
@@ -292,7 +277,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
                 val ropeBitmap =
                     BitmapFactory.decodeResource(context.resources, currentState.selectedRopeResId)
 
-                // MODIFIED CALL to include stroke parameters
                 val combinedBitmap = combineCharacterAndRope(
                     characterBitmap,
                     ropeBitmap,
@@ -349,8 +333,26 @@ class CustomCharacterCreationViewModel @Inject constructor(
         featheringSize: Float
     ): Bitmap {
         val originalBitmap = loadScaledBitmapFromUri(context, imageUri)
-        val mutableBitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
+
+        // CRITICAL FIX: Check if mask is empty (pre-cut PNG case)
+        val androidMaskPath = maskPath.asAndroidPath()
+        if (androidMaskPath.isEmpty) {
+            // No mask applied - return original bitmap directly (it's already transparent PNG)
+            return originalBitmap
+        }
+
+        // Mask exists - apply background removal
+        val mutableBitmap = Bitmap.createBitmap(
+            originalBitmap.width,
+            originalBitmap.height,
+            Bitmap.Config.ARGB_8888
+        )
         val canvas = Canvas(mutableBitmap)
+
+        // Draw original bitmap first
+        canvas.drawBitmap(originalBitmap, 0f, 0f, null)
+
+        // Then erase the masked areas
         val erasePaint = Paint().apply {
             isAntiAlias = true
             style = Paint.Style.FILL
@@ -359,7 +361,8 @@ class CustomCharacterCreationViewModel @Inject constructor(
                 maskFilter = BlurMaskFilter(featheringSize, BlurMaskFilter.Blur.NORMAL)
             }
         }
-        canvas.drawPath(maskPath.asAndroidPath(), erasePaint)
+        canvas.drawPath(androidMaskPath, erasePaint)
+
         return mutableBitmap
     }
 
@@ -423,7 +426,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
     ): Bitmap {
         var croppedCharacterBitmap = cropTransparentBorders(characterBitmap)
 
-        // Apply stroke if enabled
         if (isStrokeEnabled) {
             val strokeWidthPx = 2f
             val strokedBitmap = addStrokeToAndroidBitmap(croppedCharacterBitmap, strokeWidthPx, strokeColor)
@@ -431,13 +433,11 @@ class CustomCharacterCreationViewModel @Inject constructor(
             croppedCharacterBitmap = strokedBitmap
         }
 
-        // Calculate scaled dimensions
         var scaledCharacterWidth = (croppedCharacterBitmap.width * characterScale).toInt()
         var scaledCharacterHeight = (croppedCharacterBitmap.height * characterScale).toInt()
         var scaledRopeWidth = (ropeBitmap.width * ropeScale).toInt()
         var scaledRopeHeight = (ropeBitmap.height * ropeScale).toInt()
 
-        // CRITICAL: Enforce maximum dimensions and memory limits
         val maxCharDimension = maxOf(scaledCharacterWidth, scaledCharacterHeight)
         if (maxCharDimension > MAX_BITMAP_DIMENSION) {
             val scaleFactor = MAX_BITMAP_DIMENSION.toFloat() / maxCharDimension
@@ -452,7 +452,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
             scaledRopeHeight = (scaledRopeHeight * scaleFactor).toInt()
         }
 
-        // Calculate canvas size
         val totalContentWidth = scaledCharacterWidth.coerceAtLeast(scaledRopeWidth)
         val totalContentHeight = scaledRopeHeight + scaledCharacterHeight
         val paddingTop = kotlin.math.max(0f, -ropeOffsetY).toInt()
@@ -463,7 +462,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
         var canvasWidth = totalContentWidth + paddingLeft + paddingRight
         var canvasHeight = totalContentHeight + paddingTop + paddingBottom
 
-        // CRITICAL: Check if final canvas exceeds limits
         if (canvasWidth > MAX_BITMAP_DIMENSION || canvasHeight > MAX_BITMAP_DIMENSION) {
             val scaleFactor = minOf(
                 MAX_BITMAP_DIMENSION.toFloat() / canvasWidth,
@@ -477,7 +475,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
             scaledRopeHeight = (scaledRopeHeight * scaleFactor).toInt()
         }
 
-        // Check memory constraint
         val totalPixels = canvasWidth.toLong() * canvasHeight.toLong()
         if (totalPixels > MAX_PIXELS) {
             val scaleFactor = kotlin.math.sqrt(MAX_PIXELS.toDouble() / totalPixels).toFloat()
@@ -489,33 +486,37 @@ class CustomCharacterCreationViewModel @Inject constructor(
             scaledRopeHeight = (scaledRopeHeight * scaleFactor).toInt()
         }
 
-        // Now scale the bitmaps safely with ARGB_8888 to preserve transparency
-        val scaledCharacterBitmap = Bitmap.createScaledBitmap(
-            croppedCharacterBitmap,
+        // CRITICAL: Manual scaling with proper transparency handling
+        val scaledCharacterBitmap = Bitmap.createBitmap(
             scaledCharacterWidth,
             scaledCharacterHeight,
-            true
+            Bitmap.Config.ARGB_8888
         )
-        val scaledRopeBitmap = Bitmap.createScaledBitmap(
-            ropeBitmap,
+        Canvas(scaledCharacterBitmap).apply {
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+            val srcRect = Rect(0, 0, croppedCharacterBitmap.width, croppedCharacterBitmap.height)
+            val dstRect = Rect(0, 0, scaledCharacterWidth, scaledCharacterHeight)
+            drawBitmap(croppedCharacterBitmap, srcRect, dstRect, paint)
+        }
+
+        val scaledRopeBitmap = Bitmap.createBitmap(
             scaledRopeWidth,
             scaledRopeHeight,
-            true
+            Bitmap.Config.ARGB_8888
         )
+        Canvas(scaledRopeBitmap).apply {
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+            val srcRect = Rect(0, 0, ropeBitmap.width, ropeBitmap.height)
+            val dstRect = Rect(0, 0, scaledRopeWidth, scaledRopeHeight)
+            drawBitmap(ropeBitmap, srcRect, dstRect, paint)
+        }
 
-        // Create the combined bitmap with ARGB_8888 config for transparency
+        // CRITICAL: Create transparent canvas - DO NOT call eraseColor or drawColor
         val combinedBitmap = Bitmap.createBitmap(canvasWidth, canvasHeight, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(combinedBitmap)
 
-        // DON'T draw any background - leave it transparent
-        // canvas.drawColor(Color.WHITE) <- REMOVE THIS IF IT EXISTS
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
-        // Use paint with proper alpha handling
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            isFilterBitmap = true
-        }
-
-        // Recalculate positions based on potentially scaled dimensions
         val actualTotalWidth = scaledCharacterWidth.coerceAtLeast(scaledRopeWidth)
         val actualPaddingLeft = kotlin.math.max(0f, -ropeOffsetX * (canvasWidth.toFloat() / (totalContentWidth + paddingLeft + paddingRight))).toInt()
         val actualPaddingTop = kotlin.math.max(0f, -ropeOffsetY * (canvasHeight.toFloat() / (totalContentHeight + paddingTop + paddingBottom))).toInt()
@@ -532,7 +533,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
 
         canvas.drawBitmap(scaledCharacterBitmap, characterX, characterY, paint)
 
-        // Clean up
         scaledRopeBitmap.recycle()
         scaledCharacterBitmap.recycle()
         croppedCharacterBitmap.recycle()
@@ -540,44 +540,23 @@ class CustomCharacterCreationViewModel @Inject constructor(
         return combinedBitmap
     }
 
-    // Update loadScaledBitmapFromUri to preserve transparency
-    fun loadScaledBitmapFromUri(
-        context: Context,
-        imageUri: Uri,
-        reqWidth: Int = 2048,  // Increased from 1024
-        reqHeight: Int = 2048   // Increased from 1024
-    ): Bitmap {
-        val options = BitmapFactory.Options().apply {
-            inJustDecodeBounds = true
-        }
-        context.contentResolver.openInputStream(imageUri)?.use {
-            BitmapFactory.decodeStream(it, null, options)
-        }
-        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
-        options.inJustDecodeBounds = false
-        options.inPreferredConfig = Bitmap.Config.ARGB_8888 // Ensure alpha channel
-
-        val bitmap = context.contentResolver.openInputStream(imageUri)?.use {
-            BitmapFactory.decodeStream(it, null, options)
-        } ?: throw IllegalStateException("Could not load scaled bitmap from URI")
-
-        // Ensure the bitmap has transparency support
-        return if (bitmap.config != Bitmap.Config.ARGB_8888) {
-            val argbBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
-            bitmap.recycle()
-            argbBitmap
-        } else {
-            bitmap
-        }
-    }
-
     private fun saveBitmapToFile(context: Context, bitmap: Bitmap, fileName: String): String {
+        // DEBUG: Check if bitmap has transparency
+        android.util.Log.d("SaveBitmap", "Bitmap config: ${bitmap.config}")
+        android.util.Log.d("SaveBitmap", "Has alpha: ${bitmap.hasAlpha()}")
+
+        // CRITICAL: Ensure bitmap has alpha enabled
+        if (!bitmap.hasAlpha()) {
+            bitmap.setHasAlpha(true)
+        }
+
         val directory = File(context.filesDir, "custom_characters")
         if (!directory.exists()) {
             directory.mkdirs()
         }
         val file = File(directory, fileName)
         FileOutputStream(file).use {
+            // Use PNG with 100 quality to preserve transparency
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
         }
         return file.absolutePath
@@ -598,9 +577,7 @@ class CustomCharacterCreationViewModel @Inject constructor(
     fun finishRopeAdjustment() {
         _uiState.update { it.copy(showRopeAdjustment = false) }
     }
-
 }
-
 
 fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
     val (height: Int, width: Int) = options.run { outHeight to outWidth }
@@ -615,15 +592,33 @@ fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeig
     return inSampleSize
 }
 
-// --- HELPER FUNCTION to load a scaled bitmap safely ---
-fun loadScaledBitmapFromUri(context: Context, imageUri: Uri, reqWidth: Int = 1024, reqHeight: Int = 1024): Bitmap {
-    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+fun loadScaledBitmapFromUri(
+    context: Context,
+    imageUri: Uri,
+    reqWidth: Int = 2048,
+    reqHeight: Int = 2048
+): Bitmap {
+    val options = BitmapFactory.Options().apply {
+        inJustDecodeBounds = true
+        inPreferredConfig = Bitmap.Config.ARGB_8888
+    }
     context.contentResolver.openInputStream(imageUri)?.use {
         BitmapFactory.decodeStream(it, null, options)
     }
     options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
     options.inJustDecodeBounds = false
-    return context.contentResolver.openInputStream(imageUri)?.use {
+    options.inPreferredConfig = Bitmap.Config.ARGB_8888
+    options.inPremultiplied = true
+
+    val bitmap = context.contentResolver.openInputStream(imageUri)?.use {
         BitmapFactory.decodeStream(it, null, options)
     } ?: throw IllegalStateException("Could not load scaled bitmap from URI")
+
+    return if (bitmap.config != Bitmap.Config.ARGB_8888) {
+        val argbBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        bitmap.recycle()
+        argbBitmap
+    } else {
+        bitmap
+    }
 }

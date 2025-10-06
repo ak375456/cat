@@ -504,7 +504,7 @@ private fun BackgroundRemovalCanvas(
         modifier = Modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.LightGray.copy(alpha = 0.1f))
+            .background(Color.Transparent)
             .onGloballyPositioned { coordinates ->
                 if (canvasSize != coordinates.size) {
                     canvasSize = coordinates.size
