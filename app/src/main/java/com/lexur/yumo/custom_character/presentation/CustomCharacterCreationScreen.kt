@@ -100,7 +100,11 @@ fun CustomCharacterCreationScreen(
                     },
                     characterScale = uiState.characterScale,
                     onCharacterScaleChanged = viewModel::updateCharacterScale,
-                    featheringSize = uiState.featheringSize
+                    featheringSize = uiState.featheringSize,
+                    isStrokeEnabled = uiState.isStrokeEnabled,
+                    strokeColor = uiState.strokeColor,
+                    onToggleStroke = viewModel::toggleImageStroke,
+                    onStrokeColorChanged = viewModel::setStrokeColor
                 )
             }
 

@@ -11,8 +11,10 @@ import android.graphics.PorterDuffXfermode
 import android.net.Uri
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.IntSize
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -58,6 +60,9 @@ data class CustomCharacterUiState(
     val canvasScale: Float = 1f,
 
     val featheringSize: Float = 10f,
+
+    val isStrokeEnabled: Boolean = false,
+    val strokeColor: Color = Color.White,
 )
 
 @HiltViewModel
@@ -97,6 +102,14 @@ class CustomCharacterCreationViewModel @Inject constructor(
                 // It will only be reset via resetImage() or finishEditing().
             )
         }
+    }
+
+    fun toggleImageStroke(enabled: Boolean) {
+        _uiState.update { it.copy(isStrokeEnabled = enabled) }
+    }
+
+    fun setStrokeColor(color: Color) {
+        _uiState.update { it.copy(strokeColor = color) }
     }
 
     fun togglePanningMode() {
@@ -239,7 +252,9 @@ class CustomCharacterCreationViewModel @Inject constructor(
                 ropeScale = 1f,
                 ropeOffsetX = 0f,
                 ropeOffsetY = 0f,
-                characterScale = 1f
+                characterScale = 1f,
+                isStrokeEnabled = false,
+                strokeColor = Color.White
             )
         }
     }
@@ -260,7 +275,6 @@ class CustomCharacterCreationViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Pass the feathering value from the UI state to the bitmap creation function
                 val characterBitmap = createTransparentBitmapFromUri(
                     context,
                     currentState.selectedImageUri,
@@ -269,13 +283,17 @@ class CustomCharacterCreationViewModel @Inject constructor(
                 )
                 val ropeBitmap =
                     BitmapFactory.decodeResource(context.resources, currentState.selectedRopeResId)
+
+                // MODIFIED CALL to include stroke parameters
                 val combinedBitmap = combineCharacterAndRope(
                     characterBitmap,
                     ropeBitmap,
                     currentState.ropeScale,
                     currentState.ropeOffsetX,
                     currentState.ropeOffsetY,
-                    currentState.characterScale
+                    currentState.characterScale,
+                    currentState.isStrokeEnabled,
+                    currentState.strokeColor.toArgb()
                 )
                 val fileName = "custom_char_${System.currentTimeMillis()}.png"
                 val savedImagePath = saveBitmapToFile(context, combinedBitmap, fileName)
@@ -295,6 +313,21 @@ class CustomCharacterCreationViewModel @Inject constructor(
                 _uiState.update { it.copy(isSaving = false) }
             }
         }
+    }
+
+    private fun addStrokeToAndroidBitmap(input: Bitmap, strokePx: Float, color: Int): Bitmap {
+        val blurPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = color
+            maskFilter = BlurMaskFilter(strokePx, BlurMaskFilter.Blur.NORMAL)
+        }
+        val offsetXY = IntArray(2)
+        val outlineBitmap = input.extractAlpha(blurPaint, offsetXY)
+        val finalBitmap = Bitmap.createBitmap(outlineBitmap.width, outlineBitmap.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(finalBitmap)
+        canvas.drawBitmap(outlineBitmap, 0f, 0f, null)
+        outlineBitmap.recycle()
+        canvas.drawBitmap(input, -offsetXY[0].toFloat(), -offsetXY[1].toFloat(), null)
+        return finalBitmap
     }
 
     fun onNavigationComplete() {
@@ -380,8 +413,20 @@ class CustomCharacterCreationViewModel @Inject constructor(
         ropeOffsetX: Float,
         ropeOffsetY: Float,
         characterScale: Float,
+        // New parameters
+        isStrokeEnabled: Boolean,
+        strokeColor: Int
     ): Bitmap {
-        val croppedCharacterBitmap = cropTransparentBorders(characterBitmap)
+        var croppedCharacterBitmap = cropTransparentBorders(characterBitmap)
+
+        // If stroke is enabled, replace the bitmap with a stroked version
+        if (isStrokeEnabled) {
+            val strokeWidthPx = 2f // User requested 1-2px
+            val strokedBitmap = addStrokeToAndroidBitmap(croppedCharacterBitmap, strokeWidthPx, strokeColor)
+            croppedCharacterBitmap.recycle()
+            croppedCharacterBitmap = strokedBitmap
+        }
+
         val scaledCharacterWidth = (croppedCharacterBitmap.width * characterScale).toInt()
         val scaledCharacterHeight = (croppedCharacterBitmap.height * characterScale).toInt()
         val scaledCharacterBitmap =

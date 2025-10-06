@@ -22,11 +22,18 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import android.net.Uri
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.platform.LocalDensity
 import kotlin.math.roundToInt
 import androidx.core.graphics.get
 import com.lexur.yumo.ui.theme.OutlineVariant
@@ -50,6 +57,10 @@ fun RopeAdjustmentScreen(
     onNavigateBack: () -> Unit,
     characterScale: Float,
     onCharacterScaleChanged: (Float) -> Unit,
+    isStrokeEnabled: Boolean,
+    strokeColor: Color,
+    onToggleStroke: (Boolean) -> Unit,
+    onStrokeColorChanged: (Color) -> Unit,
 ) {
 
     Scaffold(
@@ -90,7 +101,9 @@ fun RopeAdjustmentScreen(
                     ropeOffsetX = ropeOffsetX,
                     ropeOffsetY = ropeOffsetY,
                     characterScale = characterScale,
-                    featheringSize = featheringSize
+                    featheringSize = featheringSize,
+                    isStrokeEnabled = isStrokeEnabled, // Pass down
+                    strokeColor = strokeColor        // Pass down
                 )
             }
 
@@ -136,6 +149,34 @@ fun RopeAdjustmentScreen(
                         )
                     }
                     HorizontalDivider()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Image Outline", style = MaterialTheme.typography.bodyMedium)
+                        Switch(
+                            checked = isStrokeEnabled,
+                            onCheckedChange = onToggleStroke,
+                            thumbContent = { /* Icon if needed */ }
+                        )
+                    }
+
+                    if (isStrokeEnabled) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Color:", style = MaterialTheme.typography.bodySmall)
+                            Spacer(Modifier.width(8.dp))
+                            // White color selector
+                            Box(Modifier.size(24.dp).clip(CircleShape).background(Color.White).border(width = 2.dp, color = if (strokeColor == Color.White) Primary else Color.Gray, shape = CircleShape).clickable { onStrokeColorChanged(Color.White) })
+                            Spacer(Modifier.width(16.dp))
+                            // Black color selector
+                            Box(Modifier.size(24.dp).clip(CircleShape).background(Color.Black).border(width = 2.dp, color = if (strokeColor == Color.Black) Primary else Color.Gray, shape = CircleShape).clickable { onStrokeColorChanged(Color.Black) })
+                        }
+                    }
                     Text(
                         text = "Rope Adjustments",
                         style = MaterialTheme.typography.titleMedium,
@@ -246,8 +287,11 @@ private fun RopePreviewCanvas(
     ropeOffsetX: Float,
     ropeOffsetY: Float,
     characterScale: Float,
-    featheringSize:Float
+    featheringSize:Float,
+    isStrokeEnabled: Boolean,
+    strokeColor: Color
 ) {
+    val density = LocalDensity.current
     val context = LocalContext.current
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -275,11 +319,18 @@ private fun RopePreviewCanvas(
     val processedBitmap = remember(imageBitmap, maskPath, currentStrokePath) {
         if (imageBitmap != null) {
             val transparent = createTransparentBitmap(imageBitmap!!, maskPath, currentStrokePath, featheringSize)
-            // Convert to Android Bitmap, crop, then back to ImageBitmap
             val androidBitmap = transparent.asAndroidBitmap()
             val cropped = cropTransparentBordersForPreview(androidBitmap)
             cropped.asImageBitmap()
         } else null
+    }
+
+    val strokePaint by remember(strokeColor) {
+        mutableStateOf(
+            androidx.compose.ui.graphics.Paint().apply {
+                colorFilter = ColorFilter.tint(strokeColor, BlendMode.SrcIn)
+            }
+        )
     }
 
     Box(
@@ -340,6 +391,22 @@ private fun RopePreviewCanvas(
                 // Character position (directly below rope)
                 val characterX = startX + (totalDisplayWidth - displayCharacterWidth) / 2
                 val characterY = startY + displayRopeHeight
+
+                if (isStrokeEnabled) {
+                    val strokeWidthPx = with(density) { 2.dp.toPx() } * scaleFactor
+                    // Draw 8 offset versions for a smooth outline
+                    for (dx in -1..1) {
+                        for (dy in -1..1) {
+                            if (dx == 0 && dy == 0) continue
+                            drawImage(
+                                image = processedBitmap,
+                                dstOffset = IntOffset((characterX + dx * strokeWidthPx).roundToInt(), (characterY + dy * strokeWidthPx).roundToInt()),
+                                dstSize = IntSize(displayCharacterWidth.roundToInt(), displayCharacterHeight.roundToInt()),
+                                colorFilter = ColorFilter.tint(strokeColor, blendMode = BlendMode.SrcIn)
+                            )
+                        }
+                    }
+                }
 
                 // Draw character
                 drawImage(
