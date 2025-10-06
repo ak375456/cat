@@ -21,7 +21,7 @@ val OnPrimary = Color(0xFF3D3D3D)        // Dark text on primary backgrounds
 val Secondary = Color(0xFFF5E8ED)        // Very light pink for secondary elements
 val SecondaryVariant = Color(0xFFEDE0E5) // Slightly darker secondary
 val OnSecondary = Color(0xFF2D2D2D)      // Dark text on secondary backgrounds
-
+val OnBackgroundVariant = Color(0xFF666666)
 // Background Colors
 val Background = Color(0xFFFFF9FB)       // Very light pinkish white
 val OnBackground = Color(0xFF1C1C1C)     // Dark text on background
