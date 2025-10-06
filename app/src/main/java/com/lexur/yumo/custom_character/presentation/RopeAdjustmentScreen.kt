@@ -39,6 +39,9 @@ import androidx.core.graphics.get
 import com.lexur.yumo.ui.theme.OutlineVariant
 import com.lexur.yumo.ui.theme.Primary
 
+private const val MAX_CANVAS_DIMENSION = 4096
+private const val MAX_CANVAS_PIXELS = 12_000_000L
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RopeAdjustmentScreen(
@@ -139,7 +142,7 @@ fun RopeAdjustmentScreen(
                         Slider(
                             value = characterScale,
                             onValueChange = onCharacterScaleChanged,
-                            valueRange = 0.3f..5.0f,
+                            valueRange = 0.3f..2.5f,
                             modifier = Modifier.fillMaxWidth(),
                             colors = SliderDefaults.colors(
                                 thumbColor = Primary,
@@ -287,7 +290,7 @@ private fun RopePreviewCanvas(
     ropeOffsetX: Float,
     ropeOffsetY: Float,
     characterScale: Float,
-    featheringSize:Float,
+    featheringSize: Float,
     isStrokeEnabled: Boolean,
     strokeColor: Color
 ) {
@@ -297,9 +300,7 @@ private fun RopePreviewCanvas(
 
     val imageBitmap by produceState<ImageBitmap?>(initialValue = null, key1 = imageUri) {
         value = try {
-            context.contentResolver.openInputStream(imageUri)?.use {
-                BitmapFactory.decodeStream(it)
-            }?.asImageBitmap()
+            loadScaledBitmapFromUri(context, imageUri).asImageBitmap()
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -318,19 +319,16 @@ private fun RopePreviewCanvas(
     // Create processed AND cropped bitmap
     val processedBitmap = remember(imageBitmap, maskPath, currentStrokePath) {
         if (imageBitmap != null) {
-            val transparent = createTransparentBitmap(imageBitmap!!, maskPath, currentStrokePath, featheringSize)
+            val transparent = createTransparentBitmap(
+                imageBitmap!!,
+                maskPath,
+                currentStrokePath,
+                featheringSize
+            )
             val androidBitmap = transparent.asAndroidBitmap()
             val cropped = cropTransparentBordersForPreview(androidBitmap)
             cropped.asImageBitmap()
         } else null
-    }
-
-    val strokePaint by remember(strokeColor) {
-        mutableStateOf(
-            androidx.compose.ui.graphics.Paint().apply {
-                colorFilter = ColorFilter.tint(strokeColor, BlendMode.SrcIn)
-            }
-        )
     }
 
     Box(
@@ -348,19 +346,50 @@ private fun RopePreviewCanvas(
             drawCheckerboard()
 
             if (ropeBitmap != null && processedBitmap != null && canvasSize != IntSize.Zero) {
-                // Calculate scaled dimensions
-                val ropeScaledWidth = ropeBitmap!!.width * ropeScale
-                val ropeScaledHeight = ropeBitmap!!.height * ropeScale
-                val characterWidth = processedBitmap.width.toFloat() * characterScale
-                val characterHeight = processedBitmap.height.toFloat() * characterScale
+                // Calculate initial scaled dimensions
+                var ropeScaledWidth = ropeBitmap!!.width * ropeScale
+                var ropeScaledHeight = ropeBitmap!!.height * ropeScale
+                var characterWidth = processedBitmap.width.toFloat() * characterScale
+                var characterHeight = processedBitmap.height.toFloat() * characterScale
+
+                // CRITICAL: Check if dimensions would exceed limits BEFORE drawing
+                val maxDimension = maxOf(
+                    ropeScaledWidth,
+                    ropeScaledHeight,
+                    characterWidth,
+                    characterHeight
+                )
+
+                if (maxDimension > MAX_CANVAS_DIMENSION) {
+                    val constraintFactor = MAX_CANVAS_DIMENSION / maxDimension
+                    ropeScaledWidth *= constraintFactor
+                    ropeScaledHeight *= constraintFactor
+                    characterWidth *= constraintFactor
+                    characterHeight *= constraintFactor
+                }
 
                 // Total content dimensions
                 val totalContentHeight = ropeScaledHeight + characterHeight
                 val totalContentWidth = characterWidth.coerceAtLeast(ropeScaledWidth)
 
-                // Calculate scale to fit
-                val scaleToFitWidth = size.width / totalContentWidth
-                val scaleToFitHeight = size.height / totalContentHeight
+                // Check total pixels
+                val totalPixels = totalContentWidth.toLong() * totalContentHeight.toLong()
+                if (totalPixels > MAX_CANVAS_PIXELS) {
+                    val pixelConstraint = kotlin.math.sqrt(
+                        MAX_CANVAS_PIXELS.toDouble() / totalPixels
+                    ).toFloat()
+                    ropeScaledWidth *= pixelConstraint
+                    ropeScaledHeight *= pixelConstraint
+                    characterWidth *= pixelConstraint
+                    characterHeight *= pixelConstraint
+                }
+
+                // Calculate scale to fit in canvas
+                val finalContentHeight = ropeScaledHeight + characterHeight
+                val finalContentWidth = characterWidth.coerceAtLeast(ropeScaledWidth)
+
+                val scaleToFitWidth = size.width / finalContentWidth
+                val scaleToFitHeight = size.height / finalContentHeight
                 val scaleFactor = minOf(scaleToFitWidth, scaleToFitHeight) * 0.9f
 
                 // Apply scale to all dimensions
@@ -368,6 +397,15 @@ private fun RopePreviewCanvas(
                 val displayRopeHeight = ropeScaledHeight * scaleFactor
                 val displayCharacterWidth = characterWidth * scaleFactor
                 val displayCharacterHeight = characterHeight * scaleFactor
+
+                // Final safety check
+                if (displayRopeWidth > MAX_CANVAS_DIMENSION ||
+                    displayRopeHeight > MAX_CANVAS_DIMENSION ||
+                    displayCharacterWidth > MAX_CANVAS_DIMENSION ||
+                    displayCharacterHeight > MAX_CANVAS_DIMENSION) {
+                    // Skip drawing if still too large
+                    return@Canvas
+                }
 
                 // Calculate total display size
                 val totalDisplayHeight = displayRopeHeight + displayCharacterHeight
@@ -378,14 +416,18 @@ private fun RopePreviewCanvas(
                 val startY = (size.height - totalDisplayHeight) / 2
 
                 // Rope position
-                val ropeX = startX + (totalDisplayWidth - displayRopeWidth) / 2 + (ropeOffsetX * scaleFactor)
+                val ropeX = startX + (totalDisplayWidth - displayRopeWidth) / 2 +
+                        (ropeOffsetX * scaleFactor)
                 val ropeY = startY + (ropeOffsetY * scaleFactor)
 
                 // Draw rope
                 drawImage(
                     image = ropeBitmap!!,
                     dstOffset = IntOffset(ropeX.roundToInt(), ropeY.roundToInt()),
-                    dstSize = IntSize(displayRopeWidth.roundToInt(), displayRopeHeight.roundToInt())
+                    dstSize = IntSize(
+                        displayRopeWidth.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION.toInt()),
+                        displayRopeHeight.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION.toInt())
+                    )
                 )
 
                 // Character position (directly below rope)
@@ -400,8 +442,14 @@ private fun RopePreviewCanvas(
                             if (dx == 0 && dy == 0) continue
                             drawImage(
                                 image = processedBitmap,
-                                dstOffset = IntOffset((characterX + dx * strokeWidthPx).roundToInt(), (characterY + dy * strokeWidthPx).roundToInt()),
-                                dstSize = IntSize(displayCharacterWidth.roundToInt(), displayCharacterHeight.roundToInt()),
+                                dstOffset = IntOffset(
+                                    (characterX + dx * strokeWidthPx).roundToInt(),
+                                    (characterY + dy * strokeWidthPx).roundToInt()
+                                ),
+                                dstSize = IntSize(
+                                    displayCharacterWidth.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION.toInt()),
+                                    displayCharacterHeight.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION.toInt())
+                                ),
                                 colorFilter = ColorFilter.tint(strokeColor, blendMode = BlendMode.SrcIn)
                             )
                         }
@@ -412,7 +460,10 @@ private fun RopePreviewCanvas(
                 drawImage(
                     image = processedBitmap,
                     dstOffset = IntOffset(characterX.roundToInt(), characterY.roundToInt()),
-                    dstSize = IntSize(displayCharacterWidth.roundToInt(), displayCharacterHeight.roundToInt())
+                    dstSize = IntSize(
+                        displayCharacterWidth.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION.toInt()),
+                        displayCharacterHeight.roundToInt().coerceAtMost(MAX_CANVAS_DIMENSION.toInt())
+                    )
                 )
             }
         }

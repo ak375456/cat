@@ -61,13 +61,29 @@ fun CustomCharacterCreationScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    var showRopeSelection by remember { mutableStateOf(false) }
+    var showNameDialog by remember { mutableStateOf(false) }
+
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri -> viewModel.onImageSelected(uri) }
     )
 
-    var showRopeSelection by remember { mutableStateOf(false) }
-    var showNameDialog by remember { mutableStateOf(false) }
+    val pngPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                // Set the image URI in the view model. The mask will be empty, so the original PNG transparency is kept.
+                viewModel.onImageSelected(uri)
+                // Finalize the "editing" step to ensure states are reset correctly for the next screen
+                viewModel.finishEditing()
+                // Directly navigate to the rope selection screen
+                showRopeSelection = true
+            }
+        }
+    )
+
+
 
     LaunchedEffect(uiState.saveComplete) {
         if (uiState.saveComplete) {
@@ -188,16 +204,37 @@ fun CustomCharacterCreationScreen(
                         when {
                             uiState.selectedImageUri == null -> {
                                 Column(
-                                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
+                                    verticalArrangement = Arrangement.Center,
                                 ) {
-                                    Button(onClick = {
-                                        photoPickerLauncher.launch(
-                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                        )
-                                    }) {
-                                        Text("Select Image")
+                                    Text(
+                                        "Create a New Character",
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        modifier = Modifier.padding(bottom = 32.dp)
+                                    )
+                                    Button(
+                                        onClick = {
+                                            photoPickerLauncher.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                            )
+                                        },
+                                        modifier = Modifier.fillMaxWidth(0.8f)
+                                    ) {
+                                        Text("Select Image & Remove Background")
+                                    }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    OutlinedButton(
+                                        onClick = {
+                                            pngPickerLauncher.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                            )
+                                        },
+                                        modifier = Modifier.fillMaxWidth(0.8f)
+                                    ) {
+                                        Text("Upload Pre-cut PNG")
                                     }
                                 }
                             }

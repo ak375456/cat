@@ -73,6 +73,14 @@ class CustomCharacterCreationViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CustomCharacterUiState())
     val uiState = _uiState.asStateFlow()
 
+    companion object {
+        private const val MAX_BITMAP_DIMENSION = 4096 // Maximum width or height
+        private const val MAX_BITMAP_MEMORY_MB = 50 // Maximum memory usage in MB
+
+        // Calculate max pixels based on memory limit (assuming ARGB_8888 = 4 bytes per pixel)
+        private const val MAX_PIXELS = (MAX_BITMAP_MEMORY_MB * 1024 * 1024) / 4
+    }
+
     fun onImageSelected(uri: Uri?) {
         _uiState.update {
             it.copy(
@@ -340,16 +348,13 @@ class CustomCharacterCreationViewModel @Inject constructor(
         maskPath: Path,
         featheringSize: Float
     ): Bitmap {
-        val originalBitmap = context.contentResolver.openInputStream(imageUri)?.use {
-            BitmapFactory.decodeStream(it)
-        } ?: throw IllegalStateException("Could not load bitmap from URI")
+        val originalBitmap = loadScaledBitmapFromUri(context, imageUri)
         val mutableBitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(mutableBitmap)
         val erasePaint = Paint().apply {
             isAntiAlias = true
             style = Paint.Style.FILL
             xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
-            // If featheringSize is greater than 0, apply a blur effect to the erase tool
             if (featheringSize > 0f) {
                 maskFilter = BlurMaskFilter(featheringSize, BlurMaskFilter.Blur.NORMAL)
             }
@@ -413,47 +418,157 @@ class CustomCharacterCreationViewModel @Inject constructor(
         ropeOffsetX: Float,
         ropeOffsetY: Float,
         characterScale: Float,
-        // New parameters
         isStrokeEnabled: Boolean,
         strokeColor: Int
     ): Bitmap {
         var croppedCharacterBitmap = cropTransparentBorders(characterBitmap)
 
-        // If stroke is enabled, replace the bitmap with a stroked version
+        // Apply stroke if enabled
         if (isStrokeEnabled) {
-            val strokeWidthPx = 2f // User requested 1-2px
+            val strokeWidthPx = 2f
             val strokedBitmap = addStrokeToAndroidBitmap(croppedCharacterBitmap, strokeWidthPx, strokeColor)
             croppedCharacterBitmap.recycle()
             croppedCharacterBitmap = strokedBitmap
         }
 
-        val scaledCharacterWidth = (croppedCharacterBitmap.width * characterScale).toInt()
-        val scaledCharacterHeight = (croppedCharacterBitmap.height * characterScale).toInt()
-        val scaledCharacterBitmap =
-            croppedCharacterBitmap.scale(scaledCharacterWidth, scaledCharacterHeight)
-        val scaledRopeWidth = (ropeBitmap.width * ropeScale).toInt()
-        val scaledRopeHeight = (ropeBitmap.height * ropeScale).toInt()
-        val scaledRopeBitmap = ropeBitmap.scale(scaledRopeWidth, scaledRopeHeight)
+        // Calculate scaled dimensions
+        var scaledCharacterWidth = (croppedCharacterBitmap.width * characterScale).toInt()
+        var scaledCharacterHeight = (croppedCharacterBitmap.height * characterScale).toInt()
+        var scaledRopeWidth = (ropeBitmap.width * ropeScale).toInt()
+        var scaledRopeHeight = (ropeBitmap.height * ropeScale).toInt()
+
+        // CRITICAL: Enforce maximum dimensions and memory limits
+        val maxCharDimension = maxOf(scaledCharacterWidth, scaledCharacterHeight)
+        if (maxCharDimension > MAX_BITMAP_DIMENSION) {
+            val scaleFactor = MAX_BITMAP_DIMENSION.toFloat() / maxCharDimension
+            scaledCharacterWidth = (scaledCharacterWidth * scaleFactor).toInt()
+            scaledCharacterHeight = (scaledCharacterHeight * scaleFactor).toInt()
+        }
+
+        val maxRopeDimension = maxOf(scaledRopeWidth, scaledRopeHeight)
+        if (maxRopeDimension > MAX_BITMAP_DIMENSION) {
+            val scaleFactor = MAX_BITMAP_DIMENSION.toFloat() / maxRopeDimension
+            scaledRopeWidth = (scaledRopeWidth * scaleFactor).toInt()
+            scaledRopeHeight = (scaledRopeHeight * scaleFactor).toInt()
+        }
+
+        // Calculate canvas size
         val totalContentWidth = scaledCharacterWidth.coerceAtLeast(scaledRopeWidth)
         val totalContentHeight = scaledRopeHeight + scaledCharacterHeight
         val paddingTop = kotlin.math.max(0f, -ropeOffsetY).toInt()
         val paddingBottom = kotlin.math.max(0f, ropeOffsetY).toInt()
         val paddingLeft = kotlin.math.max(0f, -ropeOffsetX).toInt()
         val paddingRight = kotlin.math.max(0f, ropeOffsetX).toInt()
-        val canvasWidth = totalContentWidth + paddingLeft + paddingRight
-        val canvasHeight = totalContentHeight + paddingTop + paddingBottom
-        val combinedBitmap = createBitmap(canvasWidth, canvasHeight)
+
+        var canvasWidth = totalContentWidth + paddingLeft + paddingRight
+        var canvasHeight = totalContentHeight + paddingTop + paddingBottom
+
+        // CRITICAL: Check if final canvas exceeds limits
+        if (canvasWidth > MAX_BITMAP_DIMENSION || canvasHeight > MAX_BITMAP_DIMENSION) {
+            val scaleFactor = minOf(
+                MAX_BITMAP_DIMENSION.toFloat() / canvasWidth,
+                MAX_BITMAP_DIMENSION.toFloat() / canvasHeight
+            )
+            canvasWidth = (canvasWidth * scaleFactor).toInt()
+            canvasHeight = (canvasHeight * scaleFactor).toInt()
+            scaledCharacterWidth = (scaledCharacterWidth * scaleFactor).toInt()
+            scaledCharacterHeight = (scaledCharacterHeight * scaleFactor).toInt()
+            scaledRopeWidth = (scaledRopeWidth * scaleFactor).toInt()
+            scaledRopeHeight = (scaledRopeHeight * scaleFactor).toInt()
+        }
+
+        // Check memory constraint
+        val totalPixels = canvasWidth.toLong() * canvasHeight.toLong()
+        if (totalPixels > MAX_PIXELS) {
+            val scaleFactor = kotlin.math.sqrt(MAX_PIXELS.toDouble() / totalPixels).toFloat()
+            canvasWidth = (canvasWidth * scaleFactor).toInt()
+            canvasHeight = (canvasHeight * scaleFactor).toInt()
+            scaledCharacterWidth = (scaledCharacterWidth * scaleFactor).toInt()
+            scaledCharacterHeight = (scaledCharacterHeight * scaleFactor).toInt()
+            scaledRopeWidth = (scaledRopeWidth * scaleFactor).toInt()
+            scaledRopeHeight = (scaledRopeHeight * scaleFactor).toInt()
+        }
+
+        // Now scale the bitmaps safely with ARGB_8888 to preserve transparency
+        val scaledCharacterBitmap = Bitmap.createScaledBitmap(
+            croppedCharacterBitmap,
+            scaledCharacterWidth,
+            scaledCharacterHeight,
+            true
+        )
+        val scaledRopeBitmap = Bitmap.createScaledBitmap(
+            ropeBitmap,
+            scaledRopeWidth,
+            scaledRopeHeight,
+            true
+        )
+
+        // Create the combined bitmap with ARGB_8888 config for transparency
+        val combinedBitmap = Bitmap.createBitmap(canvasWidth, canvasHeight, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(combinedBitmap)
-        val ropeX = paddingLeft + (totalContentWidth - scaledRopeWidth) / 2f + ropeOffsetX
-        val ropeY = paddingTop + ropeOffsetY
-        canvas.drawBitmap(scaledRopeBitmap, ropeX, ropeY, null)
-        val characterX = paddingLeft + (totalContentWidth - scaledCharacterWidth) / 2f
-        val characterY = paddingTop + scaledRopeHeight.toFloat()
-        canvas.drawBitmap(scaledCharacterBitmap, characterX, characterY, null)
+
+        // DON'T draw any background - leave it transparent
+        // canvas.drawColor(Color.WHITE) <- REMOVE THIS IF IT EXISTS
+
+        // Use paint with proper alpha handling
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            isFilterBitmap = true
+        }
+
+        // Recalculate positions based on potentially scaled dimensions
+        val actualTotalWidth = scaledCharacterWidth.coerceAtLeast(scaledRopeWidth)
+        val actualPaddingLeft = kotlin.math.max(0f, -ropeOffsetX * (canvasWidth.toFloat() / (totalContentWidth + paddingLeft + paddingRight))).toInt()
+        val actualPaddingTop = kotlin.math.max(0f, -ropeOffsetY * (canvasHeight.toFloat() / (totalContentHeight + paddingTop + paddingBottom))).toInt()
+
+        val ropeX = actualPaddingLeft + (actualTotalWidth - scaledRopeWidth) / 2f +
+                (ropeOffsetX * (canvasWidth.toFloat() / (totalContentWidth + paddingLeft + paddingRight)))
+        val ropeY = actualPaddingTop +
+                (ropeOffsetY * (canvasHeight.toFloat() / (totalContentHeight + paddingTop + paddingBottom)))
+
+        canvas.drawBitmap(scaledRopeBitmap, ropeX, ropeY, paint)
+
+        val characterX = actualPaddingLeft + (actualTotalWidth - scaledCharacterWidth) / 2f
+        val characterY = actualPaddingTop + scaledRopeHeight.toFloat()
+
+        canvas.drawBitmap(scaledCharacterBitmap, characterX, characterY, paint)
+
+        // Clean up
         scaledRopeBitmap.recycle()
         scaledCharacterBitmap.recycle()
         croppedCharacterBitmap.recycle()
+
         return combinedBitmap
+    }
+
+    // Update loadScaledBitmapFromUri to preserve transparency
+    fun loadScaledBitmapFromUri(
+        context: Context,
+        imageUri: Uri,
+        reqWidth: Int = 2048,  // Increased from 1024
+        reqHeight: Int = 2048   // Increased from 1024
+    ): Bitmap {
+        val options = BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+        context.contentResolver.openInputStream(imageUri)?.use {
+            BitmapFactory.decodeStream(it, null, options)
+        }
+        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
+        options.inJustDecodeBounds = false
+        options.inPreferredConfig = Bitmap.Config.ARGB_8888 // Ensure alpha channel
+
+        val bitmap = context.contentResolver.openInputStream(imageUri)?.use {
+            BitmapFactory.decodeStream(it, null, options)
+        } ?: throw IllegalStateException("Could not load scaled bitmap from URI")
+
+        // Ensure the bitmap has transparency support
+        return if (bitmap.config != Bitmap.Config.ARGB_8888) {
+            val argbBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+            bitmap.recycle()
+            argbBitmap
+        } else {
+            bitmap
+        }
     }
 
     private fun saveBitmapToFile(context: Context, bitmap: Bitmap, fileName: String): String {
@@ -483,4 +598,32 @@ class CustomCharacterCreationViewModel @Inject constructor(
     fun finishRopeAdjustment() {
         _uiState.update { it.copy(showRopeAdjustment = false) }
     }
+
+}
+
+
+fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+    val (height: Int, width: Int) = options.run { outHeight to outWidth }
+    var inSampleSize = 1
+    if (height > reqHeight || width > reqWidth) {
+        val halfHeight: Int = height / 2
+        val halfWidth: Int = width / 2
+        while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+            inSampleSize *= 2
+        }
+    }
+    return inSampleSize
+}
+
+// --- HELPER FUNCTION to load a scaled bitmap safely ---
+fun loadScaledBitmapFromUri(context: Context, imageUri: Uri, reqWidth: Int = 1024, reqHeight: Int = 1024): Bitmap {
+    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    context.contentResolver.openInputStream(imageUri)?.use {
+        BitmapFactory.decodeStream(it, null, options)
+    }
+    options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
+    options.inJustDecodeBounds = false
+    return context.contentResolver.openInputStream(imageUri)?.use {
+        BitmapFactory.decodeStream(it, null, options)
+    } ?: throw IllegalStateException("Could not load scaled bitmap from URI")
 }
