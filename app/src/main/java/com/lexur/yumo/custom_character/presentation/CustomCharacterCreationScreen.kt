@@ -44,13 +44,45 @@ import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import android.view.MotionEvent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.material.icons.filled.ImageSearch
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PanTool
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.navigation.NavController
 import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+import com.lexur.yumo.ui.theme.Background
+import com.lexur.yumo.ui.theme.ButtonPrimary
+import com.lexur.yumo.ui.theme.ButtonSecondary
+import com.lexur.yumo.ui.theme.CardBackground
+import com.lexur.yumo.ui.theme.Container
+import com.lexur.yumo.ui.theme.DialogBackground
+import com.lexur.yumo.ui.theme.IconDisabled
+import com.lexur.yumo.ui.theme.IconPrimary
+import com.lexur.yumo.ui.theme.IconSecondary
+import com.lexur.yumo.ui.theme.OnBackground
+import com.lexur.yumo.ui.theme.OnButtonPrimary
+import com.lexur.yumo.ui.theme.OnButtonSecondary
+import com.lexur.yumo.ui.theme.OnCard
+import com.lexur.yumo.ui.theme.OnContainer
+import com.lexur.yumo.ui.theme.OnContainerVariant
+import com.lexur.yumo.ui.theme.OnDialog
+import com.lexur.yumo.ui.theme.OnSurface
+import com.lexur.yumo.ui.theme.OnTopBar
+import com.lexur.yumo.ui.theme.OutlinePrimary
+import com.lexur.yumo.ui.theme.OutlineSecondary
+import com.lexur.yumo.ui.theme.OutlineVariant
+import com.lexur.yumo.ui.theme.Primary
+import com.lexur.yumo.ui.theme.PrimaryVariant
+import com.lexur.yumo.ui.theme.Surface
+import com.lexur.yumo.ui.theme.TopBarBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,17 +105,12 @@ fun CustomCharacterCreationScreen(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
             if (uri != null) {
-                // Set the image URI in the view model. The mask will be empty, so the original PNG transparency is kept.
                 viewModel.onImageSelected(uri)
-                // Finalize the "editing" step to ensure states are reset correctly for the next screen
                 viewModel.finishEditing()
-                // Directly navigate to the rope selection screen
                 showRopeSelection = true
             }
         }
     )
-
-
 
     LaunchedEffect(uiState.saveComplete) {
         if (uiState.saveComplete) {
@@ -147,10 +174,24 @@ fun CustomCharacterCreationScreen(
 
             else -> {
                 Scaffold(
+                    containerColor = Background,
                     topBar = {
                         if (uiState.selectedImageUri != null) {
                             TopAppBar(
-                                title = { Text("Background Removal") },
+                                title = {
+                                    Text(
+                                        "Background Removal",
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        color = OnTopBar
+                                    )
+                                },
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = TopBarBackground,
+                                    titleContentColor = OnTopBar,
+                                    actionIconContentColor = IconPrimary
+                                ),
                                 actions = {
                                     // Toggle Brush Mode
                                     IconButton(onClick = { viewModel.toggleBackgroundRemovalMode() }) {
@@ -158,9 +199,9 @@ fun CustomCharacterCreationScreen(
                                             Icons.Default.Brush,
                                             contentDescription = "Toggle background removal mode",
                                             tint = if (uiState.isBackgroundRemovalMode && !uiState.isPanningMode)
-                                                MaterialTheme.colorScheme.primary
+                                                Primary
                                             else
-                                                MaterialTheme.colorScheme.onSurface
+                                                IconPrimary
                                         )
                                     }
                                     // Toggle Pan Mode
@@ -170,9 +211,9 @@ fun CustomCharacterCreationScreen(
                                                 Icons.Default.PanTool,
                                                 contentDescription = "Toggle pan mode",
                                                 tint = if (uiState.isPanningMode)
-                                                    MaterialTheme.colorScheme.primary
+                                                    Primary
                                                 else
-                                                    MaterialTheme.colorScheme.onSurface
+                                                    IconPrimary
                                             )
                                         }
                                     }
@@ -181,14 +222,25 @@ fun CustomCharacterCreationScreen(
                                         onClick = { viewModel.undoLastStroke() },
                                         enabled = uiState.strokeHistory.isNotEmpty() && !uiState.isPanningMode
                                     ) {
-                                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.Undo,
+                                            contentDescription = "Undo",
+                                            tint = if (uiState.strokeHistory.isNotEmpty() && !uiState.isPanningMode)
+                                                IconPrimary
+                                            else
+                                                IconDisabled
+                                        )
                                     }
                                     // Done
                                     IconButton(onClick = {
                                         viewModel.finishEditing()
                                         showRopeSelection = true
                                     }) {
-                                        Icon(Icons.Default.Done, contentDescription = "Done")
+                                        Icon(
+                                            Icons.Default.Done,
+                                            contentDescription = "Done",
+                                            tint = IconPrimary
+                                        )
                                     }
                                 }
                             )
@@ -206,41 +258,131 @@ fun CustomCharacterCreationScreen(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .padding(16.dp),
+                                        .padding(24.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.Center,
                                 ) {
+                                    // Header Section
                                     Text(
-                                        "Create a New Character",
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        modifier = Modifier.padding(bottom = 32.dp)
+                                        "Create Character",
+                                        style = MaterialTheme.typography.displaySmall.copy(
+                                            fontWeight = FontWeight.SemiBold,
+                                            letterSpacing = (-0.5).sp
+                                        ),
+                                        color = OnBackground,
+                                        textAlign = TextAlign.Center
                                     )
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    // Privacy Notice Card
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.9f)
+                                            .padding(vertical = 16.dp),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = Container
+                                        ),
+                                        elevation = CardDefaults.cardElevation(0.dp),
+                                        border = BorderStroke(1.dp, OutlineVariant)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Lock,
+                                                contentDescription = null,
+                                                tint = IconSecondary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                "Custom characters are stored locally on your device. We never store or share your images.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = OnContainerVariant,
+                                                lineHeight = 18.sp
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(24.dp))
+
+                                    // Primary Button - Select Image
                                     Button(
                                         onClick = {
                                             photoPickerLauncher.launch(
                                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                             )
                                         },
-                                        modifier = Modifier.fillMaxWidth(0.8f)
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.85f)
+                                            .height(56.dp),
+                                        shape = RoundedCornerShape(28.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = ButtonPrimary,
+                                            contentColor = OnButtonPrimary
+                                        ),
+                                        elevation = ButtonDefaults.buttonElevation(
+                                            defaultElevation = 0.dp,
+                                            pressedElevation = 2.dp
+                                        )
                                     ) {
-                                        Text("Select Image & Remove Background")
+                                        Icon(
+                                            imageVector = Icons.Default.ImageSearch,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            "Select Image & Remove Background",
+                                            style = MaterialTheme.typography.labelLarge.copy(
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        )
                                     }
+
                                     Spacer(modifier = Modifier.height(16.dp))
+
+                                    // Secondary Button - Upload PNG
                                     OutlinedButton(
                                         onClick = {
                                             pngPickerLauncher.launch(
                                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                             )
                                         },
-                                        modifier = Modifier.fillMaxWidth(0.8f)
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.85f)
+                                            .height(56.dp),
+                                        shape = RoundedCornerShape(28.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = ButtonSecondary,
+                                            contentColor = OnButtonSecondary
+                                        ),
+                                        border = BorderStroke(1.5.dp, OutlinePrimary)
                                     ) {
-                                        Text("Upload Pre-cut PNG")
+                                        Icon(
+                                            imageVector = Icons.Default.Upload,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            "Upload Pre-cut PNG",
+                                            style = MaterialTheme.typography.labelLarge.copy(
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        )
                                     }
                                 }
                             }
                             else -> {
                                 Box(
-                                    modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp)
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
                                 ) {
                                     BackgroundRemovalCanvas(
                                         imageUri = uiState.selectedImageUri!!,
@@ -261,24 +403,52 @@ fun CustomCharacterCreationScreen(
                                         onCanvasTransform = viewModel::onCanvasTransform
                                     )
                                 }
+
                                 if (uiState.isBackgroundRemovalMode && !uiState.isPanningMode) {
+                                    // Brush Size Control
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                                        shape = RoundedCornerShape(12.dp)
+                                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                                        shape = RoundedCornerShape(20.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = CardBackground
+                                        ),
+                                        elevation = CardDefaults.cardElevation(0.dp),
+                                        border = BorderStroke(1.dp, OutlineVariant)
                                     ) {
-                                        Column(modifier = Modifier.padding(16.dp)) {
-                                            Text(
-                                                "Brush Size: ${uiState.brushSize.toInt()}px",
-                                                style = MaterialTheme.typography.labelMedium
-                                            )
+                                        Column(modifier = Modifier.padding(20.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    "Brush Size",
+                                                    style = MaterialTheme.typography.labelLarge.copy(
+                                                        fontWeight = FontWeight.Medium
+                                                    ),
+                                                    color = OnCard
+                                                )
+                                                Text(
+                                                    "${uiState.brushSize.toInt()}px",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = Primary
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(12.dp))
                                             Slider(
                                                 value = uiState.brushSize,
                                                 onValueChange = { viewModel.updateBrushSize(it) },
                                                 valueRange = 10f..300f,
-                                                modifier = Modifier.fillMaxWidth()
+                                                modifier = Modifier.fillMaxWidth(),
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = Primary,
+                                                    activeTrackColor = Primary,
+                                                    inactiveTrackColor = OutlineSecondary
+                                                )
                                             )
+                                            Spacer(modifier = Modifier.height(8.dp))
                                             Box(
                                                 modifier = Modifier
                                                     .size(60.dp)
@@ -288,12 +458,12 @@ fun CustomCharacterCreationScreen(
                                                 Canvas(modifier = Modifier.size(60.dp)) {
                                                     drawCheckerboard()
                                                     drawCircle(
-                                                        color = Color.Red.copy(alpha = 0.5f),
+                                                        color = Primary.copy(alpha = 0.3f),
                                                         radius = uiState.brushSize / 2,
                                                         center = center
                                                     )
                                                     drawCircle(
-                                                        color = Color.Red,
+                                                        color = Primary,
                                                         radius = uiState.brushSize / 2,
                                                         center = center,
                                                         style = Stroke(width = 2.dp.toPx())
@@ -302,44 +472,104 @@ fun CustomCharacterCreationScreen(
                                             }
                                         }
                                     }
+
+                                    // Edge Softness Control
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                                        shape = RoundedCornerShape(12.dp)
+                                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                                        shape = RoundedCornerShape(20.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = CardBackground
+                                        ),
+                                        elevation = CardDefaults.cardElevation(0.dp),
+                                        border = BorderStroke(1.dp, OutlineVariant)
                                     ) {
-                                        Column(modifier = Modifier.padding(16.dp)) {
-                                            Text(
-                                                "Edge Softness: ${uiState.featheringSize.toInt()}",
-                                                style = MaterialTheme. typography.labelMedium
-                                            )
+                                        Column(modifier = Modifier.padding(20.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    "Edge Softness",
+                                                    style = MaterialTheme.typography.labelLarge.copy(
+                                                        fontWeight = FontWeight.Medium
+                                                    ),
+                                                    color = OnCard
+                                                )
+                                                Text(
+                                                    "${uiState.featheringSize.toInt()}",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = Primary
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(12.dp))
                                             Slider(
                                                 value = uiState.featheringSize,
                                                 onValueChange = { viewModel.updateFeatheringSize(it) },
-                                                valueRange = 0f..50f, // 0 means sharp edge
-                                                modifier = Modifier.fillMaxWidth()
+                                                valueRange = 0f..50f,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = Primary,
+                                                    activeTrackColor = Primary,
+                                                    inactiveTrackColor = OutlineSecondary
+                                                )
                                             )
                                         }
                                     }
                                 }
+
+                                // Bottom Action Buttons
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(20.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
                                     OutlinedButton(
                                         onClick = { viewModel.resetImage() },
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(52.dp),
+                                        shape = RoundedCornerShape(26.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = ButtonSecondary,
+                                            contentColor = OnButtonSecondary
+                                        ),
+                                        border = BorderStroke(1.5.dp, OutlinePrimary)
                                     ) {
-                                        Text("Reset")
+                                        Text(
+                                            "Reset",
+                                            style = MaterialTheme.typography.labelLarge.copy(
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        )
                                     }
                                     Button(
                                         onClick = {
                                             viewModel.finishEditing()
                                             showRopeSelection = true
                                         },
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(52.dp),
+                                        shape = RoundedCornerShape(26.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = ButtonPrimary,
+                                            contentColor = OnButtonPrimary
+                                        ),
+                                        elevation = ButtonDefaults.buttonElevation(
+                                            defaultElevation = 0.dp,
+                                            pressedElevation = 2.dp
+                                        )
                                     ) {
-                                        Text("Next")
+                                        Text(
+                                            "Next",
+                                            style = MaterialTheme.typography.labelLarge.copy(
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        )
                                     }
                                 }
                             }
@@ -349,25 +579,40 @@ fun CustomCharacterCreationScreen(
             }
         }
 
+        // Saving Overlay
         if (uiState.isSaving) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f))
+                    .background(OnBackground.copy(alpha = 0.7f))
                     .clickable(enabled = false, onClick = {}),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = CardBackground
+                    ),
+                    elevation = CardDefaults.cardElevation(8.dp)
                 ) {
-                    CircularProgressIndicator(color = Color.White)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Saving Character...",
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    Column(
+                        modifier = Modifier.padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = Primary,
+                            strokeWidth = 3.dp
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            text = "Saving Character...",
+                            color = OnCard,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Medium
+                            )
+                        )
+                    }
                 }
             }
         }
