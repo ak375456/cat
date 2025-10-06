@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -34,10 +35,11 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import androidx.core.graphics.get
-import com.lexur.yumo.ui.theme.OutlineVariant
-import com.lexur.yumo.ui.theme.Primary
+import com.lexur.yumo.ui.theme.*
 
 private const val MAX_CANVAS_DIMENSION = 4096
 private const val MAX_CANVAS_PIXELS = 12_000_000L
@@ -67,19 +69,42 @@ fun RopeAdjustmentScreen(
 ) {
 
     Scaffold(
+        containerColor = Background,
         topBar = {
             TopAppBar(
-                title = { Text("Adjust Rope Position") },
+                title = {
+                    Text(
+                        "Adjust Position",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = OnTopBar
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = IconPrimary
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = onConfirm) {
-                        Icon(Icons.Default.Done, contentDescription = "Confirm")
+                        Icon(
+                            Icons.Default.Done,
+                            contentDescription = "Confirm",
+                            tint = IconPrimary
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = TopBarBackground,
+                    titleContentColor = OnTopBar,
+                    navigationIconContentColor = IconPrimary,
+                    actionIconContentColor = IconPrimary
+                )
             )
         }
     ) { paddingValues ->
@@ -88,12 +113,12 @@ fun RopeAdjustmentScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Preview Canvas
             Box(
                 modifier = Modifier
-                    .weight(0.7f)
+                    .weight(0.65f)
                     .fillMaxWidth()
-                    .padding(16.dp)
-                    .background(Color.LightGray.copy(alpha = 0.1f))
+                    .padding(20.dp)
             ) {
                 RopePreviewCanvas(
                     imageUri = imageUri,
@@ -105,38 +130,48 @@ fun RopeAdjustmentScreen(
                     ropeOffsetY = ropeOffsetY,
                     characterScale = characterScale,
                     featheringSize = featheringSize,
-                    isStrokeEnabled = isStrokeEnabled, // Pass down
-                    strokeColor = strokeColor        // Pass down
+                    isStrokeEnabled = isStrokeEnabled,
+                    strokeColor = strokeColor
                 )
             }
 
+            // Controls Card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.3f)
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    .weight(0.35f)
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                shape = RoundedCornerShape(24.dp, 24.dp, 0.dp, 0.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = CardBackground
+                ),
+                elevation = CardDefaults.cardElevation(0.dp),
+                border = BorderStroke(1.dp, OutlineVariant)
             ) {
-
-
                 Column(
-                    modifier = Modifier.padding(20.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    Column {
+                    // Character Size
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "Character Size",
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = OnCard
                             )
                             Text(
                                 text = "${(characterScale * 100).toInt()}%",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary
+                                color = Primary
                             )
                         }
                         Slider(
@@ -146,78 +181,142 @@ fun RopeAdjustmentScreen(
                             modifier = Modifier.fillMaxWidth(),
                             colors = SliderDefaults.colors(
                                 thumbColor = Primary,
-                                activeTrackColor = Primary.copy(alpha = 0.7f),
-                                inactiveTrackColor = OutlineVariant
+                                activeTrackColor = Primary,
+                                inactiveTrackColor = OutlineSecondary
                             )
                         )
                     }
-                    HorizontalDivider()
+
+                    HorizontalDivider(color = Divider)
+
+                    // Image Outline Toggle
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Image Outline", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Image Outline",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = OnCard
+                        )
                         Switch(
                             checked = isStrokeEnabled,
                             onCheckedChange = onToggleStroke,
-                            thumbContent = { /* Icon if needed */ }
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Primary,
+                                checkedTrackColor = Primary.copy(alpha = 0.5f),
+                                uncheckedThumbColor = IconSecondary,
+                                uncheckedTrackColor = OutlineSecondary
+                            )
                         )
                     }
 
+                    // Outline Color Selector
                     if (isStrokeEnabled) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Color:", style = MaterialTheme.typography.bodySmall)
-                            Spacer(Modifier.width(8.dp))
-                            // White color selector
-                            Box(Modifier.size(24.dp).clip(CircleShape).background(Color.White).border(width = 2.dp, color = if (strokeColor == Color.White) Primary else Color.Gray, shape = CircleShape).clickable { onStrokeColorChanged(Color.White) })
-                            Spacer(Modifier.width(16.dp))
-                            // Black color selector
-                            Box(Modifier.size(24.dp).clip(CircleShape).background(Color.Black).border(width = 2.dp, color = if (strokeColor == Color.Black) Primary else Color.Gray, shape = CircleShape).clickable { onStrokeColorChanged(Color.Black) })
+                            Text(
+                                "Color:",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnContainerVariant
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Box(
+                                Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White)
+                                    .border(
+                                        width = 2.5.dp,
+                                        color = if (strokeColor == Color.White) Primary else OutlineSecondary,
+                                        shape = CircleShape
+                                    )
+                                    .clickable { onStrokeColorChanged(Color.White) }
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Box(
+                                Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black)
+                                    .border(
+                                        width = 2.5.dp,
+                                        color = if (strokeColor == Color.Black) Primary else OutlineSecondary,
+                                        shape = CircleShape
+                                    )
+                                    .clickable { onStrokeColorChanged(Color.Black) }
+                            )
                         }
                     }
+
+                    HorizontalDivider(color = Divider)
+
+                    // Rope Adjustments Header
                     Text(
                         text = "Rope Adjustments",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = Primary
                     )
 
-                    Column {
+                    // Rope Size
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "Size",
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = OnCard
                             )
                             Text(
                                 text = "${(ropeScale * 100).toInt()}%",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary
+                                color = Primary
                             )
                         }
+                        Slider(
+                            value = ropeScale,
+                            onValueChange = onRopeScaleChanged,
+                            valueRange = 0.3f..2.5f,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = SliderDefaults.colors(
+                                thumbColor = Primary,
+                                activeTrackColor = Primary,
+                                inactiveTrackColor = OutlineSecondary
+                            )
+                        )
                     }
 
-                    HorizontalDivider()
-
-                    Column {
+                    // Horizontal Position
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "Horizontal Position",
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = OnCard
                             )
                             Text(
                                 text = "${ropeOffsetX.toInt()}px",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary
+                                color = Primary
                             )
                         }
                         Slider(
@@ -227,27 +326,30 @@ fun RopeAdjustmentScreen(
                             modifier = Modifier.fillMaxWidth(),
                             colors = SliderDefaults.colors(
                                 thumbColor = Primary,
-                                activeTrackColor = Primary.copy(alpha = 0.7f),
-                                inactiveTrackColor = OutlineVariant
+                                activeTrackColor = Primary,
+                                inactiveTrackColor = OutlineSecondary
                             )
                         )
                     }
 
-                    HorizontalDivider()
-
-                    Column {
+                    // Vertical Position
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "Vertical Position",
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = OnCard
                             )
                             Text(
                                 text = "${ropeOffsetY.toInt()}px",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary
+                                color = Primary
                             )
                         }
                         Slider(
@@ -257,12 +359,13 @@ fun RopeAdjustmentScreen(
                             modifier = Modifier.fillMaxWidth(),
                             colors = SliderDefaults.colors(
                                 thumbColor = Primary,
-                                activeTrackColor = Primary.copy(alpha = 0.7f),
-                                inactiveTrackColor = OutlineVariant
+                                activeTrackColor = Primary,
+                                inactiveTrackColor = OutlineSecondary
                             )
                         )
                     }
 
+                    // Reset Button
                     OutlinedButton(
                         onClick = {
                             onRopeScaleChanged(1f)
@@ -270,9 +373,22 @@ fun RopeAdjustmentScreen(
                             onRopeOffsetYChanged(0f)
                             onCharacterScaleChanged(1f)
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = ButtonSecondary,
+                            contentColor = OnButtonSecondary
+                        ),
+                        border = BorderStroke(1.5.dp, OutlinePrimary)
                     ) {
-                        Text("Reset to Default")
+                        Text(
+                            "Reset to Default",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Medium
+                            )
+                        )
                     }
                 }
             }
@@ -316,7 +432,6 @@ private fun RopePreviewCanvas(
         }
     }
 
-    // Create processed AND cropped bitmap
     val processedBitmap = remember(imageBitmap, maskPath, currentStrokePath) {
         if (imageBitmap != null) {
             val transparent = createTransparentBitmap(
@@ -334,8 +449,9 @@ private fun RopePreviewCanvas(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(Color.Transparent)
+            .border(1.dp, OutlineVariant, RoundedCornerShape(20.dp))
             .onGloballyPositioned { coordinates ->
                 if (canvasSize != coordinates.size) {
                     canvasSize = coordinates.size
@@ -346,13 +462,11 @@ private fun RopePreviewCanvas(
             drawCheckerboard()
 
             if (ropeBitmap != null && processedBitmap != null && canvasSize != IntSize.Zero) {
-                // Calculate initial scaled dimensions
                 var ropeScaledWidth = ropeBitmap!!.width * ropeScale
                 var ropeScaledHeight = ropeBitmap!!.height * ropeScale
                 var characterWidth = processedBitmap.width.toFloat() * characterScale
                 var characterHeight = processedBitmap.height.toFloat() * characterScale
 
-                // CRITICAL: Check if dimensions would exceed limits BEFORE drawing
                 val maxDimension = maxOf(
                     ropeScaledWidth,
                     ropeScaledHeight,
@@ -368,11 +482,9 @@ private fun RopePreviewCanvas(
                     characterHeight *= constraintFactor
                 }
 
-                // Total content dimensions
                 val totalContentHeight = ropeScaledHeight + characterHeight
                 val totalContentWidth = characterWidth.coerceAtLeast(ropeScaledWidth)
 
-                // Check total pixels
                 val totalPixels = totalContentWidth.toLong() * totalContentHeight.toLong()
                 if (totalPixels > MAX_CANVAS_PIXELS) {
                     val pixelConstraint = kotlin.math.sqrt(
@@ -384,7 +496,6 @@ private fun RopePreviewCanvas(
                     characterHeight *= pixelConstraint
                 }
 
-                // Calculate scale to fit in canvas
                 val finalContentHeight = ropeScaledHeight + characterHeight
                 val finalContentWidth = characterWidth.coerceAtLeast(ropeScaledWidth)
 
@@ -392,35 +503,28 @@ private fun RopePreviewCanvas(
                 val scaleToFitHeight = size.height / finalContentHeight
                 val scaleFactor = minOf(scaleToFitWidth, scaleToFitHeight) * 0.9f
 
-                // Apply scale to all dimensions
                 val displayRopeWidth = ropeScaledWidth * scaleFactor
                 val displayRopeHeight = ropeScaledHeight * scaleFactor
                 val displayCharacterWidth = characterWidth * scaleFactor
                 val displayCharacterHeight = characterHeight * scaleFactor
 
-                // Final safety check
                 if (displayRopeWidth > MAX_CANVAS_DIMENSION ||
                     displayRopeHeight > MAX_CANVAS_DIMENSION ||
                     displayCharacterWidth > MAX_CANVAS_DIMENSION ||
                     displayCharacterHeight > MAX_CANVAS_DIMENSION) {
-                    // Skip drawing if still too large
                     return@Canvas
                 }
 
-                // Calculate total display size
                 val totalDisplayHeight = displayRopeHeight + displayCharacterHeight
                 val totalDisplayWidth = displayCharacterWidth.coerceAtLeast(displayRopeWidth)
 
-                // Center in canvas
                 val startX = (size.width - totalDisplayWidth) / 2
                 val startY = (size.height - totalDisplayHeight) / 2
 
-                // Rope position
                 val ropeX = startX + (totalDisplayWidth - displayRopeWidth) / 2 +
                         (ropeOffsetX * scaleFactor)
                 val ropeY = startY + (ropeOffsetY * scaleFactor)
 
-                // Draw rope
                 drawImage(
                     image = ropeBitmap!!,
                     dstOffset = IntOffset(ropeX.roundToInt(), ropeY.roundToInt()),
@@ -430,13 +534,11 @@ private fun RopePreviewCanvas(
                     )
                 )
 
-                // Character position (directly below rope)
                 val characterX = startX + (totalDisplayWidth - displayCharacterWidth) / 2
                 val characterY = startY + displayRopeHeight
 
                 if (isStrokeEnabled) {
                     val strokeWidthPx = with(density) { 2.dp.toPx() } * scaleFactor
-                    // Draw 8 offset versions for a smooth outline
                     for (dx in -1..1) {
                         for (dy in -1..1) {
                             if (dx == 0 && dy == 0) continue
@@ -456,7 +558,6 @@ private fun RopePreviewCanvas(
                     }
                 }
 
-                // Draw character
                 drawImage(
                     image = processedBitmap,
                     dstOffset = IntOffset(characterX.roundToInt(), characterY.roundToInt()),
@@ -470,7 +571,6 @@ private fun RopePreviewCanvas(
     }
 }
 
-// Add this helper function at the file level (outside the composable)
 private fun cropTransparentBordersForPreview(bitmap: Bitmap): Bitmap {
     val width = bitmap.width
     val height = bitmap.height
