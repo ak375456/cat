@@ -1,6 +1,7 @@
 package com.lexur.yumo.home_screen.presentation
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -13,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -22,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.lexur.yumo.billing.BillingViewModel
+import com.lexur.yumo.billing.PremiumFeatureDialog
 import com.lexur.yumo.componenets.PermissionExplanationDialog
 import com.lexur.yumo.home_screen.presentation.components.AnimatedCharacterPreview
 import com.lexur.yumo.home_screen.presentation.components.CategoryFilterSection
@@ -40,14 +44,20 @@ fun HomeScreen(
     onNavigateToCustomCharacterCreation: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
     navController: NavController,
+    billingViewModel: BillingViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val activity = context as? Activity
     val characters by viewModel.filteredCharacters.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     var expandedCharacterId by remember { mutableStateOf<String?>(null) }
     val runningCharacters by viewModel.runningCharacters.collectAsState()
     val showPermissionDialog by viewModel.showPermissionDialog.collectAsState()
     val showCreationDialog by viewModel.showCreationDialog.collectAsState()
+
+    // Billing states
+    val billingState by billingViewModel.billingState.collectAsState()
+    val showPremiumDialog by billingViewModel.showPremiumDialog.collectAsState()
 
     // Check permissions
     var hasOverlayPermission by remember { mutableStateOf(checkOverlayPermission(context)) }
@@ -62,6 +72,15 @@ fun HomeScreen(
     LaunchedEffect(hasOverlayPermission, hasNotificationPermission) {
         if (hasOverlayPermission && hasNotificationPermission) {
             viewModel.syncWithService()
+        }
+    }
+
+    LaunchedEffect(billingState.purchaseSuccess) {
+        if (billingState.purchaseSuccess) {
+            // Navigate to character creation
+            onNavigateToCustomCharacterCreation()
+            billingViewModel.resetPurchaseSuccess()
+            billingViewModel.dismissPremiumDialog()
         }
     }
 
@@ -103,6 +122,20 @@ fun HomeScreen(
         )
     }
 
+    PremiumFeatureDialog(
+        showDialog = showPremiumDialog,
+        onDismiss = {
+            billingViewModel.dismissPremiumDialog()
+            billingViewModel.clearError()
+        },
+        onPurchase = {
+            activity?.let { billingViewModel.purchasePremium(it) }
+        },
+        isLoading = billingState.isLoading,
+        productPrice = billingState.availableProducts.firstOrNull()?.price ?: "",
+        error = billingState.error
+    )
+
     Scaffold(
         containerColor = Background, // Using custom background color
         topBar = {
@@ -123,22 +156,33 @@ fun HomeScreen(
                         Icon(
                             Icons.Default.Settings,
                             contentDescription = "Settings",
-                            tint = IconOnPrimary // Using custom icon color
+                            tint = IconOnPrimary
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = TopBarBackground // Using main color for topbar
+                    containerColor = TopBarBackground
                 )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { navController.navigate("custom_character_creation") },
+                onClick = {
+                    // Check if user has premium
+                    if (billingState.isPremiumOwned) {
+                        navController.navigate("custom_character_creation")
+                    } else {
+                        billingViewModel.showPremiumDialog()
+                    }
+                },
                 containerColor = ButtonPrimary
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
+                    imageVector = if (billingState.isPremiumOwned) {
+                        Icons.Default.Add
+                    } else {
+                        Icons.Default.Star
+                    },
                     contentDescription = "Add custom character",
                 )
             }

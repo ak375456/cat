@@ -84,8 +84,6 @@ dependencies {
 
     implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
 
-    // Declare the dependency for the Cloud Firestore library
-    // When using the BoM, you don't specify versions in Firebase library dependencies
     implementation("com.google.firebase:firebase-firestore")
 
     implementation("io.coil-kt:coil-compose:2.5.0")
@@ -94,5 +92,8 @@ dependencies {
 
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
-    ksp("androidx.room:room-compiler:$room_version") // Use ksp instead of kapt
+    ksp("androidx.room:room-compiler:$room_version")
+
+    val billing_version = "7.1.1"
+    implementation("com.android.billingclient:billing:$billing_version")
 }
