@@ -312,6 +312,27 @@ class CharacterRepository @Inject constructor(
             animationDelay = 120L
         ),
         Characters(
+            id = "mustang_flying",
+            name = "Mustang",
+            category = CharacterCategory.ANIMATED,
+            frameIds = listOf(
+                R.drawable.mustang_01,
+                R.drawable.mustang_02,
+                R.drawable.mustang_03,
+                R.drawable.mustang_04,
+                R.drawable.mustang_05,
+                R.drawable.mustang_06,
+                R.drawable.mustang_07,
+                R.drawable.mustang_08,
+                R.drawable.mustang_09,
+            ),
+            width = 18,
+            height = 18,
+            yPosition = 20,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
             id = "skullpanda_hanging",
             name = "SkullPanda",
             category = CharacterCategory.HANGING,

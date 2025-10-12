@@ -68,18 +68,11 @@ fun PremiumFeatureDialog(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Premium Character Creator",
+                            text = "Custom Hanging Character Creator",
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = OnPrimary
                             ),
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Unlock unlimited creativity!",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = OnPrimary.copy(alpha = 0.9f),
                             textAlign = TextAlign.Center
                         )
                     }
@@ -94,7 +87,7 @@ fun PremiumFeatureDialog(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Create characters that truly feel yours! This app was lovingly crafted by an indie developer who believes everyone should have their perfect companion on screen.",
+                        text = "Never feel alone. Keep a photo of a loved one or a custom companion hanging from your status bar, always there with you.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = OnDialog,
                         textAlign = TextAlign.Center,
@@ -144,7 +137,7 @@ fun PremiumFeatureDialog(
 
                     PremiumFeatureItem(
                         icon = Icons.Default.AutoFixHigh,
-                        title = "Professional Edge Feathering",
+                        title = "Edge Feathering",
                         description = "Smooth, natural-looking character edges"
                     )
 
