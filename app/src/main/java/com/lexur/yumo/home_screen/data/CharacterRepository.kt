@@ -383,6 +383,25 @@ class CharacterRepository @Inject constructor(
             animationDelay = 120L
         ),
         Characters(
+            id = "sunny_flying",
+            name = "Sunny",
+            category = CharacterCategory.ANIMATED,
+            frameIds = listOf(
+                R.drawable.sunny_01,
+                R.drawable.sunny_02,
+                R.drawable.sunny_03,
+                R.drawable.sunny_04,
+                R.drawable.sunny_05,
+                R.drawable.sunny_06,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 4,
+            animationDelay = 120L
+        ),
+        Characters(
             id = "bronco_running",
             name = "Bronco",
             category = CharacterCategory.ANIMATED,
