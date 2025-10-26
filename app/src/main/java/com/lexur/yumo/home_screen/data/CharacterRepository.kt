@@ -502,6 +502,21 @@ class CharacterRepository @Inject constructor(
             speed = 0,
             animationDelay = 0L
         ),
+        Characters(
+            id = "choco",
+            name = "Choco",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.choco,
+            ),
+            width = 30,
+            height = 30,
+
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
     )
 
 
