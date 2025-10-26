@@ -45,9 +45,14 @@ import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import android.view.MotionEvent
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.filled.ImageSearch
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PanTool
@@ -56,9 +61,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.navigation.NavController
 import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import com.lexur.yumo.R
 import com.lexur.yumo.billing.BillingViewModel
 import com.lexur.yumo.billing.PremiumFeatureDialog
 import com.lexur.yumo.ui.theme.Background
@@ -90,7 +97,33 @@ import com.lexur.yumo.ui.theme.OutlineVariant
 import com.lexur.yumo.ui.theme.Primary
 import com.lexur.yumo.ui.theme.TopBarBackground
 
-@OptIn(ExperimentalMaterial3Api::class)
+// Data class to hold tutorial step information
+private data class TutorialStep(
+    @get:DrawableRes val imageRes: Int,
+    val title: String,
+    val description: String
+)
+
+// List of tutorial steps
+private val tutorialSteps = listOf(
+    TutorialStep(
+        imageRes = R.drawable.a, // Assuming a.webp is in your drawable folder
+        title = "Step 1: Select Image",
+        description = "Select an image and remove the background."
+    ),
+    TutorialStep(
+        imageRes = R.drawable.b, // Assuming b.webp is in your drawable folder
+        title = "Step 2: Choose a Rope",
+        description = "Pick a rope style that you like the best."
+    ),
+    TutorialStep(
+        imageRes = R.drawable.c, // Assuming c.webp is in your drawable folder
+        title = "Step 3: Adjust & Save",
+        description = "Adjust the rope size, character size, and position."
+    )
+)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) // Added ExperimentalFoundationApi
 @Composable
 fun CustomCharacterCreationScreen(
     navController: NavController,
@@ -311,6 +344,12 @@ fun CustomCharacterCreationScreen(
                                     )
 
                                     Spacer(modifier = Modifier.height(12.dp))
+
+                                    // --- START: NEW TUTORIAL PAGER ---
+                                    TutorialPager()
+                                    // --- END: NEW TUTORIAL PAGER ---
+
+                                    Spacer(modifier = Modifier.height(24.dp))
 
                                     // Privacy Notice Card
                                     Card(
@@ -663,6 +702,102 @@ fun CustomCharacterCreationScreen(
         }
     }
 }
+
+// --- START: NEW TUTORIAL COMPOSABLES ---
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun TutorialPager() {
+    val pagerState = rememberPagerState(pageCount = { tutorialSteps.size })
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(320.dp), // Adjust height as needed
+            contentPadding = PaddingValues(horizontal = 32.dp) // Shows hints of next/prev items
+        ) { page ->
+            TutorialStepCard(step = tutorialSteps[page])
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Pager Indicator
+        PagerIndicator(pagerState = pagerState)
+    }
+}
+
+@Composable
+private fun TutorialStepCard(step: TutorialStep) {
+    Card(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 8.dp), // Spacing between pages
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = CardBackground
+        ),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.dp, OutlineVariant)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Image(
+                painter = painterResource(id = step.imageRes),
+                contentDescription = step.title,
+                contentScale = ContentScale.Fit, // Use Fit to see the whole 1080x2400 image
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f) // Give image flexible space
+                    .clip(RoundedCornerShape(12.dp))
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = step.title,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = OnCard,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = step.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = OnContainerVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun PagerIndicator(pagerState: PagerState) {
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        repeat(pagerState.pageCount) { iteration ->
+            val color = if (pagerState.currentPage == iteration) Primary else OutlineSecondary
+            Box(
+                modifier = Modifier
+                    .padding(4.dp)
+                    .clip(CircleShape)
+                    .background(color)
+                    .size(8.dp)
+            )
+        }
+    }
+}
+
+// --- END: NEW TUTORIAL COMPOSABLES ---
 
 @Composable
 fun NameCharacterDialog(
