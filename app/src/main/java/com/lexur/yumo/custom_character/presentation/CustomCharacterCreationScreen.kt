@@ -1,6 +1,7 @@
 package com.lexur.yumo.custom_character.presentation
 
 
+import android.app.Activity
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BlurMaskFilter
@@ -58,6 +59,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import com.lexur.yumo.billing.BillingViewModel
+import com.lexur.yumo.billing.PremiumFeatureDialog
 import com.lexur.yumo.ui.theme.Background
 import com.lexur.yumo.ui.theme.ButtonPrimary
 import com.lexur.yumo.ui.theme.ButtonSecondary
@@ -92,9 +95,15 @@ import com.lexur.yumo.ui.theme.TopBarBackground
 fun CustomCharacterCreationScreen(
     navController: NavController,
     viewModel: CustomCharacterCreationViewModel = hiltViewModel(),
+    billingViewModel: BillingViewModel = hiltViewModel(), // Added BillingViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val activity = context as? Activity // Get activity for billing
+
+    // Billing states
+    val billingState by billingViewModel.billingState.collectAsState()
+    val showPremiumDialog by billingViewModel.showPremiumDialog.collectAsState()
 
     var showRopeSelection by remember { mutableStateOf(false) }
     var showNameDialog by remember { mutableStateOf(false) }
@@ -122,7 +131,32 @@ fun CustomCharacterCreationScreen(
         }
     }
 
+    // Handle successful purchase
+    LaunchedEffect(billingState.purchaseSuccess) {
+        if (billingState.purchaseSuccess) {
+            // Purchase was successful, just dismiss the dialog.
+            // The user can now click the button again to proceed.
+            billingViewModel.resetPurchaseSuccess()
+            billingViewModel.dismissPremiumDialog()
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
+        // Show Premium Dialog over everything
+        PremiumFeatureDialog(
+            showDialog = showPremiumDialog,
+            onDismiss = {
+                billingViewModel.dismissPremiumDialog()
+                billingViewModel.clearError()
+            },
+            onPurchase = {
+                activity?.let { billingViewModel.purchasePremium(it) }
+            },
+            isLoading = billingState.isLoading,
+            productPrice = billingState.availableProducts.firstOrNull()?.price ?: "",
+            error = billingState.error
+        )
+
         when {
             uiState.showRopeAdjustment && uiState.selectedRopeResId != null -> {
                 RopeAdjustmentScreen(
@@ -315,9 +349,13 @@ fun CustomCharacterCreationScreen(
                                     // Primary Button - Select Image
                                     Button(
                                         onClick = {
-                                            photoPickerLauncher.launch(
-                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                            )
+                                            if (billingState.isPremiumOwned) {
+                                                photoPickerLauncher.launch(
+                                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                                )
+                                            } else {
+                                                billingViewModel.showPremiumDialog()
+                                            }
                                         },
                                         modifier = Modifier
                                             .fillMaxWidth(0.85f)
@@ -351,9 +389,13 @@ fun CustomCharacterCreationScreen(
                                     // Secondary Button - Upload PNG
                                     OutlinedButton(
                                         onClick = {
-                                            pngPickerLauncher.launch(
-                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                            )
+                                            if (billingState.isPremiumOwned) {
+                                                pngPickerLauncher.launch(
+                                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                                )
+                                            } else {
+                                                billingViewModel.showPremiumDialog()
+                                            }
                                         },
                                         modifier = Modifier
                                             .fillMaxWidth(0.85f)
@@ -1173,4 +1215,3 @@ fun createTransparentBitmap(
     canvas.drawPath(androidCurrentPath, erasePaint)
     return mutableBitmap.asImageBitmap()
 }
-
