@@ -2,7 +2,7 @@ package com.lexur.yumo.di
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.room.Room
+// import androidx.room.Room // No longer needed here
 import com.google.firebase.firestore.FirebaseFirestore
 import com.lexur.yumo.MotionSensorManager
 import com.lexur.yumo.SimpleOverlayManager
@@ -22,11 +22,9 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
-        return Room.databaseBuilder(
-            context,
-            AppDatabase::class.java,
-            "yumo_database"
-        ).build()
+        // Change this to call your static getDatabase method
+        // which correctly adds the migration.
+        return AppDatabase.getDatabase(context)
     }
 
     @Provides

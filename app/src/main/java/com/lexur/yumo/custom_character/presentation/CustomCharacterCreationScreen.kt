@@ -53,6 +53,8 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.ImageSearch
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PanTool
@@ -124,6 +126,7 @@ private val tutorialSteps = listOf(
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) // Added ExperimentalFoundationApi
+
 @Composable
 fun CustomCharacterCreationScreen(
     navController: NavController,
@@ -164,6 +167,12 @@ fun CustomCharacterCreationScreen(
         }
     }
 
+    LaunchedEffect(uiState.selectedEmoji) {
+        if (uiState.selectedEmoji != null && !showRopeSelection) {
+            showRopeSelection = true
+        }
+    }
+
     // Handle successful purchase
     LaunchedEffect(billingState.purchaseSuccess) {
         if (billingState.purchaseSuccess) {
@@ -190,35 +199,74 @@ fun CustomCharacterCreationScreen(
             error = billingState.error
         )
 
+        EmojiInputDialog(
+            showDialog = uiState.showEmojiPicker,
+            onDismiss = { viewModel.dismissEmojiPicker() },
+            onEmojiSelected = { emoji ->
+                viewModel.onEmojiSelected(emoji)
+            },
+            errorMessage = uiState.emojiError
+        )
+
         when {
             uiState.showRopeAdjustment && uiState.selectedRopeResId != null -> {
-                RopeAdjustmentScreen(
-                    imageUri = uiState.selectedImageUri!!,
-                    maskPath = uiState.maskPath,
-                    currentStrokePath = uiState.currentStrokePath,
-                    ropeResId = uiState.selectedRopeResId!!,
-                    ropeScale = uiState.ropeScale,
-                    ropeOffsetX = uiState.ropeOffsetX,
-                    ropeOffsetY = uiState.ropeOffsetY,
-                    onRopeScaleChanged = viewModel::updateRopeScale,
-                    onRopeOffsetXChanged = viewModel::updateRopeOffsetX,
-                    onRopeOffsetYChanged = viewModel::updateRopeOffsetY,
-                    onConfirm = {
-                        viewModel.finishRopeAdjustment()
-                        showNameDialog = true
-                    },
-                    onNavigateBack = {
-                        viewModel.finishRopeAdjustment()
-                        showRopeSelection = true
-                    },
-                    characterScale = uiState.characterScale,
-                    onCharacterScaleChanged = viewModel::updateCharacterScale,
-                    featheringSize = uiState.featheringSize,
-                    isStrokeEnabled = uiState.isStrokeEnabled,
-                    strokeColor = uiState.strokeColor,
-                    onToggleStroke = viewModel::toggleImageStroke,
-                    onStrokeColorChanged = viewModel::setStrokeColor
-                )
+                // Check if it's emoji or image
+                if (uiState.selectedEmoji != null) {
+                    // Emoji rope adjustment
+                    EmojiRopeAdjustmentScreen(
+                        emoji = uiState.selectedEmoji!!,
+                        ropeResId = uiState.selectedRopeResId!!,
+                        ropeScale = uiState.ropeScale,
+                        ropeOffsetX = uiState.ropeOffsetX,
+                        ropeOffsetY = uiState.ropeOffsetY,
+                        onRopeScaleChanged = viewModel::updateRopeScale,
+                        onRopeOffsetXChanged = viewModel::updateRopeOffsetX,
+                        onRopeOffsetYChanged = viewModel::updateRopeOffsetY,
+                        onConfirm = {
+                            viewModel.finishRopeAdjustment()
+                            showNameDialog = true
+                        },
+                        onNavigateBack = {
+                            viewModel.finishRopeAdjustment()
+                            showRopeSelection = true
+                        },
+                        characterScale = uiState.characterScale,
+                        onCharacterScaleChanged = viewModel::updateCharacterScale,
+                        isStrokeEnabled = uiState.isStrokeEnabled,
+                        strokeColor = uiState.strokeColor,
+                        onToggleStroke = viewModel::toggleImageStroke,
+                        onStrokeColorChanged = viewModel::setStrokeColor
+                    )
+                } else {
+                    // Regular image rope adjustment
+                    RopeAdjustmentScreen(
+                        imageUri = uiState.selectedImageUri!!,
+                        maskPath = uiState.maskPath,
+                        currentStrokePath = uiState.currentStrokePath,
+                        ropeResId = uiState.selectedRopeResId!!,
+                        ropeScale = uiState.ropeScale,
+                        ropeOffsetX = uiState.ropeOffsetX,
+                        ropeOffsetY = uiState.ropeOffsetY,
+                        onRopeScaleChanged = viewModel::updateRopeScale,
+                        onRopeOffsetXChanged = viewModel::updateRopeOffsetX,
+                        onRopeOffsetYChanged = viewModel::updateRopeOffsetY,
+                        onConfirm = {
+                            viewModel.finishRopeAdjustment()
+                            showNameDialog = true
+                        },
+                        onNavigateBack = {
+                            viewModel.finishRopeAdjustment()
+                            showRopeSelection = true
+                        },
+                        characterScale = uiState.characterScale,
+                        onCharacterScaleChanged = viewModel::updateCharacterScale,
+                        featheringSize = uiState.featheringSize,
+                        isStrokeEnabled = uiState.isStrokeEnabled,
+                        strokeColor = uiState.strokeColor,
+                        onToggleStroke = viewModel::toggleImageStroke,
+                        onStrokeColorChanged = viewModel::setStrokeColor
+                    )
+                }
             }
 
             showRopeSelection -> {
@@ -227,7 +275,12 @@ fun CustomCharacterCreationScreen(
                         viewModel.onRopeSelected(ropeResId)
                         showRopeSelection = false
                     },
-                    onNavigateBack = { showRopeSelection = false }
+                    onNavigateBack = {
+                        if (uiState.selectedEmoji != null) {
+                            viewModel.resetEmojiSelection()
+                        }
+                        showRopeSelection = false
+                    }
                 )
             }
 
@@ -235,7 +288,12 @@ fun CustomCharacterCreationScreen(
                 NameCharacterDialog(
                     onNameSelected = { name ->
                         viewModel.onCharacterNameChanged(name)
-                        viewModel.saveCustomCharacter(context)
+                        // Check if it's emoji or regular character
+                        if (uiState.selectedEmoji != null) {
+                            viewModel.saveEmojiCharacter(context)
+                        } else {
+                            viewModel.saveCustomCharacter(context)
+                        }
                         showNameDialog = false
                     },
                     onDismiss = { showNameDialog = false }
@@ -321,16 +379,18 @@ fun CustomCharacterCreationScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(paddingValues),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center // <-- MODIFIED: This centers the scrollable column when content is short
                     ) {
                         when {
                             uiState.selectedImageUri == null -> {
                                 Column(
                                     modifier = Modifier
-                                        .fillMaxSize()
+                                        .fillMaxWidth() // <-- MODIFIED: Changed from fillMaxSize
+                                        .verticalScroll(rememberScrollState()) // <-- MODIFIED: Added scroll
                                         .padding(24.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center,
+                                    // verticalArrangement = Arrangement.Center, // <-- MODIFIED: Removed this
                                 ) {
                                     // Header Section
                                     Text(
@@ -343,13 +403,13 @@ fun CustomCharacterCreationScreen(
                                         textAlign = TextAlign.Center
                                     )
 
-                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Spacer(modifier = Modifier.height(6.dp))
 
                                     // --- START: NEW TUTORIAL PAGER ---
                                     TutorialPager()
                                     // --- END: NEW TUTORIAL PAGER ---
 
-                                    Spacer(modifier = Modifier.height(24.dp))
+                                    Spacer(modifier = Modifier.height(12.dp))
 
                                     // Privacy Notice Card
                                     Card(
@@ -378,12 +438,13 @@ fun CustomCharacterCreationScreen(
                                                 "Custom characters are stored locally on your device. We never store or share your images.",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = OnContainerVariant,
-                                                lineHeight = 18.sp
+                                                lineHeight = 12.sp
                                             )
                                         }
                                     }
 
-                                    Spacer(modifier = Modifier.height(24.dp))
+                                    Spacer(modifier = Modifier.height(12.dp))
+
 
                                     // Primary Button - Select Image
                                     Button(
@@ -423,7 +484,7 @@ fun CustomCharacterCreationScreen(
                                         )
                                     }
 
-                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
 
                                     // Secondary Button - Upload PNG
                                     OutlinedButton(
@@ -459,6 +520,38 @@ fun CustomCharacterCreationScreen(
                                             )
                                         )
                                     }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    OutlinedButton(
+                                        onClick = {
+                                            if (billingState.isPremiumOwned) {
+                                                viewModel.showEmojiPicker()
+                                            } else {
+                                                billingViewModel.showPremiumDialog()
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.85f)
+                                            .height(56.dp),
+                                        shape = RoundedCornerShape(28.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = ButtonSecondary,
+                                            contentColor = OnButtonSecondary
+                                        ),
+                                        border = BorderStroke(1.5.dp, OutlinePrimary)
+                                    ) {
+                                        Text(
+                                            "😊",
+                                            style = MaterialTheme.typography.headlineSmall
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            "Hang an Emoji",
+                                            style = MaterialTheme.typography.labelLarge.copy(
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        )
+                                    }
+
                                 }
                             }
                             else -> {

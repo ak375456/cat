@@ -13,5 +13,6 @@ data class CustomCharacter(
     val ropeScale: Float,
     val ropeOffsetX: Float,
     val ropeOffsetY: Float,
-    val characterScale: Float = 1f
+    val characterScale: Float = 1f,
+    val isEmoji: Boolean = false
 )

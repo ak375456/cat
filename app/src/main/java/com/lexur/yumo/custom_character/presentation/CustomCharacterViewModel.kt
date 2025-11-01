@@ -33,6 +33,8 @@ import kotlin.math.pow
 import kotlinx.coroutines.Dispatchers
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.get
+import com.lexur.yumo.R
+import com.lexur.yumo.util.EmojiUtils
 
 data class CustomCharacterUiState(
     val selectedImageUri: Uri? = null,
@@ -61,6 +63,9 @@ data class CustomCharacterUiState(
     val featheringSize: Float = 10f,
     val isStrokeEnabled: Boolean = false,
     val strokeColor: Color = Color.White,
+    val selectedEmoji: String? = null,
+    val showEmojiPicker: Boolean = false,
+    val emojiError: String? = null
 )
 
 @HiltViewModel
@@ -567,6 +572,103 @@ class CustomCharacterCreationViewModel @Inject constructor(
     fun finishRopeAdjustment() {
         _uiState.update { it.copy(showRopeAdjustment = false) }
     }
+
+    // Add these methods to the existing ViewModel class
+
+    fun showEmojiPicker() {
+        _uiState.update { it.copy(showEmojiPicker = true, emojiError = null) }
+    }
+
+    fun dismissEmojiPicker() {
+        _uiState.update { it.copy(showEmojiPicker = false, emojiError = null) }
+    }
+
+    fun onEmojiSelected(emoji: String) {
+        if (EmojiUtils.isValidSingleEmojiSimple(emoji)) { // Changed to use Simple version
+            _uiState.update {
+                it.copy(
+                    selectedEmoji = emoji,
+                    showEmojiPicker = false,
+                    emojiError = null
+                )
+            }
+            // Proceed to rope selection
+            // Don't auto-select rope, let user choose
+        } else {
+            _uiState.update {
+                it.copy(
+                    emojiError = "Please select only one emoji (no text or multiple emojis)"
+                )
+            }
+        }
+    }
+
+    fun saveEmojiCharacter(context: Context) {
+        val currentState = _uiState.value
+        if (currentState.selectedEmoji == null || currentState.selectedRopeResId == null) return
+
+        _uiState.update { it.copy(isSaving = true) }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Save emoji as bitmap
+                val emojiImagePath = EmojiUtils.saveEmojiToFile(context, currentState.selectedEmoji)
+
+                // Load the bitmap
+                val emojiBitmap = BitmapFactory.decodeFile(emojiImagePath)
+                val ropeBitmap = BitmapFactory.decodeResource(context.resources, currentState.selectedRopeResId)
+
+                // Combine emoji and rope
+                val combinedBitmap = combineCharacterAndRope(
+                    emojiBitmap,
+                    ropeBitmap,
+                    currentState.ropeScale,
+                    currentState.ropeOffsetX,
+                    currentState.ropeOffsetY,
+                    currentState.characterScale,
+                    currentState.isStrokeEnabled,
+                    currentState.strokeColor.toArgb()
+                )
+
+                // Save combined image
+                val fileName = "emoji_combined_${System.currentTimeMillis()}.png"
+                val savedImagePath = saveBitmapToFile(context, combinedBitmap, fileName)
+
+                // Create custom character entry with emoji flag
+                val character = CustomCharacter(
+                    name = currentState.characterName.ifBlank { currentState.selectedEmoji },
+                    imagePath = savedImagePath,
+                    ropeResId = currentState.selectedRopeResId,
+                    ropeScale = currentState.ropeScale,
+                    ropeOffsetX = currentState.ropeOffsetX,
+                    ropeOffsetY = currentState.ropeOffsetY,
+                    characterScale = currentState.characterScale,
+                    isEmoji = true // Mark as emoji character
+                )
+
+                characterRepository.insertCustomCharacter(character)
+
+                // Cleanup
+                emojiBitmap.recycle()
+
+                _uiState.update { it.copy(isSaving = false, saveComplete = true) }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.update { it.copy(isSaving = false) }
+            }
+        }
+    }
+
+    fun resetEmojiSelection() {
+        _uiState.update {
+            it.copy(
+                selectedEmoji = null,
+                emojiError = null,
+                showEmojiPicker = false
+            )
+        }
+    }
+
 }
 
 fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
