@@ -28,6 +28,10 @@ class SimpleOverlayManager @Inject constructor(
     // Motion sensing state
     private var isMotionSensingEnabled = true
 
+    // State for landscape/rotation handling
+    private var landscapePreferenceEnabled = false // User's setting
+    private var isCurrentlyLandscape = false       // Current device orientation
+
     private inner class CharacterOverlay(
         var character: Characters,
         val overlayView: View,
@@ -58,7 +62,8 @@ class SimpleOverlayManager @Inject constructor(
         val rotationSpring = 0.08f // Spring strength for rotation
 
         fun startAnimation() {
-            if (isAnimating) return
+            // Do not start if already animating or if overlays are hidden
+            if (isAnimating || !shouldBeVisible()) return
 
             // For hanging characters, just set the static image and handle motion
             if (character.isHanging) {
@@ -73,6 +78,7 @@ class SimpleOverlayManager @Inject constructor(
                 // Store original position for hanging characters
                 originalX = params.x
                 originalY = params.y
+                isAnimating = true // Set to true so stopAnimation logic runs
                 return
             }
 
@@ -147,12 +153,14 @@ class SimpleOverlayManager @Inject constructor(
                         params.x = character.xPosition
                         originalX = params.x
                         originalY = params.y
+                        // Ensure animation state is correct
+                        if (shouldBeVisible()) startAnimation()
                     } else {
                         // Start animation for non-hanging character
                         currentXPosition = 0
                         isMovingRight = true
                         imageView.scaleX = 1f
-                        startAnimation()
+                        startAnimation() // Will respect shouldBeVisible()
                     }
                 } else if (isNowHanging) {
                     // Update static image and position for hanging character
@@ -167,6 +175,8 @@ class SimpleOverlayManager @Inject constructor(
                     params.x = character.xPosition
                     originalX = params.x
                     originalY = params.y
+                    // Ensure animation state is correct
+                    if (shouldBeVisible() && !isAnimating) startAnimation()
                 }
 
                 try {
@@ -178,7 +188,7 @@ class SimpleOverlayManager @Inject constructor(
         }
 
         fun applyMotion(swayX: Float, swayY: Float) {
-            if (!character.isHanging) return
+            if (!character.isHanging || !isAnimating) return
 
             try {
                 // Define rope length (distance from attachment point to character center)
@@ -281,6 +291,20 @@ class SimpleOverlayManager @Inject constructor(
                 e.printStackTrace()
             }
         }
+
+        fun shouldBeVisible(): Boolean {
+            return if (isCurrentlyLandscape) landscapePreferenceEnabled else true
+        }
+
+        fun refreshVisibility() {
+            val visible = shouldBeVisible()
+            overlayView.visibility = if (visible) View.VISIBLE else View.GONE
+            if (visible && !isAnimating) {
+                startAnimation()
+            } else if (!visible && isAnimating) {
+                stopAnimation()
+            }
+        }
     }
 
     fun initialize(context: Context) {
@@ -290,6 +314,9 @@ class SimpleOverlayManager @Inject constructor(
         val displayMetrics = context.resources.displayMetrics
         screenWidth = displayMetrics.widthPixels
         systemBarsHeight = getSystemBarsHeight(context)
+
+        // Set initial orientation
+        isCurrentlyLandscape = context.resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
         // Initialize motion sensor
         motionSensorManager.initialize(context)
@@ -324,7 +351,9 @@ class SimpleOverlayManager @Inject constructor(
                 windowManager?.addView(overlayView, params)
                 val characterOverlay = CharacterOverlay(character, overlayView, imageView, params)
                 activeCharacters[character.id] = characterOverlay
-                characterOverlay.startAnimation()
+
+                // Set initial visibility and start animation if needed
+                characterOverlay.refreshVisibility()
 
                 // Start motion sensing if this is a hanging character
                 if (character.isHanging) {
@@ -385,6 +414,40 @@ class SimpleOverlayManager @Inject constructor(
             motionSensorManager.stopListening()
         }
     }
+
+    // --- New functions for orientation handling ---
+
+    /**
+     * Updates the user's preference for showing characters in landscape.
+     */
+    fun setEnableInLandscape(enabled: Boolean) {
+        landscapePreferenceEnabled = enabled
+        refreshAllViewsVisibility()
+    }
+
+    /**
+     * Called by the service when device orientation changes.
+     */
+    fun updateOrientation(isLandscape: Boolean) {
+        isCurrentlyLandscape = isLandscape
+        // Update screen width on rotation
+        context?.let {
+            val displayMetrics = it.resources.displayMetrics
+            screenWidth = displayMetrics.widthPixels
+        }
+        refreshAllViewsVisibility()
+    }
+
+    /**
+     * Iterates all active characters and updates their visibility and animation state.
+     */
+    private fun refreshAllViewsVisibility() {
+        activeCharacters.values.forEach {
+            it.refreshVisibility()
+        }
+    }
+
+    // --- End of new functions ---
 
     fun cleanup() {
         removeAllCharacters()

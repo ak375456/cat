@@ -361,6 +361,20 @@ class CharacterRepository @Inject constructor(
             animationDelay = 0L
         ),
         Characters(
+            id = "android_hanging",
+            name = "Android",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.android,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L
+        ),
+        Characters(
             id = "fox_running",
             name = "Fox",
             category = CharacterCategory.ANIMATED,

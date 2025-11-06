@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +54,7 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.User
 import com.composables.icons.lucide.View
 import com.composables.icons.lucide.Heart
+import com.composables.icons.lucide.Smartphone
 import com.lexur.yumo.navigation.presentation.FeedbackViewModel
 import com.lexur.yumo.ui.theme.InputBackground
 import com.lexur.yumo.ui.theme.InputBorder
@@ -73,6 +75,9 @@ fun SettingsScreen(
     // Permission states
     var hasOverlayPermission by remember { mutableStateOf(checkOverlayPermission(context)) }
     var hasNotificationPermission by remember { mutableStateOf(checkNotificationPermission(context)) }
+
+    // New state for landscape toggle
+    val enableInLandscape by viewModel.enableInLandscape.collectAsState()
 
     // Permission launchers
     val overlayPermissionLauncher = rememberLauncherForActivityResult(
@@ -298,13 +303,14 @@ fun SettingsScreen(
                 colors = CardDefaults.cardColors(containerColor = CardBackground)
             ) {
                 Column(
+                    modifier = Modifier.padding(16.dp), // Added padding
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(bottom = 4.dp)
                     ) {
-                        Spacer(modifier = Modifier.width(8.dp))
+                        // Icon(..) // Removed spacer, icon added for alignment if needed
                         Text(
                             text = "Request Your Favorite Character",
                             style = MaterialTheme.typography.titleMedium,
@@ -340,8 +346,7 @@ fun SettingsScreen(
                             }
                             Text(
                                 text = "• Characters walk along your status bar\n" +
-                                        "• They can hang from camera notch, WiFi, or battery icons\n" +
-                                        "• Designed to be lightweight and non-intrusive\n",
+                                        "• They can hang from camera notch, WiFi, or battery icons\n",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = OnSurfaceVariant,
                                 lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.2f
@@ -442,6 +447,54 @@ fun SettingsScreen(
                         fontWeight = FontWeight.SemiBold,
                         color = OnCard,
                         modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    // --- New Setting for Landscape Mode ---
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Lucide.Smartphone, // Using a relevant icon
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = IconSecondary
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Enable in Landscape",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = OnSurface
+                                )
+                                Text(
+                                    text = "Allow characters to run when device is rotated.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = OnSurfaceVariant
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = enableInLandscape,
+                            onCheckedChange = { viewModel.setEnableInLandscape(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = OnButtonPrimary,
+                                checkedTrackColor = ButtonPrimary,
+                                uncheckedThumbColor = OnSurfaceVariant,
+                                uncheckedTrackColor = OutlinePrimary
+                            )
+                        )
+                    }
+                    // --- End of New Setting ---
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        thickness = DividerDefaults.Thickness,
+                        color = DividerDefaults.color
                     )
 
                     OutlinedButton(

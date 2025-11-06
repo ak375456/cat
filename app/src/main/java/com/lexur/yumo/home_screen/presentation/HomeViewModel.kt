@@ -1,5 +1,6 @@
 package com.lexur.yumo.home_screen.presentation
 
+import android.app.Application // Import Application
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -18,15 +19,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.lexur.yumo.home_screen.data.model.CharacterCategory
+import dagger.hilt.android.qualifiers.ApplicationContext // Import ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import java.lang.ref.WeakReference
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val characterRepository: CharacterRepository,
-    private val sharedPreferences: SharedPreferences
+    private val sharedPreferences: SharedPreferences,
+    @param: ApplicationContext private val application: Context // Inject application context
 ) : ViewModel() {
 
     private val _showPermissionDialog = MutableStateFlow(false)
@@ -40,6 +44,7 @@ class HomeViewModel @Inject constructor(
     companion object {
         private const val PREFS_NAME = "overlay_pets_prefs"
         private const val KEY_DONT_SHOW_PERMISSION_DIALOG = "dont_show_permission_dialog"
+        private const val KEY_ENABLE_IN_LANDSCAPE = "enable_in_landscape" // New key
 
         // Keys for character-specific settings
         private const val SPEED_SUFFIX = "_speed"
@@ -90,6 +95,13 @@ class HomeViewModel @Inject constructor(
     private val _runningCharacters = MutableStateFlow<Set<String>>(emptySet())
     val runningCharacters: StateFlow<Set<String>> = _runningCharacters.asStateFlow()
 
+    // --- New StateFlow for landscape setting ---
+    private val _enableInLandscape = MutableStateFlow(
+        sharedPreferences.getBoolean(KEY_ENABLE_IN_LANDSCAPE, false)
+    )
+    val enableInLandscape: StateFlow<Boolean> = _enableInLandscape.asStateFlow()
+    // ---
+
     // Use WeakReference to avoid memory leak
     private var overlayServiceRef: WeakReference<OverlayService>? = null
     private var serviceBound = false
@@ -103,6 +115,9 @@ class HomeViewModel @Inject constructor(
 
             // Update running characters based on service state
             updateRunningCharactersFromService()
+
+            // --- Pass current landscape setting to service ---
+            overlayService.overlayManager.setEnableInLandscape(_enableInLandscape.value)
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -114,22 +129,35 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadAllCharacters()
+        bindToService() // Call bindToService in init
     }
 
-    fun bindToService(context: Context) {
+    // Modified bindToService to not take context
+    fun bindToService() {
         // Initialize dialog state only once when binding to service for the first time
         if (!isDialogStateInitialized) {
-            initializeDialogState(context)
+            initializeDialogState(application) // Use application context
             isDialogStateInitialized = true
         }
 
-        val intent = Intent(context, OverlayService::class.java)
-        context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        val intent = Intent(application, OverlayService::class.java) // Use application context
+        try {
+            application.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE) // Use application context
+        } catch (e: Exception) {
+            // Handle potential exceptions if service binding fails
+            e.printStackTrace()
+        }
     }
 
-    fun unbindFromService(context: Context) {
+    // Modified unbindFromService to not take context
+    fun unbindFromService() {
         if (serviceBound) {
-            context.unbindService(serviceConnection)
+            try {
+                application.unbindService(serviceConnection) // Use application context
+            } catch (e: Exception) {
+                // Handle exceptions during unbind (e.g., service not registered)
+                e.printStackTrace()
+            }
             serviceBound = false
             overlayServiceRef?.clear()
             overlayServiceRef = null
@@ -152,7 +180,7 @@ class HomeViewModel @Inject constructor(
 
                 // Use the static companion method from OverlayService
                 OverlayService.startCharacter(context, characterWithCustomSettings)
-                _runningCharacters.value = _runningCharacters.value + character.id
+                _runningCharacters.update { it + character.id }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -197,7 +225,7 @@ class HomeViewModel @Inject constructor(
 
     fun stopCharacter(context: Context, characterId: String) {
         OverlayService.stopCharacter(context, characterId)
-        _runningCharacters.value = _runningCharacters.value - characterId
+        _runningCharacters.update { it - characterId }
     }
 
     fun clearAllRunningCharacters(context: Context) {
@@ -217,6 +245,20 @@ class HomeViewModel @Inject constructor(
             updateRunningCharactersFromService()
         }
     }
+
+    // --- New function to update landscape preference ---
+    fun setEnableInLandscape(enabled: Boolean) {
+        viewModelScope.launch {
+            sharedPreferences.edit()
+                .putBoolean(KEY_ENABLE_IN_LANDSCAPE, enabled)
+                .apply()
+            _enableInLandscape.value = enabled
+
+            // Pass the setting to the service immediately if bound
+            overlayServiceRef?.get()?.overlayManager?.setEnableInLandscape(enabled)
+        }
+    }
+    // ---
 
     private fun initializeDialogState(context: Context) {
         val dialogPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -259,9 +301,9 @@ class HomeViewModel @Inject constructor(
     }
 
     override fun onCleared() {
+        unbindFromService() // Call unbindFromService in onCleared
         super.onCleared()
         overlayServiceRef?.clear()
         overlayServiceRef = null
     }
 }
-

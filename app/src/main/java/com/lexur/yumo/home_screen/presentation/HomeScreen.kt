@@ -60,9 +60,6 @@ fun HomeScreen(
         mutableStateOf(checkNotificationPermission(context))
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.bindToService(context)
-    }
 
     LaunchedEffect(hasOverlayPermission, hasNotificationPermission) {
         if (hasOverlayPermission && hasNotificationPermission) {
@@ -79,11 +76,6 @@ fun HomeScreen(
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            viewModel.unbindFromService(context)
-        }
-    }
 
     // Permission explanation dialog
     PermissionExplanationDialog(

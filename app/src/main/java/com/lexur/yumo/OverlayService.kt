@@ -8,6 +8,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
@@ -39,7 +40,11 @@ class OverlayService : Service() {
                 action = ACTION_START_CHARACTER // ✅ Correct
                 putExtra(EXTRA_CHARACTER, character)
             }
-            context.startForegroundService(intent)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
         }
 
         fun stopCharacter(context: Context, characterId: String) {
@@ -109,23 +114,35 @@ class OverlayService : Service() {
 
     override fun onBind(intent: Intent): IBinder = binder
 
+    /**
+     * Called when the device configuration changes, e.g., screen rotation.
+     * This requires android:configChanges="orientation|screenSize" in the AndroidManifest.xml for the service.
+     */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        val isLandscape = newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE
+        overlayManager.updateOrientation(isLandscape)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         overlayManager.cleanup()
     }
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Overlay Pets Service",
-            NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = "Keeps your overlay pets running"
-            setShowBadge(false)
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Overlay Pets Service",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Keeps your overlay pets running"
+                setShowBadge(false)
+            }
 
-        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
+            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
     }
 
     private fun createNotification(): Notification {

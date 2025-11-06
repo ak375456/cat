@@ -38,6 +38,7 @@
         <service
             android:name=".OverlayService"
             android:enabled="true"
+            android:configChanges="orientation|screenSize"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property
