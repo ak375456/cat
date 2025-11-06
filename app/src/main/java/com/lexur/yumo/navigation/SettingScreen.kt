@@ -450,6 +450,8 @@ fun SettingsScreen(
                     )
 
                     // --- New Setting for Landscape Mode ---
+                    // Replace the existing landscape mode Row with this improved version:
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -457,27 +459,31 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f) // Add weight to prevent overflow
+                        ) {
                             Icon(
-                                imageVector = Lucide.Smartphone, // Using a relevant icon
+                                imageVector = Lucide.Smartphone,
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
                                 tint = IconSecondary
                             )
                             Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
+                            Column {
                                 Text(
                                     text = "Enable in Landscape",
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = OnSurface
                                 )
                                 Text(
-                                    text = "Allow characters to run when device is rotated.",
+                                    text = "Allow characters to run when device is rotated",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = OnSurfaceVariant
                                 )
                             }
                         }
+                        Spacer(modifier = Modifier.width(8.dp)) // Add spacing before switch
                         Switch(
                             checked = enableInLandscape,
                             onCheckedChange = { viewModel.setEnableInLandscape(it) },
