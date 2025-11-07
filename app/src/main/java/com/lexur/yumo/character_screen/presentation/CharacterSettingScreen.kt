@@ -91,6 +91,7 @@ fun CharacterSettingsScreen(
     val characterRunning by viewModel.isCharacterRunning.collectAsState()
     val motionSensingEnabled by viewModel.motionSensingEnabled.collectAsState()
     val useButtonControls by viewModel.useButtonControls.collectAsState()
+    val atBottom by viewModel.atBottom.collectAsState() // New state
 
     // UI state
     val animationSpeedPresets = listOf(50L, 80L, 100L, 140L, 200L, 300L, 500L)
@@ -261,7 +262,7 @@ fun CharacterSettingsScreen(
                         if (showMotionInfo) {
                             Text(
                                 text = if (motionSensingEnabled) {
-                                    "Character hangs from a fixed rope/chain at the top\n" +
+                                    "Character hangs from a fixed rope/chain\n" +
                                             "Responds to device tilt and movement\n" +
                                             "May use slightly more battery"
                                 } else {
@@ -385,6 +386,59 @@ fun CharacterSettingsScreen(
                 )
             )
 
+            // Position Settings Title
+            Text(
+                text = "Position Settings ${if (characterRunning) "(Live Updates)" else ""}",
+                style = MaterialTheme.typography.titleSmall,
+                color = if (characterRunning) Primary else Primary.copy(alpha = 0.9f)
+            )
+
+            // Position at Bottom Toggle (NEW)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (atBottom)
+                        Primary.copy(alpha = 0.1f)
+                    else
+                        SurfaceVariant.copy(alpha = 0.3f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Position at Bottom",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                            color = OnBackground
+                        )
+                        Text(
+                            text = if (isHangingCharacter)
+                                "Hangs from the bottom (rotated 180°)"
+                            else
+                                "Walks along the bottom of the screen",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OnBackground.copy(alpha = 0.7f)
+                        )
+                    }
+                    Switch(
+                        checked = atBottom,
+                        onCheckedChange = { viewModel.setAtBottom(it, isHangingCharacter) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Primary,
+                            checkedTrackColor = Container,
+                            uncheckedThumbColor = IconSecondary,
+                            uncheckedTrackColor = SurfaceVariant
+                        )
+                    )
+                }
+            }
+
+
             // Position Control Mode Toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -408,12 +462,6 @@ fun CharacterSettingsScreen(
                 )
             }
 
-            // Position Controls
-            Text(
-                text = "Position Settings ${if (characterRunning) "(Live Updates)" else ""}",
-                style = MaterialTheme.typography.titleSmall,
-                color = if (characterRunning) Primary else Primary.copy(alpha = 0.9f)
-            )
 
             if (useButtonControls) {
                 // Button Controls
@@ -503,7 +551,7 @@ fun CharacterSettingsScreen(
                     Slider(
                         value = xPosition.toFloat(),
                         onValueChange = { viewModel.updateXPosition(it.toInt()) },
-                        valueRange = 0f..1000f,
+                        valueRange = 0f..1000f, // Keeping X range as is
                         colors = SliderDefaults.colors(
                             thumbColor = Primary,
                             activeTrackColor = Primary.copy(alpha = 0.7f),
@@ -514,14 +562,14 @@ fun CharacterSettingsScreen(
 
                 // Vertical Position Slider - for both types
                 Text(
-                    text = "Vertical Position: $yPosition px from top",
+                    text = "Vertical Position: $yPosition px from ${if (atBottom) "bottom" else "top"}",
                     style = MaterialTheme.typography.bodyLarge,
                     color = OnBackground
                 )
                 Slider(
                     value = yPosition.toFloat(),
                     onValueChange = { viewModel.updateYPosition(it.toInt()) },
-                    valueRange = 0f..300f,
+                    valueRange = 0f..3000f, // UPDATED: Expanded range
                     colors = SliderDefaults.colors(
                         thumbColor = Primary,
                         activeTrackColor = Primary.copy(alpha = 0.7f),

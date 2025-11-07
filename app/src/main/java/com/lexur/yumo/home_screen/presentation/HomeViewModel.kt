@@ -52,6 +52,8 @@ class HomeViewModel @Inject constructor(
         private const val ANIMATION_DELAY_SUFFIX = "_animation_delay"
         private const val Y_POSITION_SUFFIX = "_y_position"
         private const val X_POSITION_SUFFIX = "_x_position"
+        private const val AT_BOTTOM_SUFFIX = "_at_bottom" // New
+        private const val ROTATION_SUFFIX = "_rotation" // New
     }
 
     private val _allCharacters = MutableStateFlow<List<Characters>>(emptyList())
@@ -211,6 +213,15 @@ class HomeViewModel @Inject constructor(
             characterId + X_POSITION_SUFFIX,
             character.xPosition
         )
+        // Load new settings
+        val customAtBottom = sharedPreferences.getBoolean(
+            characterId + AT_BOTTOM_SUFFIX,
+            character.atBottom
+        )
+        val customRotation = sharedPreferences.getFloat(
+            characterId + ROTATION_SUFFIX,
+            character.rotation
+        )
 
         // Return character with custom settings applied
         return character.copy(
@@ -219,7 +230,9 @@ class HomeViewModel @Inject constructor(
             height = customSize, // Use same value for both width and height
             animationDelay = customAnimationDelay,
             yPosition = customYPosition,
-            xPosition = customXPosition
+            xPosition = customXPosition,
+            atBottom = customAtBottom, // New
+            rotation = customRotation  // New
         )
     }
 

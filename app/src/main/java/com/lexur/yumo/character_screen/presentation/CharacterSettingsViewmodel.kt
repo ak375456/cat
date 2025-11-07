@@ -34,11 +34,17 @@ class CharacterSettingsViewModel @Inject constructor(
         private const val ANIMATION_DELAY_SUFFIX = "_animation_delay"
         private const val Y_POSITION_SUFFIX = "_y_position"
         private const val X_POSITION_SUFFIX = "_x_position"
+        private const val AT_BOTTOM_SUFFIX = "_at_bottom" // New
+        private const val ROTATION_SUFFIX = "_rotation" // New
 
         // Debounce delay for slider updates (milliseconds)
         private const val SLIDER_DEBOUNCE_MS = 150L
         // No debounce for button controls - but we'll use a channel for throttling
         private const val BUTTON_THROTTLE_MS = 16L // ~60fps
+
+        // Max position values for button controls
+        private const val MAX_X_POSITION = 3000 // Increased range
+        private const val MAX_Y_POSITION = 3000 // Increased range
     }
 
     private val _character = MutableStateFlow<Characters?>(null)
@@ -67,6 +73,12 @@ class CharacterSettingsViewModel @Inject constructor(
 
     private val _useButtonControls = MutableStateFlow(false)
     val useButtonControls: StateFlow<Boolean> = _useButtonControls
+
+    private val _atBottom = MutableStateFlow(false)
+    val atBottom: StateFlow<Boolean> = _atBottom
+
+    private val _rotation = MutableStateFlow(0f)
+    val rotation: StateFlow<Float> = _rotation
 
     // Debouncing jobs for different update types
     private var speedUpdateJob: Job? = null
@@ -119,6 +131,15 @@ class CharacterSettingsViewModel @Inject constructor(
                     characterId + X_POSITION_SUFFIX,
                     character.xPosition
                 )
+                // Load new states
+                _atBottom.value = sharedPreferences.getBoolean(
+                    characterId + AT_BOTTOM_SUFFIX,
+                    character.atBottom
+                )
+                _rotation.value = sharedPreferences.getFloat(
+                    characterId + ROTATION_SUFFIX,
+                    character.rotation
+                )
             }
         }
     }
@@ -130,6 +151,9 @@ class CharacterSettingsViewModel @Inject constructor(
             putLong(characterId + ANIMATION_DELAY_SUFFIX, _animationDelay.value)
             putInt(characterId + Y_POSITION_SUFFIX, _yPosition.value)
             putInt(characterId + X_POSITION_SUFFIX, _xPosition.value)
+            // Save new states
+            putBoolean(characterId + AT_BOTTOM_SUFFIX, _atBottom.value)
+            putFloat(characterId + ROTATION_SUFFIX, _rotation.value)
         }
     }
 
@@ -151,6 +175,19 @@ class CharacterSettingsViewModel @Inject constructor(
             putBoolean(USE_BUTTON_CONTROLS_KEY, useButtons)
         }
     }
+
+    // New function to handle bottom toggle
+    fun setAtBottom(isAtBottom: Boolean, isHanging: Boolean) {
+        _atBottom.value = isAtBottom
+        if (isHanging) {
+            _rotation.value = if (isAtBottom) 180f else 0f
+        } else {
+            _rotation.value = 0f // Non-hanging characters don't rotate
+        }
+        // Trigger a live update immediately
+        updateLiveCharacterImmediate()
+    }
+
 
     fun updateSpeed(newSpeed: Int) {
         _speed.value = newSpeed
@@ -188,8 +225,8 @@ class CharacterSettingsViewModel @Inject constructor(
     }
 
     fun movePosition(deltaX: Int, deltaY: Int) {
-        val newX = (_xPosition.value + deltaX).coerceIn(0, 1000)
-        val newY = (_yPosition.value + deltaY).coerceIn(0, 300)
+        val newX = (_xPosition.value + deltaX).coerceIn(0, MAX_X_POSITION) // Updated range
+        val newY = (_yPosition.value + deltaY).coerceIn(0, MAX_Y_POSITION) // Updated range
 
         // Use channel for throttled updates
         positionUpdateChannel.trySend(newX to newY)
@@ -217,7 +254,9 @@ class CharacterSettingsViewModel @Inject constructor(
                     height = _size.value,
                     animationDelay = _animationDelay.value,
                     yPosition = _yPosition.value,
-                    xPosition = _xPosition.value
+                    xPosition = _xPosition.value,
+                    atBottom = _atBottom.value, // New
+                    rotation = _rotation.value  // New
                 )
 
                 sendLiveUpdateToService(updated)
@@ -244,7 +283,9 @@ class CharacterSettingsViewModel @Inject constructor(
                     height = _size.value,
                     animationDelay = _animationDelay.value,
                     yPosition = _yPosition.value,
-                    xPosition = _xPosition.value
+                    xPosition = _xPosition.value,
+                    atBottom = _atBottom.value, // New
+                    rotation = _rotation.value  // New
                 )
 
                 if (_isCharacterRunning.value) {
@@ -263,7 +304,9 @@ class CharacterSettingsViewModel @Inject constructor(
                     height = _size.value,
                     animationDelay = _animationDelay.value,
                     yPosition = _yPosition.value,
-                    xPosition = _xPosition.value
+                    xPosition = _xPosition.value,
+                    atBottom = _atBottom.value, // New
+                    rotation = _rotation.value  // New
                 )
                 overlayManager.addCharacter(testCharacter)
                 _isCharacterRunning.value = true
@@ -289,6 +332,8 @@ class CharacterSettingsViewModel @Inject constructor(
                     remove(character.id + ANIMATION_DELAY_SUFFIX)
                     remove(character.id + Y_POSITION_SUFFIX)
                     remove(character.id + X_POSITION_SUFFIX)
+                    remove(character.id + AT_BOTTOM_SUFFIX) // New
+                    remove(character.id + ROTATION_SUFFIX) // New
                 }
 
                 val defaultCharacter = characterRepository.getDefaultCharacter(character.id)
@@ -298,8 +343,11 @@ class CharacterSettingsViewModel @Inject constructor(
                     _animationDelay.value = default.animationDelay
                     _yPosition.value = default.yPosition
                     _xPosition.value = default.xPosition
+                    _atBottom.value = default.atBottom // New
+                    _rotation.value = default.rotation // New
 
                     if (_isCharacterRunning.value) {
+                        // Pass the full default object
                         sendLiveUpdateToService(default)
                     }
                 }

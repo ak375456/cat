@@ -544,10 +544,13 @@ class CharacterRepository @Inject constructor(
                 Characters(
                     id = "custom_${it.id}",
                     name = it.name,
-                    category = CharacterCategory.HANGING,
+                    category = CharacterCategory.HANGING, // Assuming custom are hanging for now
                     frameIds = emptyList(), // Will be loaded from path
                     imagePath = it.imagePath,
-                    isCustom = true
+                    isCustom = true,
+                    // Default new properties for custom characters
+                    atBottom = false,
+                    rotation = 0f
                 )
             }
             defaultCharacters + customMapped

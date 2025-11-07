@@ -20,6 +20,7 @@ class SimpleOverlayManager @Inject constructor(
     private var windowManager: WindowManager? = null
     private var context: Context? = null
     private var screenWidth = 0
+    private var screenHeight = 0 // New
     private var systemBarsHeight = 0
 
     // Track all active characters
@@ -50,7 +51,8 @@ class SimpleOverlayManager @Inject constructor(
         var originalY = 0
         var currentSwayX = 0f
         var currentSwayY = 0f
-        var currentRotation = 0f // Add rotation for tilting effect
+        var baseRotation = 0f // Renamed from currentRotation
+        var currentSwayRotation = 0f // New: for motion tilt only
 
         // Physics simulation for hanging characters (pendulum-like)
         var velocityX = 0f
@@ -78,11 +80,15 @@ class SimpleOverlayManager @Inject constructor(
                 // Store original position for hanging characters
                 originalX = params.x
                 originalY = params.y
+                baseRotation = character.rotation // Set base rotation
+                imageView.rotation = baseRotation // Apply it
                 isAnimating = true // Set to true so stopAnimation logic runs
                 return
             }
 
             isAnimating = true
+            baseRotation = 0f // Animated characters don't rotate
+            imageView.rotation = 0f
 
             animationRunnable = object : Runnable {
                 override fun run() {
@@ -102,18 +108,20 @@ class SimpleOverlayManager @Inject constructor(
             animationRunnable?.let { handler.removeCallbacks(it) }
             animationRunnable = null
 
-            // Reset rotation for hanging characters
-            if (character.isHanging) {
-                imageView.rotation = 0f
-                currentRotation = 0f
-            }
+            // Reset rotation for all characters
+            imageView.rotation = 0f
+            baseRotation = 0f
+            currentSwayRotation = 0f
         }
 
         fun updateCharacterSettings(newCharacter: Characters) {
             val wasHanging = this.character.isHanging
             val isNowHanging = newCharacter.isHanging
+            val wasAtBottom = this.character.atBottom
+            val isNowAtBottom = newCharacter.atBottom
 
             this.character = newCharacter
+            this.baseRotation = newCharacter.rotation // Update base rotation
 
             context?.let { ctx ->
                 imageView.layoutParams?.apply {
@@ -122,25 +130,43 @@ class SimpleOverlayManager @Inject constructor(
                 }
                 imageView.requestLayout()
 
-                // Update Y position
-                params.y = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    character.yPosition - (systemBarsHeight / 3)
+                // NEW: Update Gravity and Y Position based on atBottom
+                if (isNowAtBottom) {
+                    params.gravity = Gravity.BOTTOM or Gravity.START
+                    // yPosition is now offset from bottom
+                    params.y = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        character.yPosition
+                    } else {
+                        character.yPosition
+                    }
                 } else {
-                    character.yPosition
+                    params.gravity = Gravity.TOP or Gravity.START
+                    // yPosition is offset from top
+                    params.y = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        character.yPosition - (systemBarsHeight / 3)
+                    } else {
+                        character.yPosition
+                    }
                 }
 
                 // Update X position for hanging characters
                 if (isNowHanging) {
                     params.x = character.xPosition
                     originalX = params.x
-                    originalY = params.y
+                    originalY = params.y // This is now relative to the new gravity
+                } else {
+                    // Reset X for animated character if it just changed
+                    if (wasHanging) {
+                        currentXPosition = 0
+                        params.x = 0
+                    }
                 }
 
                 // If character changed from/to hanging, handle animation state
                 if (wasHanging != isNowHanging) {
                     if (isNowHanging) {
                         // Stop animation for hanging character
-                        stopAnimation()
+                        stopAnimation() // This resets rotation
                         if (character.isCustom && character.imagePath != null) {
                             val bitmap = BitmapFactory.decodeFile(character.imagePath)
                             if (bitmap != null) {
@@ -153,6 +179,7 @@ class SimpleOverlayManager @Inject constructor(
                         params.x = character.xPosition
                         originalX = params.x
                         originalY = params.y
+                        imageView.rotation = baseRotation // Apply new base rotation
                         // Ensure animation state is correct
                         if (shouldBeVisible()) startAnimation()
                     } else {
@@ -160,6 +187,8 @@ class SimpleOverlayManager @Inject constructor(
                         currentXPosition = 0
                         isMovingRight = true
                         imageView.scaleX = 1f
+                        imageView.rotation = 0f // Non-hanging don't rotate
+                        currentSwayRotation = 0f
                         startAnimation() // Will respect shouldBeVisible()
                     }
                 } else if (isNowHanging) {
@@ -175,8 +204,23 @@ class SimpleOverlayManager @Inject constructor(
                     params.x = character.xPosition
                     originalX = params.x
                     originalY = params.y
+                    imageView.rotation = baseRotation + currentSwayRotation // Apply rotation
                     // Ensure animation state is correct
                     if (shouldBeVisible() && !isAnimating) startAnimation()
+                }
+
+                // Handle case where just position (top/bottom) changed
+                if (wasAtBottom != isNowAtBottom && isNowHanging) {
+                    // Gravity already set, just need to re-apply originalY
+                    originalY = params.y
+                    // Reset sway physics
+                    currentSwayX = 0f
+                    currentSwayY = 0f
+                    currentSwayRotation = 0f
+                    velocityX = 0f
+                    velocityY = 0f
+                    rotationVelocity = 0f
+                    imageView.rotation = baseRotation // Set rotation to new base
                 }
 
                 try {
@@ -213,7 +257,8 @@ class SimpleOverlayManager @Inject constructor(
 
                 // Apply rotation force for character tilting
                 val targetRotation = targetAngle * 0.8f // Character tilts with the swing
-                val rotationForce = (targetRotation - currentRotation) * rotationSpring
+                // Use currentSwayRotation for physics
+                val rotationForce = (targetRotation - currentSwayRotation) * rotationSpring
 
                 // Update velocities with forces
                 velocityX += forceX
@@ -228,7 +273,7 @@ class SimpleOverlayManager @Inject constructor(
                 // Update positions
                 currentSwayX += velocityX
                 currentSwayY += velocityY
-                currentRotation += rotationVelocity
+                currentSwayRotation += rotationVelocity // Use currentSwayRotation
 
                 // Apply constraints to keep motion realistic
                 val maxSwayX = ropeLength * 0.8f // Based on rope length
@@ -237,7 +282,7 @@ class SimpleOverlayManager @Inject constructor(
 
                 currentSwayX = currentSwayX.coerceIn(-maxSwayX, maxSwayX)
                 currentSwayY = currentSwayY.coerceIn(-maxSwayY, maxSwayY)
-                currentRotation = currentRotation.coerceIn(-maxRotation, maxRotation)
+                currentSwayRotation = currentSwayRotation.coerceIn(-maxRotation, maxRotation) // Use currentSwayRotation
 
                 // IMPORTANT: Only move the character, not the rope attachment point
                 // The rope attachment point remains at (originalX, originalY)
@@ -245,7 +290,8 @@ class SimpleOverlayManager @Inject constructor(
                 params.y = (originalY + currentSwayY).toInt()
 
                 // Apply rotation to create tilting effect
-                imageView.rotation = currentRotation
+                // ADD baseRotation to the sway rotation
+                imageView.rotation = baseRotation + currentSwayRotation
 
                 windowManager?.updateViewLayout(overlayView, params)
             } catch (e: Exception) {
@@ -269,17 +315,22 @@ class SimpleOverlayManager @Inject constructor(
                 context?.let { ctx ->
                     // Only move non-hanging characters
                     if (!character.isHanging) {
+                        // Use screenWidth for top, or screenWidth for bottom
+                        val effectiveWidth = screenWidth - (character.width * ctx.resources.displayMetrics.density).toInt()
+
                         if (isMovingRight) {
                             currentXPosition += character.speed
-                            if (currentXPosition >= screenWidth - (character.width * ctx.resources.displayMetrics.density).toInt()) {
+                            if (currentXPosition >= effectiveWidth) {
                                 isMovingRight = false
                                 imageView.scaleX = -1f
+                                currentXPosition = effectiveWidth // Clamp position
                             }
                         } else {
                             currentXPosition -= character.speed
                             if (currentXPosition <= 0) {
                                 isMovingRight = true
                                 imageView.scaleX = 1f
+                                currentXPosition = 0 // Clamp position
                             }
                         }
 
@@ -313,6 +364,7 @@ class SimpleOverlayManager @Inject constructor(
 
         val displayMetrics = context.resources.displayMetrics
         screenWidth = displayMetrics.widthPixels
+        screenHeight = displayMetrics.heightPixels // New
         systemBarsHeight = getSystemBarsHeight(context)
 
         // Set initial orientation
@@ -430,10 +482,11 @@ class SimpleOverlayManager @Inject constructor(
      */
     fun updateOrientation(isLandscape: Boolean) {
         isCurrentlyLandscape = isLandscape
-        // Update screen width on rotation
+        // Update screen width and height on rotation
         context?.let {
             val displayMetrics = it.resources.displayMetrics
             screenWidth = displayMetrics.widthPixels
+            screenHeight = displayMetrics.heightPixels // New
         }
         refreshAllViewsVisibility()
     }
@@ -503,19 +556,31 @@ class SimpleOverlayManager @Inject constructor(
             PixelFormat.TRANSLUCENT
         )
 
-        params.gravity = Gravity.TOP or Gravity.START
+        // NEW: Adjust gravity based on atBottom flag
+        if (character.atBottom) {
+            params.gravity = Gravity.BOTTOM or Gravity.START
+            // Y-position from bottom.
+            params.y = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                character.yPosition // yPosition is now offset from bottom
+            } else {
+                character.yPosition
+            }
+        } else {
+            params.gravity = Gravity.TOP or Gravity.START
+            // Y-position from top
+            params.y = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                character.yPosition - (systemBarsHeight / 3)
+            } else {
+                character.yPosition
+            }
+        }
+
 
         // Position hanging characters at specified X position, others at left edge
         params.x = if (character.isHanging) {
             character.xPosition
         } else {
             0
-        }
-
-        params.y = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            character.yPosition - (systemBarsHeight / 3)
-        } else {
-            character.yPosition
         }
 
         return params
