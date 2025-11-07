@@ -36,6 +36,7 @@ class CharacterSettingsViewModel @Inject constructor(
         private const val X_POSITION_SUFFIX = "_x_position"
         private const val AT_BOTTOM_SUFFIX = "_at_bottom" // New
         private const val ROTATION_SUFFIX = "_rotation" // New
+        private const val ENABLE_FULL_SCREEN_Y_SUFFIX = "_enable_full_screen_y" // New
 
         // Debounce delay for slider updates (milliseconds)
         private const val SLIDER_DEBOUNCE_MS = 150L
@@ -65,6 +66,17 @@ class CharacterSettingsViewModel @Inject constructor(
     private val _xPosition = MutableStateFlow(0)
     val xPosition: StateFlow<Int> = _xPosition
 
+    // New states
+    private val _atBottom = MutableStateFlow(false)
+    val atBottom: StateFlow<Boolean> = _atBottom
+
+    private val _rotation = MutableStateFlow(0f)
+    val rotation: StateFlow<Float> = _rotation
+
+    private val _enableFullScreenY = MutableStateFlow(false) // New
+    val enableFullScreenY: StateFlow<Boolean> = _enableFullScreenY // New
+    // End new states
+
     private val _isCharacterRunning = MutableStateFlow(false)
     val isCharacterRunning: StateFlow<Boolean> = _isCharacterRunning
 
@@ -73,12 +85,6 @@ class CharacterSettingsViewModel @Inject constructor(
 
     private val _useButtonControls = MutableStateFlow(false)
     val useButtonControls: StateFlow<Boolean> = _useButtonControls
-
-    private val _atBottom = MutableStateFlow(false)
-    val atBottom: StateFlow<Boolean> = _atBottom
-
-    private val _rotation = MutableStateFlow(0f)
-    val rotation: StateFlow<Float> = _rotation
 
     // Debouncing jobs for different update types
     private var speedUpdateJob: Job? = null
@@ -140,6 +146,10 @@ class CharacterSettingsViewModel @Inject constructor(
                     characterId + ROTATION_SUFFIX,
                     character.rotation
                 )
+                _enableFullScreenY.value = sharedPreferences.getBoolean( // New
+                    characterId + ENABLE_FULL_SCREEN_Y_SUFFIX,
+                    false
+                )
             }
         }
     }
@@ -154,6 +164,7 @@ class CharacterSettingsViewModel @Inject constructor(
             // Save new states
             putBoolean(characterId + AT_BOTTOM_SUFFIX, _atBottom.value)
             putFloat(characterId + ROTATION_SUFFIX, _rotation.value)
+            putBoolean(characterId + ENABLE_FULL_SCREEN_Y_SUFFIX, _enableFullScreenY.value) // New
         }
     }
 
@@ -186,6 +197,16 @@ class CharacterSettingsViewModel @Inject constructor(
         }
         // Trigger a live update immediately
         updateLiveCharacterImmediate()
+    }
+
+    // New function to handle full screen Y toggle
+    fun setEnableFullScreenY(enabled: Boolean) {
+        _enableFullScreenY.value = enabled
+        // If disabling, clamp Y position back to the normal range
+        if (!enabled && _yPosition.value > 300) {
+            _yPosition.value = 300
+            updateLiveCharacterImmediate()
+        }
     }
 
 
@@ -334,6 +355,7 @@ class CharacterSettingsViewModel @Inject constructor(
                     remove(character.id + X_POSITION_SUFFIX)
                     remove(character.id + AT_BOTTOM_SUFFIX) // New
                     remove(character.id + ROTATION_SUFFIX) // New
+                    remove(character.id + ENABLE_FULL_SCREEN_Y_SUFFIX) // New
                 }
 
                 val defaultCharacter = characterRepository.getDefaultCharacter(character.id)
@@ -345,6 +367,7 @@ class CharacterSettingsViewModel @Inject constructor(
                     _xPosition.value = default.xPosition
                     _atBottom.value = default.atBottom // New
                     _rotation.value = default.rotation // New
+                    _enableFullScreenY.value = false // New: Reset manually
 
                     if (_isCharacterRunning.value) {
                         // Pass the full default object

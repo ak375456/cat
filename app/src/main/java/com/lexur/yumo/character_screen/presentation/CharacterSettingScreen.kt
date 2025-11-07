@@ -91,7 +91,8 @@ fun CharacterSettingsScreen(
     val characterRunning by viewModel.isCharacterRunning.collectAsState()
     val motionSensingEnabled by viewModel.motionSensingEnabled.collectAsState()
     val useButtonControls by viewModel.useButtonControls.collectAsState()
-    val atBottom by viewModel.atBottom.collectAsState() // New state
+    val atBottom by viewModel.atBottom.collectAsState()
+    val enableFullScreenY by viewModel.enableFullScreenY.collectAsState()
 
     // UI state
     val animationSpeedPresets = listOf(50L, 80L, 100L, 140L, 200L, 300L, 500L)
@@ -393,7 +394,7 @@ fun CharacterSettingsScreen(
                 color = if (characterRunning) Primary else Primary.copy(alpha = 0.9f)
             )
 
-            // Position at Bottom Toggle (NEW)
+            // Position at Bottom Toggle
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -428,6 +429,48 @@ fun CharacterSettingsScreen(
                     Switch(
                         checked = atBottom,
                         onCheckedChange = { viewModel.setAtBottom(it, isHangingCharacter) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Primary,
+                            checkedTrackColor = Container,
+                            uncheckedThumbColor = IconSecondary,
+                            uncheckedTrackColor = SurfaceVariant
+                        )
+                    )
+                }
+            }
+
+            // Full Screen Y Position Toggle
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (enableFullScreenY)
+                        Primary.copy(alpha = 0.1f)
+                    else
+                        SurfaceVariant.copy(alpha = 0.3f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Enable Full Screen Y-Position",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                            color = OnBackground
+                        )
+                        Text(
+                            text = "Allows placing the character anywhere vertically on screen.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OnBackground.copy(alpha = 0.7f)
+                        )
+                    }
+                    Switch(
+                        checked = enableFullScreenY,
+                        onCheckedChange = { viewModel.setEnableFullScreenY(it) },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Primary,
                             checkedTrackColor = Container,
@@ -540,8 +583,6 @@ fun CharacterSettingsScreen(
                     }
                 }
             } else {
-                // Slider Controls
-                // Horizontal Position Slider - ONLY for hanging characters
                 if (isHangingCharacter) {
                     Text(
                         text = "Horizontal Position: $xPosition px from left",
@@ -551,7 +592,7 @@ fun CharacterSettingsScreen(
                     Slider(
                         value = xPosition.toFloat(),
                         onValueChange = { viewModel.updateXPosition(it.toInt()) },
-                        valueRange = 0f..1000f, // Keeping X range as is
+                        valueRange = 0f..1080f,
                         colors = SliderDefaults.colors(
                             thumbColor = Primary,
                             activeTrackColor = Primary.copy(alpha = 0.7f),
@@ -569,7 +610,7 @@ fun CharacterSettingsScreen(
                 Slider(
                     value = yPosition.toFloat(),
                     onValueChange = { viewModel.updateYPosition(it.toInt()) },
-                    valueRange = 0f..3000f, // UPDATED: Expanded range
+                    valueRange = if (enableFullScreenY) 0f..3000f else 0f..300f,
                     colors = SliderDefaults.colors(
                         thumbColor = Primary,
                         activeTrackColor = Primary.copy(alpha = 0.7f),
