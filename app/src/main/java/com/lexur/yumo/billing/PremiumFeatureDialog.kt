@@ -25,6 +25,7 @@ fun PremiumFeatureDialog(
     showDialog: Boolean,
     onDismiss: () -> Unit,
     onPurchase: () -> Unit,
+    onRetry: () -> Unit,
     isLoading: Boolean = false,
     productPrice: String = "",
     error: String? = null
@@ -46,8 +47,7 @@ fun PremiumFeatureDialog(
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
+                modifier = Modifier.fillMaxSize()
             ) {
                 // Header with gradient
                 Box(
@@ -67,6 +67,13 @@ fun PremiumFeatureDialog(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = OnPrimary,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Custom Hanging Character Creator",
                             style = MaterialTheme.typography.headlineSmall.copy(
@@ -99,6 +106,7 @@ fun PremiumFeatureDialog(
                         color = Divider
                     )
 
+                    // Error card with retry option
                     if (error != null) {
                         Card(
                             colors = CardDefaults.cardColors(
@@ -106,13 +114,47 @@ fun PremiumFeatureDialog(
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = error,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = OnError,
-                                modifier = Modifier.padding(12.dp)
-                            )
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = OnError,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = error,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = OnError,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+
+                                TextButton(
+                                    onClick = onRetry,
+                                    enabled = !isLoading,
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = OnError
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Retry")
+                                }
+                            }
                         }
+
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
 
                     Text(
@@ -174,22 +216,6 @@ fun PremiumFeatureDialog(
                         color = OnContainerVariant,
                         modifier = Modifier.fillMaxWidth()
                     )
-
-                    if (error != null) {
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = Error.copy(alpha = 0.1f)
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = error,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = OnError,
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
-                    }
                 }
 
                 // Bottom action buttons

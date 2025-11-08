@@ -1,6 +1,5 @@
 package com.lexur.yumo.custom_character.presentation
 
-
 import android.app.Activity
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -70,34 +69,7 @@ import androidx.compose.ui.unit.sp
 import com.lexur.yumo.R
 import com.lexur.yumo.billing.BillingViewModel
 import com.lexur.yumo.billing.PremiumFeatureDialog
-import com.lexur.yumo.ui.theme.Background
-import com.lexur.yumo.ui.theme.ButtonPrimary
-import com.lexur.yumo.ui.theme.ButtonSecondary
-import com.lexur.yumo.ui.theme.CardBackground
-import com.lexur.yumo.ui.theme.Container
-import com.lexur.yumo.ui.theme.DialogBackground
-import com.lexur.yumo.ui.theme.Disabled
-import com.lexur.yumo.ui.theme.IconDisabled
-import com.lexur.yumo.ui.theme.IconPrimary
-import com.lexur.yumo.ui.theme.IconSecondary
-import com.lexur.yumo.ui.theme.InputBackground
-import com.lexur.yumo.ui.theme.InputBorder
-import com.lexur.yumo.ui.theme.InputBorderFocused
-import com.lexur.yumo.ui.theme.InputPlaceholder
-import com.lexur.yumo.ui.theme.InputText
-import com.lexur.yumo.ui.theme.OnBackground
-import com.lexur.yumo.ui.theme.OnButtonPrimary
-import com.lexur.yumo.ui.theme.OnButtonSecondary
-import com.lexur.yumo.ui.theme.OnCard
-import com.lexur.yumo.ui.theme.OnContainerVariant
-import com.lexur.yumo.ui.theme.OnDialog
-import com.lexur.yumo.ui.theme.OnDisabled
-import com.lexur.yumo.ui.theme.OnTopBar
-import com.lexur.yumo.ui.theme.OutlinePrimary
-import com.lexur.yumo.ui.theme.OutlineSecondary
-import com.lexur.yumo.ui.theme.OutlineVariant
-import com.lexur.yumo.ui.theme.Primary
-import com.lexur.yumo.ui.theme.TopBarBackground
+import com.lexur.yumo.ui.theme.*
 
 // Data class to hold tutorial step information
 private data class TutorialStep(
@@ -109,37 +81,37 @@ private data class TutorialStep(
 // List of tutorial steps
 private val tutorialSteps = listOf(
     TutorialStep(
-        imageRes = R.drawable.a, // Assuming a.webp is in your drawable folder
+        imageRes = R.drawable.a,
         title = "Step 1: Select Image",
         description = "Select an image and remove the background."
     ),
     TutorialStep(
-        imageRes = R.drawable.b, // Assuming b.webp is in your drawable folder
+        imageRes = R.drawable.b,
         title = "Step 2: Choose a Rope",
         description = "Pick a rope style that you like the best."
     ),
     TutorialStep(
-        imageRes = R.drawable.c, // Assuming c.webp is in your drawable folder
+        imageRes = R.drawable.c,
         title = "Step 3: Adjust & Save",
         description = "Adjust the rope size, character size, and position."
     )
 )
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) // Added ExperimentalFoundationApi
-
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun CustomCharacterCreationScreen(
     navController: NavController,
     viewModel: CustomCharacterCreationViewModel = hiltViewModel(),
-    billingViewModel: BillingViewModel = hiltViewModel(), // Added BillingViewModel
+    billingViewModel: BillingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val activity = context as? Activity // Get activity for billing
+    val activity = context as? Activity
 
     // Billing states
     val billingState by billingViewModel.billingState.collectAsState()
     val showPremiumDialog by billingViewModel.showPremiumDialog.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var showRopeSelection by remember { mutableStateOf(false) }
     var showNameDialog by remember { mutableStateOf(false) }
@@ -160,6 +132,12 @@ fun CustomCharacterCreationScreen(
         }
     )
 
+    // Check premium status on screen load
+    LaunchedEffect(Unit) {
+        billingViewModel.refreshBillingData()
+    }
+
+    // Handle save completion
     LaunchedEffect(uiState.saveComplete) {
         if (uiState.saveComplete) {
             navController.popBackStack()
@@ -167,6 +145,7 @@ fun CustomCharacterCreationScreen(
         }
     }
 
+    // Handle emoji selection
     LaunchedEffect(uiState.selectedEmoji) {
         if (uiState.selectedEmoji != null && !showRopeSelection) {
             showRopeSelection = true
@@ -176,15 +155,30 @@ fun CustomCharacterCreationScreen(
     // Handle successful purchase
     LaunchedEffect(billingState.purchaseSuccess) {
         if (billingState.purchaseSuccess) {
-            // Purchase was successful, just dismiss the dialog.
-            // The user can now click the button again to proceed.
+            snackbarHostState.showSnackbar(
+                message = "Premium unlocked! You can now create custom characters! 🎉",
+                duration = SnackbarDuration.Short
+            )
             billingViewModel.resetPurchaseSuccess()
-            billingViewModel.dismissPremiumDialog()
+        }
+    }
+
+    // Handle billing errors
+    LaunchedEffect(billingState.error) {
+        billingState.error?.let { error ->
+            // Only show non-connection errors in snackbar
+            if (!error.contains("Product not available") &&
+                !error.contains("Unable to connect")) {
+                snackbarHostState.showSnackbar(
+                    message = error,
+                    duration = SnackbarDuration.Long
+                )
+            }
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Show Premium Dialog over everything
+        // Premium Dialog
         PremiumFeatureDialog(
             showDialog = showPremiumDialog,
             onDismiss = {
@@ -194,11 +188,15 @@ fun CustomCharacterCreationScreen(
             onPurchase = {
                 activity?.let { billingViewModel.purchasePremium(it) }
             },
+            onRetry = {
+                activity?.let { billingViewModel.retryPurchase(it) }
+            },
             isLoading = billingState.isLoading,
-            productPrice = billingState.availableProducts.firstOrNull()?.price ?: "",
+            productPrice = billingViewModel.getProductPrice(),
             error = billingState.error
         )
 
+        // Emoji Picker Dialog
         EmojiInputDialog(
             showDialog = uiState.showEmojiPicker,
             onDismiss = { viewModel.dismissEmojiPicker() },
@@ -210,9 +208,7 @@ fun CustomCharacterCreationScreen(
 
         when {
             uiState.showRopeAdjustment && uiState.selectedRopeResId != null -> {
-                // Check if it's emoji or image
                 if (uiState.selectedEmoji != null) {
-                    // Emoji rope adjustment
                     EmojiRopeAdjustmentScreen(
                         emoji = uiState.selectedEmoji!!,
                         ropeResId = uiState.selectedRopeResId!!,
@@ -238,7 +234,6 @@ fun CustomCharacterCreationScreen(
                         onStrokeColorChanged = viewModel::setStrokeColor
                     )
                 } else {
-                    // Regular image rope adjustment
                     RopeAdjustmentScreen(
                         imageUri = uiState.selectedImageUri!!,
                         maskPath = uiState.maskPath,
@@ -288,7 +283,6 @@ fun CustomCharacterCreationScreen(
                 NameCharacterDialog(
                     onNameSelected = { name ->
                         viewModel.onCharacterNameChanged(name)
-                        // Check if it's emoji or regular character
                         if (uiState.selectedEmoji != null) {
                             viewModel.saveEmojiCharacter(context)
                         } else {
@@ -303,6 +297,7 @@ fun CustomCharacterCreationScreen(
             else -> {
                 Scaffold(
                     containerColor = Background,
+                    snackbarHost = { SnackbarHost(snackbarHostState) },
                     topBar = {
                         if (uiState.selectedImageUri != null) {
                             TopAppBar(
@@ -321,7 +316,6 @@ fun CustomCharacterCreationScreen(
                                     actionIconContentColor = IconPrimary
                                 ),
                                 actions = {
-                                    // Toggle Brush Mode
                                     IconButton(onClick = { viewModel.toggleBackgroundRemovalMode() }) {
                                         Icon(
                                             Icons.Default.Brush,
@@ -332,7 +326,6 @@ fun CustomCharacterCreationScreen(
                                                 IconPrimary
                                         )
                                     }
-                                    // Toggle Pan Mode
                                     if (uiState.isBackgroundRemovalMode) {
                                         IconButton(onClick = { viewModel.togglePanningMode() }) {
                                             Icon(
@@ -345,7 +338,6 @@ fun CustomCharacterCreationScreen(
                                             )
                                         }
                                     }
-                                    // Undo
                                     IconButton(
                                         onClick = { viewModel.undoLastStroke() },
                                         enabled = uiState.strokeHistory.isNotEmpty() && !uiState.isPanningMode
@@ -359,7 +351,6 @@ fun CustomCharacterCreationScreen(
                                                 IconDisabled
                                         )
                                     }
-                                    // Done
                                     IconButton(onClick = {
                                         viewModel.finishEditing()
                                         showRopeSelection = true
@@ -380,19 +371,17 @@ fun CustomCharacterCreationScreen(
                             .fillMaxSize()
                             .padding(paddingValues),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center // <-- MODIFIED: This centers the scrollable column when content is short
+                        verticalArrangement = Arrangement.Center
                     ) {
                         when {
                             uiState.selectedImageUri == null -> {
                                 Column(
                                     modifier = Modifier
-                                        .fillMaxWidth() // <-- MODIFIED: Changed from fillMaxSize
-                                        .verticalScroll(rememberScrollState()) // <-- MODIFIED: Added scroll
+                                        .fillMaxWidth()
+                                        .verticalScroll(rememberScrollState())
                                         .padding(24.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    // verticalArrangement = Arrangement.Center, // <-- MODIFIED: Removed this
                                 ) {
-                                    // Header Section
                                     Text(
                                         "Create Hanging Character",
                                         style = MaterialTheme.typography.displaySmall.copy(
@@ -405,13 +394,10 @@ fun CustomCharacterCreationScreen(
 
                                     Spacer(modifier = Modifier.height(6.dp))
 
-                                    // --- START: NEW TUTORIAL PAGER ---
                                     TutorialPager()
-                                    // --- END: NEW TUTORIAL PAGER ---
 
                                     Spacer(modifier = Modifier.height(12.dp))
 
-                                    // Privacy Notice Card
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth(0.9f)
@@ -445,8 +431,6 @@ fun CustomCharacterCreationScreen(
 
                                     Spacer(modifier = Modifier.height(12.dp))
 
-
-                                    // Primary Button - Select Image
                                     Button(
                                         onClick = {
                                             if (billingState.isPremiumOwned) {
@@ -486,7 +470,6 @@ fun CustomCharacterCreationScreen(
 
                                     Spacer(modifier = Modifier.height(8.dp))
 
-                                    // Secondary Button - Upload PNG
                                     OutlinedButton(
                                         onClick = {
                                             if (billingState.isPremiumOwned) {
@@ -520,7 +503,9 @@ fun CustomCharacterCreationScreen(
                                             )
                                         )
                                     }
+
                                     Spacer(modifier = Modifier.height(8.dp))
+
                                     OutlinedButton(
                                         onClick = {
                                             if (billingState.isPremiumOwned) {
@@ -551,7 +536,6 @@ fun CustomCharacterCreationScreen(
                                             )
                                         )
                                     }
-
                                 }
                             }
                             else -> {
@@ -582,7 +566,6 @@ fun CustomCharacterCreationScreen(
                                 }
 
                                 if (uiState.isBackgroundRemovalMode && !uiState.isPanningMode) {
-                                    // Brush Size Control
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -650,7 +633,6 @@ fun CustomCharacterCreationScreen(
                                         }
                                     }
 
-                                    // Edge Softness Control
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -697,7 +679,6 @@ fun CustomCharacterCreationScreen(
                                     }
                                 }
 
-                                // Bottom Action Buttons
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -756,7 +737,6 @@ fun CustomCharacterCreationScreen(
             }
         }
 
-        // Saving Overlay
         if (uiState.isSaving) {
             Box(
                 modifier = Modifier

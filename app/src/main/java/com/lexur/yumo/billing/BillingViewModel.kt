@@ -21,6 +21,9 @@ class BillingViewModel @Inject constructor(
     private val _showPremiumDialog = MutableStateFlow(false)
     val showPremiumDialog: StateFlow<Boolean> = _showPremiumDialog.asStateFlow()
 
+    private val _purchaseResult = MutableStateFlow<PurchaseResultState>(PurchaseResultState.Idle)
+    val purchaseResult: StateFlow<PurchaseResultState> = _purchaseResult.asStateFlow()
+
     init {
         observeBillingState()
     }
@@ -29,6 +32,12 @@ class BillingViewModel @Inject constructor(
         viewModelScope.launch {
             billingRepository.billingState.collect { state ->
                 _billingState.value = state
+
+                // Auto-dismiss dialog on successful purchase
+                if (state.purchaseSuccess) {
+                    _showPremiumDialog.value = false
+                    _purchaseResult.value = PurchaseResultState.Success
+                }
             }
         }
     }
@@ -38,47 +47,92 @@ class BillingViewModel @Inject constructor(
     }
 
     fun showPremiumDialog() {
+        // Clear any previous errors when opening dialog
+        clearError()
         _showPremiumDialog.value = true
     }
 
     fun dismissPremiumDialog() {
         _showPremiumDialog.value = false
+        clearError()
+        _purchaseResult.value = PurchaseResultState.Idle
     }
 
     fun purchasePremium(activity: Activity) {
         viewModelScope.launch {
+            _purchaseResult.value = PurchaseResultState.Loading
+
             val result = billingRepository.launchPurchaseFlow(activity)
+
             when (result) {
+                is BillingResult.Loading -> {
+                    // Purchase flow launched, waiting for callback
+                    _purchaseResult.value = PurchaseResultState.Loading
+                }
                 is BillingResult.Success -> {
-                    // Purchase flow launched successfully
+                    // This shouldn't happen with the fixed repository
+                    _purchaseResult.value = PurchaseResultState.Success
+                    _showPremiumDialog.value = false
                 }
                 is BillingResult.Error -> {
-                    _billingState.value = _billingState.value.copy(
-                        error = result.message
-                    )
+                    _purchaseResult.value = PurchaseResultState.Error(result.message)
                 }
                 is BillingResult.PremiumOwned -> {
-                    _billingState.value = _billingState.value.copy(
-                        isPremiumOwned = true
-                    )
+                    _purchaseResult.value = PurchaseResultState.AlreadyOwned
+                    _showPremiumDialog.value = false
+                }
+                is BillingResult.UserCancelled -> {
+                    _purchaseResult.value = PurchaseResultState.Cancelled
                 }
                 else -> {
-                    // Handle other cases
+                    _purchaseResult.value = PurchaseResultState.Error("Unknown error occurred")
                 }
             }
         }
     }
 
+    fun retryPurchase(activity: Activity) {
+        // Refresh product details and try again
+        refreshBillingData()
+        purchasePremium(activity)
+    }
+
+    fun refreshBillingData() {
+        viewModelScope.launch {
+            clearError()
+            billingRepository.refreshProductDetails()
+            billingRepository.refreshPurchases()
+        }
+    }
+
     fun resetPurchaseSuccess() {
         billingRepository.resetPurchaseSuccess()
+        _purchaseResult.value = PurchaseResultState.Idle
     }
 
     fun clearError() {
         billingRepository.clearError()
+        if (_purchaseResult.value is PurchaseResultState.Error) {
+            _purchaseResult.value = PurchaseResultState.Idle
+        }
+    }
+
+    fun getProductPrice(): String {
+        return _billingState.value.availableProducts.firstOrNull()?.price ?: ""
     }
 
     override fun onCleared() {
         super.onCleared()
         billingRepository.destroy()
     }
+}
+
+// Sealed class for purchase result states
+sealed class PurchaseResultState {
+    data object Idle : PurchaseResultState()
+    data object Loading : PurchaseResultState()
+    data object Success : PurchaseResultState()
+    data object AlreadyOwned : PurchaseResultState()
+    data object Cancelled : PurchaseResultState()
+    data class Error(val message: String) : PurchaseResultState()
 }

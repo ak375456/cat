@@ -1,6 +1,5 @@
 package com.lexur.yumo.home_screen.presentation
 
-import android.app.Application // Import Application
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -25,12 +24,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import java.lang.ref.WeakReference
+import androidx.core.content.edit
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val characterRepository: CharacterRepository,
     private val sharedPreferences: SharedPreferences,
-    @param: ApplicationContext private val application: Context // Inject application context
+    @param: ApplicationContext private val application: Context, // Inject application context
 ) : ViewModel() {
 
     private val _showPermissionDialog = MutableStateFlow(false)
@@ -262,9 +262,9 @@ class HomeViewModel @Inject constructor(
     // --- New function to update landscape preference ---
     fun setEnableInLandscape(enabled: Boolean) {
         viewModelScope.launch {
-            sharedPreferences.edit()
-                .putBoolean(KEY_ENABLE_IN_LANDSCAPE, enabled)
-                .apply()
+            sharedPreferences.edit {
+                    putBoolean(KEY_ENABLE_IN_LANDSCAPE, enabled)
+            }
             _enableInLandscape.value = enabled
 
             // Pass the setting to the service immediately if bound
@@ -284,9 +284,9 @@ class HomeViewModel @Inject constructor(
     }
 
     fun setDontShowPermissionDialogAgain() {
-        val dialogPrefs = sharedPreferences.edit()
-        dialogPrefs.putBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, true)
-        dialogPrefs.apply()
+        sharedPreferences.edit {
+            putBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, true)
+        }
         _showPermissionDialog.value = false
     }
 
@@ -303,10 +303,6 @@ class HomeViewModel @Inject constructor(
 
     fun clearCategoryFilter() {
         _selectedCategory.value = null
-    }
-
-    fun onFabClicked() {
-        _showCreationDialog.value = true
     }
 
     fun onDismissCreationDialog() {

@@ -16,7 +16,6 @@ import androidx.core.app.NotificationCompat
 import com.lexur.yumo.home_screen.data.model.Characters
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import com.lexur.yumo.R
 
 @AndroidEntryPoint
 class OverlayService : Service() {
@@ -40,11 +39,7 @@ class OverlayService : Service() {
                 action = ACTION_START_CHARACTER // ✅ Correct
                 putExtra(EXTRA_CHARACTER, character)
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            context.startForegroundService(intent)
         }
 
         fun stopCharacter(context: Context, characterId: String) {
@@ -130,19 +125,17 @@ class OverlayService : Service() {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Overlay Pets Service",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Keeps your overlay pets running"
-                setShowBadge(false)
-            }
-
-            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "Overlay Pets Service",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Keeps your overlay pets running"
+            setShowBadge(false)
         }
+
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 
     private fun createNotification(): Notification {
