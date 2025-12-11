@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.lexur.yumo.home_screen.data.model.CharacterCategory
-import dagger.hilt.android.qualifiers.ApplicationContext // Import ApplicationContext
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -30,7 +30,7 @@ import androidx.core.content.edit
 class HomeViewModel @Inject constructor(
     private val characterRepository: CharacterRepository,
     private val sharedPreferences: SharedPreferences,
-    @param: ApplicationContext private val application: Context, // Inject application context
+    @param: ApplicationContext private val application: Context,
 ) : ViewModel() {
 
     private val _showPermissionDialog = MutableStateFlow(false)
@@ -44,7 +44,7 @@ class HomeViewModel @Inject constructor(
     companion object {
         private const val PREFS_NAME = "overlay_pets_prefs"
         private const val KEY_DONT_SHOW_PERMISSION_DIALOG = "dont_show_permission_dialog"
-        private const val KEY_ENABLE_IN_LANDSCAPE = "enable_in_landscape" // New key
+        private const val KEY_ENABLE_IN_LANDSCAPE = "enable_in_landscape"
 
         // Keys for character-specific settings
         private const val SPEED_SUFFIX = "_speed"
@@ -52,8 +52,8 @@ class HomeViewModel @Inject constructor(
         private const val ANIMATION_DELAY_SUFFIX = "_animation_delay"
         private const val Y_POSITION_SUFFIX = "_y_position"
         private const val X_POSITION_SUFFIX = "_x_position"
-        private const val AT_BOTTOM_SUFFIX = "_at_bottom" // New
-        private const val ROTATION_SUFFIX = "_rotation" // New
+        private const val AT_BOTTOM_SUFFIX = "_at_bottom"
+        private const val ROTATION_SUFFIX = "_rotation"
     }
 
     private val _allCharacters = MutableStateFlow<List<Characters>>(emptyList())
@@ -131,33 +131,29 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadAllCharacters()
-        bindToService() // Call bindToService in init
+        bindToService()
     }
 
-    // Modified bindToService to not take context
     fun bindToService() {
         // Initialize dialog state only once when binding to service for the first time
         if (!isDialogStateInitialized) {
-            initializeDialogState(application) // Use application context
+            initializeDialogState()
             isDialogStateInitialized = true
         }
 
-        val intent = Intent(application, OverlayService::class.java) // Use application context
+        val intent = Intent(application, OverlayService::class.java)
         try {
-            application.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE) // Use application context
+            application.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
         } catch (e: Exception) {
-            // Handle potential exceptions if service binding fails
             e.printStackTrace()
         }
     }
 
-    // Modified unbindFromService to not take context
     fun unbindFromService() {
         if (serviceBound) {
             try {
-                application.unbindService(serviceConnection) // Use application context
+                application.unbindService(serviceConnection)
             } catch (e: Exception) {
-                // Handle exceptions during unbind (e.g., service not registered)
                 e.printStackTrace()
             }
             serviceBound = false
@@ -227,12 +223,12 @@ class HomeViewModel @Inject constructor(
         return character.copy(
             speed = customSpeed,
             width = customSize,
-            height = customSize, // Use same value for both width and height
+            height = customSize,
             animationDelay = customAnimationDelay,
             yPosition = customYPosition,
             xPosition = customXPosition,
-            atBottom = customAtBottom, // New
-            rotation = customRotation  // New
+            atBottom = customAtBottom,
+            rotation = customRotation
         )
     }
 
@@ -263,7 +259,7 @@ class HomeViewModel @Inject constructor(
     fun setEnableInLandscape(enabled: Boolean) {
         viewModelScope.launch {
             sharedPreferences.edit {
-                    putBoolean(KEY_ENABLE_IN_LANDSCAPE, enabled)
+                putBoolean(KEY_ENABLE_IN_LANDSCAPE, enabled)
             }
             _enableInLandscape.value = enabled
 
@@ -273,9 +269,9 @@ class HomeViewModel @Inject constructor(
     }
     // ---
 
-    private fun initializeDialogState(context: Context) {
-        val dialogPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val shouldShow = !dialogPrefs.getBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, false)
+    // FIXED: Now using the injected sharedPreferences instead of creating a new instance
+    private fun initializeDialogState() {
+        val shouldShow = !sharedPreferences.getBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, false)
         _showPermissionDialog.value = shouldShow
     }
 
@@ -299,8 +295,6 @@ class HomeViewModel @Inject constructor(
         _selectedCategory.value = category
     }
 
-
-
     fun clearCategoryFilter() {
         _selectedCategory.value = null
     }
@@ -310,7 +304,7 @@ class HomeViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        unbindFromService() // Call unbindFromService in onCleared
+        unbindFromService()
         super.onCleared()
         overlayServiceRef?.clear()
         overlayServiceRef = null
