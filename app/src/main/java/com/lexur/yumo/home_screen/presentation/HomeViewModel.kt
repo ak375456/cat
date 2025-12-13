@@ -46,7 +46,6 @@ class HomeViewModel @Inject constructor(
         private const val KEY_DONT_SHOW_PERMISSION_DIALOG = "dont_show_permission_dialog"
         private const val KEY_ENABLE_IN_LANDSCAPE = "enable_in_landscape"
 
-        // Keys for character-specific settings
         private const val SPEED_SUFFIX = "_speed"
         private const val SIZE_SUFFIX = "_size"
         private const val ANIMATION_DELAY_SUFFIX = "_animation_delay"
@@ -58,34 +57,24 @@ class HomeViewModel @Inject constructor(
 
     private val _allCharacters = MutableStateFlow<List<Characters>>(emptyList())
 
-    // Selected category for filtering
     private val _selectedCategory = MutableStateFlow<CharacterCategory?>(null)
     val selectedCategory: StateFlow<CharacterCategory?> = _selectedCategory.asStateFlow()
 
-    // Filtered characters based on selected category
     val filteredCharacters: StateFlow<List<Characters>> = combine(
         _allCharacters,
         _selectedCategory
     ) { characters, category ->
-
         val filtered = when (category) {
-            null -> {
-                characters
-            }
+            null -> characters
             CharacterCategory.HANGING -> {
-                // For hanging characters, check both category and isHanging property
-                val hangingChars = characters.filter { character ->
-                    val isHanging = character.category == CharacterCategory.HANGING || character.isHanging
-                    isHanging
+                characters.filter { character ->
+                    character.category == CharacterCategory.HANGING || character.isHanging
                 }
-                hangingChars
             }
             else -> {
-                val categoryChars = characters.filter { it.category == category }
-                categoryChars
+                characters.filter { it.category == category }
             }
         }
-
         filtered
     }.stateIn(
         scope = viewModelScope,
@@ -93,18 +82,14 @@ class HomeViewModel @Inject constructor(
         initialValue = emptyList()
     )
 
-    // Track running characters using MutableStateFlow<Set>
     private val _runningCharacters = MutableStateFlow<Set<String>>(emptySet())
     val runningCharacters: StateFlow<Set<String>> = _runningCharacters.asStateFlow()
 
-    // --- New StateFlow for landscape setting ---
     private val _enableInLandscape = MutableStateFlow(
         sharedPreferences.getBoolean(KEY_ENABLE_IN_LANDSCAPE, false)
     )
     val enableInLandscape: StateFlow<Boolean> = _enableInLandscape.asStateFlow()
-    // ---
 
-    // Use WeakReference to avoid memory leak
     private var overlayServiceRef: WeakReference<OverlayService>? = null
     private var serviceBound = false
 
@@ -115,10 +100,7 @@ class HomeViewModel @Inject constructor(
             overlayServiceRef = WeakReference(overlayService)
             serviceBound = true
 
-            // Update running characters based on service state
             updateRunningCharactersFromService()
-
-            // --- Pass current landscape setting to service ---
             overlayService.overlayManager.setEnableInLandscape(_enableInLandscape.value)
         }
 
@@ -135,7 +117,6 @@ class HomeViewModel @Inject constructor(
     }
 
     fun bindToService() {
-        // Initialize dialog state only once when binding to service for the first time
         if (!isDialogStateInitialized) {
             initializeDialogState()
             isDialogStateInitialized = true
@@ -173,10 +154,7 @@ class HomeViewModel @Inject constructor(
     fun startCharacter(context: Context, character: Characters) {
         viewModelScope.launch {
             try {
-                // Load character-specific settings from SharedPreferences
                 val characterWithCustomSettings = loadCharacterCustomSettings(character)
-
-                // Use the static companion method from OverlayService
                 OverlayService.startCharacter(context, characterWithCustomSettings)
                 _runningCharacters.update { it + character.id }
             } catch (e: Exception) {
@@ -188,7 +166,6 @@ class HomeViewModel @Inject constructor(
     private fun loadCharacterCustomSettings(character: Characters): Characters {
         val characterId = character.id
 
-        // Load character-specific settings with fallback to original values
         val customSpeed = sharedPreferences.getInt(
             characterId + SPEED_SUFFIX,
             character.speed
@@ -209,7 +186,6 @@ class HomeViewModel @Inject constructor(
             characterId + X_POSITION_SUFFIX,
             character.xPosition
         )
-        // Load new settings
         val customAtBottom = sharedPreferences.getBoolean(
             characterId + AT_BOTTOM_SUFFIX,
             character.atBottom
@@ -219,7 +195,6 @@ class HomeViewModel @Inject constructor(
             character.rotation
         )
 
-        // Return character with custom settings applied
         return character.copy(
             speed = customSpeed,
             width = customSize,
@@ -248,28 +223,22 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    // Call this when screen becomes visible to sync with service
     fun syncWithService() {
         if (serviceBound) {
             updateRunningCharactersFromService()
         }
     }
 
-    // --- New function to update landscape preference ---
     fun setEnableInLandscape(enabled: Boolean) {
         viewModelScope.launch {
             sharedPreferences.edit {
                 putBoolean(KEY_ENABLE_IN_LANDSCAPE, enabled)
             }
             _enableInLandscape.value = enabled
-
-            // Pass the setting to the service immediately if bound
             overlayServiceRef?.get()?.overlayManager?.setEnableInLandscape(enabled)
         }
     }
-    // ---
 
-    // FIXED: Now using the injected sharedPreferences instead of creating a new instance
     private fun initializeDialogState() {
         val shouldShow = !sharedPreferences.getBoolean(KEY_DONT_SHOW_PERMISSION_DIALOG, false)
         _showPermissionDialog.value = shouldShow
@@ -290,7 +259,6 @@ class HomeViewModel @Inject constructor(
         _showPermissionDialog.value = true
     }
 
-    // Category filtering methods
     fun selectCategory(category: CharacterCategory) {
         _selectedCategory.value = category
     }
@@ -301,6 +269,11 @@ class HomeViewModel @Inject constructor(
 
     fun onDismissCreationDialog() {
         _showCreationDialog.value = false
+    }
+
+    // NEW: Get count of premium characters
+    fun getPremiumCharacterCount(): Int {
+        return characterRepository.getPremiumCharacterCount()
     }
 
     override fun onCleared() {

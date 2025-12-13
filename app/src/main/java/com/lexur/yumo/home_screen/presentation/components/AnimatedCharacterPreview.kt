@@ -12,36 +12,15 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,16 +32,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.lexur.yumo.home_screen.data.model.CharacterCategory
 import com.lexur.yumo.home_screen.data.model.Characters
-import com.lexur.yumo.ui.theme.ButtonPrimary
-import com.lexur.yumo.ui.theme.CardBackground
-import com.lexur.yumo.ui.theme.Error
-import com.lexur.yumo.ui.theme.OnButtonPrimary
-import com.lexur.yumo.ui.theme.OnCard
-import com.lexur.yumo.ui.theme.OnError
-import com.lexur.yumo.ui.theme.OnSecondary
-import com.lexur.yumo.ui.theme.Primary
-import com.lexur.yumo.ui.theme.SecondaryVariant
-import com.lexur.yumo.ui.theme.SurfaceVariant
+import com.lexur.yumo.ui.theme.*
 import kotlinx.coroutines.delay
 
 @Composable
@@ -75,15 +45,13 @@ fun AnimatedCharacterPreview(
     canUseCharacter: Boolean,
     isCharacterRunning: Boolean,
     onStopCharacter: () -> Unit,
+    isPremiumUser: Boolean = false,
+    onPremiumClick: () -> Unit = {}
 ) {
-    // State for frame-by-frame animation
     var currentFrame by remember { mutableIntStateOf(0) }
     val frameCount = character?.frameIds?.size ?: 1
-
-    // State for hanging character info dialog
     var showHangingInfoDialog by remember { mutableStateOf(false) }
 
-    // This effect runs the character's frame animation when the card is expanded.
     LaunchedEffect(character, isExpanded) {
         if (isExpanded && character != null && frameCount > 1 && character.animationDelay > 0L) {
             while (true) {
@@ -91,12 +59,10 @@ fun AnimatedCharacterPreview(
                 currentFrame = (currentFrame + 1) % frameCount
             }
         } else {
-            // Reset to the first frame when collapsed or static.
             currentFrame = 0
         }
     }
 
-    // Show dialog for hanging characters
     HangingCharacterInfoDialog(
         showDialog = showHangingInfoDialog,
         onDismiss = { showHangingInfoDialog = false },
@@ -107,7 +73,7 @@ fun AnimatedCharacterPreview(
         onClick = onCardClick,
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize( // Animates the card size change smoothly
+            .animateContentSize(
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioMediumBouncy,
                     stiffness = Spring.StiffnessMedium
@@ -129,22 +95,21 @@ fun AnimatedCharacterPreview(
                 // Character preview container
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(100.dp)
+                    modifier = Modifier.size(100.dp)
                 ) {
                     if (character!!.isCustom) {
                         Image(
                             painter = rememberAsyncImagePainter(model = character.imagePath),
-                            contentDescription = character?.name,
+                            contentDescription = character.name,
                             modifier = Modifier.size(
-                                (character?.previewWidth!! * 0.7).dp,
+                                (character.previewWidth * 0.7).dp,
                                 (character.previewHeight * 0.7).dp
                             ),
                             contentScale = ContentScale.Fit
                         )
                     } else {
                         Image(
-                            painter = painterResource(id = character!!.frameIds[currentFrame]),
+                            painter = painterResource(id = character.frameIds[currentFrame]),
                             contentDescription = character.name,
                             modifier = Modifier.size(
                                 (character.previewWidth * 0.7).dp,
@@ -162,7 +127,9 @@ fun AnimatedCharacterPreview(
                 ) {
                     Text(
                         text = character?.name ?: "Loading...",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
                         textAlign = TextAlign.Center,
                         color = OnCard
                     )
@@ -173,7 +140,7 @@ fun AnimatedCharacterPreview(
                             color = SecondaryVariant.copy(alpha = 0.6f)
                         ) {
                             Text(
-                                text = character.category.displayName, // Safe due to isNullOrBlank check
+                                text = character.category.displayName,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = OnSecondary,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -182,7 +149,7 @@ fun AnimatedCharacterPreview(
                     }
                 }
 
-                // "Running" status indicator shown only when the card is collapsed
+                // Running status indicator
                 if (isCharacterRunning && !isExpanded) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -195,7 +162,9 @@ fun AnimatedCharacterPreview(
                         )
                         Text(
                             text = "Running",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
                             color = Primary
                         )
                     }
@@ -213,7 +182,6 @@ fun AnimatedCharacterPreview(
                             .fillMaxWidth()
                             .padding(top = 4.dp)
                     ) {
-                        // Show "Stop" button if running, otherwise show "Use" button
                         if (isCharacterRunning) {
                             Button(
                                 onClick = onStopCharacter,
@@ -232,7 +200,14 @@ fun AnimatedCharacterPreview(
                             }
                         } else {
                             Button(
-                                onClick = onUseCharacter,
+                                onClick = {
+                                    // Check premium status when trying to use
+                                    if (character?.isPremium == true && !isPremiumUser) {
+                                        onPremiumClick()
+                                    } else {
+                                        onUseCharacter()
+                                    }
+                                },
                                 enabled = canUseCharacter && character != null,
                                 modifier = Modifier.fillMaxWidth().height(48.dp),
                                 shape = RoundedCornerShape(14.dp),
@@ -249,14 +224,19 @@ fun AnimatedCharacterPreview(
                             }
                         }
 
-                        // Settings Button (replaces the OutlinedButton)
                         Button(
-                            onClick = onCharacterSettings,
+                            onClick = {
+                                // Check premium status when trying to access settings
+                                if (character?.isPremium == true && !isPremiumUser) {
+                                    onPremiumClick()
+                                } else {
+                                    onCharacterSettings()
+                                }
+                            },
                             enabled = character != null,
                             modifier = Modifier.fillMaxWidth().height(48.dp),
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(
-                                // Using a secondary color to distinguish from the primary action
                                 containerColor = SurfaceVariant,
                                 contentColor = OnCard
                             )
@@ -271,7 +251,29 @@ fun AnimatedCharacterPreview(
                 }
             }
 
-            // Info button for hanging characters - positioned at top-right
+            // Premium badge - small icon in top-left corner
+            if (character?.isPremium == true && !isPremiumUser) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                        .size(24.dp)
+                        .background(
+                            color = Primary,
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "Premium",
+                        tint = OnPrimary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+
+            // Info button for hanging characters - top-right corner
             if (character?.category == CharacterCategory.HANGING || character?.isHanging == true) {
                 IconButton(
                     onClick = { showHangingInfoDialog = true },

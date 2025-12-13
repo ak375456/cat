@@ -65,7 +65,8 @@ class CharacterRepository @Inject constructor(
             yPosition = 20,
             xPosition = 150,
             speed = 0,
-            animationDelay = 0L
+            animationDelay = 0L,
+            isPremium = true
         ),
         Characters(
             id = "puffin_hanging",
@@ -80,7 +81,8 @@ class CharacterRepository @Inject constructor(
             yPosition = 20,
             xPosition = 150,
             speed = 0,
-            animationDelay = 0L
+            animationDelay = 0L,
+            isPremium = true
         ),
         Characters(
             id = "punch_hole_glow",
@@ -159,7 +161,8 @@ class CharacterRepository @Inject constructor(
             width = 18,
             height = 18,
             speed = 3,
-            animationDelay = 100L
+            animationDelay = 100L,
+            isPremium = true
         ),
         Characters(
             id = "walking_dog",
@@ -372,7 +375,8 @@ class CharacterRepository @Inject constructor(
             yPosition = 20,
             xPosition = 150,
             speed = 0,
-            animationDelay = 0L
+            animationDelay = 0L,
+            isPremium = true
         ),
         Characters(
             id = "fox_running",
@@ -413,7 +417,8 @@ class CharacterRepository @Inject constructor(
             yPosition = 20,
             xPosition = 150,
             speed = 4,
-            animationDelay = 120L
+            animationDelay = 120L,
+            isPremium = true
         ),
         Characters(
             id = "bronco_running",
@@ -457,7 +462,8 @@ class CharacterRepository @Inject constructor(
             yPosition = 20,
             xPosition = 150,
             speed = 4,
-            animationDelay = 120L
+            animationDelay = 120L,
+            isPremium = true
         ),
         Characters(
             id = "bleepy_walking",
@@ -499,7 +505,8 @@ class CharacterRepository @Inject constructor(
             yPosition = 20,
             xPosition = 150,
             speed = 4,
-            animationDelay = 120L
+            animationDelay = 120L,
+            isPremium = true
         ),
         Characters(
             id = "judy_hanging",
@@ -529,7 +536,8 @@ class CharacterRepository @Inject constructor(
             yPosition = 20,
             xPosition = 150,
             speed = 0,
-            animationDelay = 0L
+            animationDelay = 0L,
+            isPremium = true
         ),
     )
 
@@ -544,13 +552,13 @@ class CharacterRepository @Inject constructor(
                 Characters(
                     id = "custom_${it.id}",
                     name = it.name,
-                    category = CharacterCategory.HANGING, // Assuming custom are hanging for now
-                    frameIds = emptyList(), // Will be loaded from path
+                    category = CharacterCategory.HANGING,
+                    frameIds = emptyList(),
                     imagePath = it.imagePath,
                     isCustom = true,
-                    // Default new properties for custom characters
                     atBottom = false,
-                    rotation = 0f
+                    rotation = 0f,
+                    isPremium = false // Custom characters are never premium
                 )
             }
             defaultCharacters + customMapped
@@ -566,5 +574,8 @@ class CharacterRepository @Inject constructor(
     // Method to get default character (useful for reset functionality)
     fun getDefaultCharacter(characterId: String): Characters? {
         return defaultCharacters.find { it.id == characterId }
+    }
+    fun getPremiumCharacterCount(): Int {
+        return defaultCharacters.count { it.isPremium }
     }
 }

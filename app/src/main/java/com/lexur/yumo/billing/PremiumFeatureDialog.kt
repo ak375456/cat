@@ -28,7 +28,8 @@ fun PremiumFeatureDialog(
     onRetry: () -> Unit,
     isLoading: Boolean = false,
     productPrice: String = "",
-    error: String? = null
+    error: String? = null,
+    premiumCharacterCount: Int = 0 // NEW PARAMETER
 ) {
     if (!showDialog) return
 
@@ -75,7 +76,7 @@ fun PremiumFeatureDialog(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Custom Hanging Character Creator",
+                            text = "Unlock Premium Features",
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = OnPrimary
@@ -165,16 +166,58 @@ fun PremiumFeatureDialog(
                         color = OnDialog
                     )
 
+                    // PROMINENT FEATURE: Unlock all characters
+                    if (premiumCharacterCount > 0) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = Primary.copy(alpha = 0.15f)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = Primary,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = "Unlock All $premiumCharacterCount Premium Characters",
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = Primary
+                                    )
+                                    Text(
+                                        text = "Get instant access to all premium animated and hanging characters",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = OnBackground.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     PremiumFeatureItem(
                         icon = Icons.Default.Person,
-                        title = "Upload Your Own Characters",
-                        description = "Bring your partner, friend, or any character to life"
+                        title = "Custom Hanging Character Creator",
+                        description = "Upload photos of loved ones or create unique companions"
                     )
 
                     PremiumFeatureItem(
                         icon = Icons.Default.Image,
                         title = "Background Removal",
-                        description = "Remove background with magnifier preview for cutouts"
+                        description = "Remove background with magnifier preview for perfect cutouts"
                     )
 
                     PremiumFeatureItem(

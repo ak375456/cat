@@ -21,7 +21,8 @@ data class Characters(
     val imagePath: String? = null,
     // New fields for bottom positioning and rotation
     val atBottom: Boolean = false,
-    val rotation: Float = 0f
+    val rotation: Float = 0f,
+    val isPremium: Boolean = false
 ) : Parcelable {
 
     // Helper property to check if character is hanging (static)

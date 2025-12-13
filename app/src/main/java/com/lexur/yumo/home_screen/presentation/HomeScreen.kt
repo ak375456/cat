@@ -23,15 +23,12 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.lexur.yumo.billing.BillingViewModel
+import com.lexur.yumo.billing.PremiumFeatureDialog
 import com.lexur.yumo.componenets.PermissionExplanationDialog
 import com.lexur.yumo.home_screen.presentation.components.AnimatedCharacterPreview
 import com.lexur.yumo.home_screen.presentation.components.CategoryFilterSection
 import com.lexur.yumo.home_screen.presentation.components.EnhancedPermissionWarningCard
-import com.lexur.yumo.ui.theme.Background
-import com.lexur.yumo.ui.theme.ButtonPrimary
-import com.lexur.yumo.ui.theme.IconOnPrimary
-import com.lexur.yumo.ui.theme.OnTopBar
-import com.lexur.yumo.ui.theme.TopBarBackground
+import com.lexur.yumo.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,13 +50,14 @@ fun HomeScreen(
 
     // Billing states
     val billingState by billingViewModel.billingState.collectAsState()
+    val showPremiumDialog by billingViewModel.showPremiumDialog.collectAsState()
+    val isPremiumUser = billingState.isPremiumOwned
 
     // Check permissions
     var hasOverlayPermission by remember { mutableStateOf(checkOverlayPermission(context)) }
     var hasNotificationPermission by remember {
         mutableStateOf(checkNotificationPermission(context))
     }
-
 
     LaunchedEffect(hasOverlayPermission, hasNotificationPermission) {
         if (hasOverlayPermission && hasNotificationPermission) {
@@ -69,31 +67,53 @@ fun HomeScreen(
 
     LaunchedEffect(billingState.purchaseSuccess) {
         if (billingState.purchaseSuccess) {
-            // Navigate to character creation
-            onNavigateToCustomCharacterCreation()
             billingViewModel.resetPurchaseSuccess()
             billingViewModel.dismissPremiumDialog()
         }
     }
 
+    PremiumFeatureDialog(
+        showDialog = showPremiumDialog,
+        onDismiss = { billingViewModel.dismissPremiumDialog() },
+        onPurchase = {
+            val activity = context as? android.app.Activity
+            activity?.let { billingViewModel.purchasePremium(it) }
+        },
+        onRetry = {
+            val activity = context as? android.app.Activity
+            activity?.let { billingViewModel.retryPurchase(it) }
+        },
+        isLoading = billingState.isLoading,
+        productPrice = billingViewModel.getProductPrice(),
+        error = billingState.error,
+        premiumCharacterCount = viewModel.getPremiumCharacterCount()
+    )
 
-    // Permission explanation dialog
     PermissionExplanationDialog(
         showDialog = showPermissionDialog,
         onDismiss = { viewModel.dismissPermissionDialog() },
         onDontShowAgain = { viewModel.setDontShowPermissionDialogAgain() },
         onContinue = { viewModel.dismissPermissionDialog() }
     )
+
     if (showCreationDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.onDismissCreationDialog() },
             title = { Text("Create Your Own Character") },
-            text = { Text("Here, you can bring your own characters to life on your screen. They can be your partner, a friend, or anyone you can imagine!") },
+            text = {
+                Text("Here, you can bring your own characters to life on your screen. They can be your partner, a friend, or anyone you can imagine!")
+            },
             confirmButton = {
                 Button(
                     onClick = {
                         viewModel.onDismissCreationDialog()
-                        onNavigateToCustomCharacterCreation()
+
+                        // Check if user is premium
+                        if (isPremiumUser) {
+                            onNavigateToCustomCharacterCreation()
+                        } else {
+                            billingViewModel.showPremiumDialog()
+                        }
                     }
                 ) {
                     Text("Next")
@@ -119,7 +139,7 @@ fun HomeScreen(
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = OnTopBar // Using custom topbar text color
+                        color = OnTopBar
                     )
                 },
                 actions = {
@@ -172,8 +192,7 @@ fun HomeScreen(
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                modifier = Modifier
-                    .fillMaxSize(),
+                modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     bottom = innerPadding.calculateBottomPadding() + 16.dp,
                     start = 12.dp,
@@ -194,7 +213,7 @@ fun HomeScreen(
                     val isRunning = runningCharacters.contains(character.id)
                     val isExpanded = expandedCharacterId == character.id
 
-                    AnimatedCharacterPreview (
+                    AnimatedCharacterPreview(
                         character = character,
                         isExpanded = isExpanded,
                         onCardClick = {
@@ -217,7 +236,11 @@ fun HomeScreen(
                         onStopCharacter = {
                             viewModel.stopCharacter(context, character.id)
                         },
-                        canUseCharacter = hasOverlayPermission && hasNotificationPermission
+                        canUseCharacter = hasOverlayPermission && hasNotificationPermission,
+                        isPremiumUser = isPremiumUser,
+                        onPremiumClick = {
+                            billingViewModel.showPremiumDialog()
+                        }
                     )
                 }
             }
@@ -236,6 +259,6 @@ private fun checkNotificationPermission(context: Context): Boolean {
             Manifest.permission.POST_NOTIFICATIONS
         ) == PackageManager.PERMISSION_GRANTED
     } else {
-        true // Not required for older versions
+        true
     }
 }
