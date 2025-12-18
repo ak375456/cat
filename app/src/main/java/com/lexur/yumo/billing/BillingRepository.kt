@@ -36,7 +36,7 @@ class BillingRepository @Inject constructor(
     private var connectionRetryCount = 0
     private val maxRetries = 3
 
-    // Cache for product details to avoid repeated queries
+    // Cache for product details
     private var cachedProductDetails: ProductDetails? = null
 
     init {
@@ -76,7 +76,6 @@ class BillingRepository @Inject constructor(
                     Log.d(TAG, "Billing setup successful")
                     connectionRetryCount = 0
 
-                    // Query purchases first, then product details
                     queryPurchases()
                     queryProductDetails()
                 } else {
@@ -88,7 +87,6 @@ class BillingRepository @Inject constructor(
                         isLoading = false
                     )
 
-                    // Retry with exponential backoff for certain errors
                     if (shouldRetryConnection(billingResult.responseCode) && connectionRetryCount < maxRetries) {
                         scheduleConnectionRetry()
                     }
@@ -99,7 +97,9 @@ class BillingRepository @Inject constructor(
                 isConnectionInProgress = false
                 Log.w(TAG, "Billing service disconnected")
 
-                // Retry connection with backoff
+                // Clear cached data on disconnect
+                cachedProductDetails = null
+
                 if (connectionRetryCount < maxRetries) {
                     scheduleConnectionRetry()
                 }
@@ -158,7 +158,6 @@ class BillingRepository @Inject constructor(
                     return@queryProductDetailsAsync
                 }
 
-                // Cache the product details
                 cachedProductDetails = productDetailsList[0]
 
                 val products = productDetailsList.map { details ->
@@ -213,7 +212,6 @@ class BillingRepository @Inject constructor(
                     isLoading = false
                 )
 
-                // Acknowledge unacknowledged purchases
                 purchases.forEach { purchase ->
                     if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
                         acknowledgePurchase(purchase)
@@ -250,24 +248,19 @@ class BillingRepository @Inject constructor(
     suspend fun launchPurchaseFlow(activity: Activity): BillingResult {
         Log.d(TAG, "Launch purchase flow requested")
 
-        // Ensure billing client is ready
-        if (!billingClient.isReady) {
-            Log.w(TAG, "Billing client not ready, attempting to reconnect")
-
-            // Try to establish connection with timeout
-            try {
-                withTimeout(10000L) {
-                    ensureBillingClientReady()
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to establish billing connection", e)
-                return BillingResult.Error("Unable to connect to billing service. Please check your internet connection and try again.")
+        // CRITICAL FIX: Don't destroy connection, ensure it's ready
+        try {
+            withTimeout(15000L) {
+                ensureBillingClientReady()
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to establish billing connection", e)
+            return BillingResult.Error("Unable to connect to billing service. Please check your internet connection and try again.")
         }
 
         _billingState.value = _billingState.value.copy(isLoading = true, error = null)
 
-        // Use cached product details if available, otherwise query
+        // Query product details if not cached
         val productDetails = cachedProductDetails ?: run {
             Log.d(TAG, "No cached product details, querying now")
             queryProductDetailsSync()
@@ -297,7 +290,7 @@ class BillingRepository @Inject constructor(
         return when (result.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 Log.d(TAG, "Billing flow launched successfully")
-                BillingResult.Loading // Actual result comes in onPurchasesUpdated
+                BillingResult.Loading
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> {
                 Log.d(TAG, "User cancelled billing flow")
@@ -329,16 +322,21 @@ class BillingRepository @Inject constructor(
             return@suspendCancellableCoroutine
         }
 
+        Log.d(TAG, "Billing client not ready, establishing connection")
+
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(billingResult: GoogleBillingResult) {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    Log.d(TAG, "Billing client ready for purchase")
                     continuation.resume(Unit)
                 } else {
+                    Log.e(TAG, "Billing setup failed: ${billingResult.debugMessage}")
                     continuation.cancel(Exception("Billing setup failed: ${billingResult.debugMessage}"))
                 }
             }
 
             override fun onBillingServiceDisconnected() {
+                Log.w(TAG, "Billing service disconnected during connection")
                 continuation.cancel(Exception("Billing service disconnected"))
             }
         })
@@ -441,13 +439,23 @@ class BillingRepository @Inject constructor(
 
     fun refreshPurchases() {
         Log.d(TAG, "Manual refresh purchases requested")
-        queryPurchases()
+        // CRITICAL FIX: Ensure connection before querying
+        if (!billingClient.isReady) {
+            startBillingConnection()
+        } else {
+            queryPurchases()
+        }
     }
 
     fun refreshProductDetails() {
         Log.d(TAG, "Manual refresh product details requested")
         cachedProductDetails = null
-        queryProductDetails()
+        // CRITICAL FIX: Ensure connection before querying
+        if (!billingClient.isReady) {
+            startBillingConnection()
+        } else {
+            queryProductDetails()
+        }
     }
 
     fun resetPurchaseSuccess() {
@@ -459,9 +467,9 @@ class BillingRepository @Inject constructor(
     }
 
     fun destroy() {
-        if (::billingClient.isInitialized && billingClient.isReady) {
-            Log.d(TAG, "Ending billing connection")
-            billingClient.endConnection()
-        }
+        // CRITICAL FIX: Don't destroy connection, just cleanup if needed
+        Log.d(TAG, "Billing repository cleanup (keeping connection alive)")
+        // Keep billing client connected for app lifecycle
+        // Only disconnect when app is truly destroyed
     }
 }

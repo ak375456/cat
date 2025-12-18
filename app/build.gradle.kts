@@ -16,8 +16,8 @@ android {
         applicationId = "com.lexur.yumo"
         minSdk = 29
         targetSdk = 36
-        versionCode = 26
-        versionName = "1.1.5"
+        versionCode = 27
+        versionName = "1.1.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

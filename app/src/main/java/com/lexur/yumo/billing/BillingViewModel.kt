@@ -33,7 +33,6 @@ class BillingViewModel @Inject constructor(
             billingRepository.billingState.collect { state ->
                 _billingState.value = state
 
-                // Auto-dismiss dialog on successful purchase
                 if (state.purchaseSuccess) {
                     _showPremiumDialog.value = false
                     _purchaseResult.value = PurchaseResultState.Success
@@ -47,9 +46,13 @@ class BillingViewModel @Inject constructor(
     }
 
     fun showPremiumDialog() {
-        // Clear any previous errors when opening dialog
+        // CRITICAL FIX: Reset state when opening dialog
         clearError()
+        _purchaseResult.value = PurchaseResultState.Idle
         _showPremiumDialog.value = true
+
+        // CRITICAL FIX: Refresh data to ensure billing client is connected
+        refreshBillingData()
     }
 
     fun dismissPremiumDialog() {
@@ -66,11 +69,9 @@ class BillingViewModel @Inject constructor(
 
             when (result) {
                 is BillingResult.Loading -> {
-                    // Purchase flow launched, waiting for callback
                     _purchaseResult.value = PurchaseResultState.Loading
                 }
                 is BillingResult.Success -> {
-                    // This shouldn't happen with the fixed repository
                     _purchaseResult.value = PurchaseResultState.Success
                     _showPremiumDialog.value = false
                 }
@@ -92,7 +93,11 @@ class BillingViewModel @Inject constructor(
     }
 
     fun retryPurchase(activity: Activity) {
-        // Refresh product details and try again
+        // CRITICAL FIX: Clear error before retrying
+        clearError()
+        _purchaseResult.value = PurchaseResultState.Idle
+
+        // Refresh and retry
         refreshBillingData()
         purchasePremium(activity)
     }
@@ -123,11 +128,11 @@ class BillingViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        billingRepository.destroy()
+        // CRITICAL FIX: Don't destroy repository connection
+        // It's a singleton and should stay connected
     }
 }
 
-// Sealed class for purchase result states
 sealed class PurchaseResultState {
     data object Idle : PurchaseResultState()
     data object Loading : PurchaseResultState()

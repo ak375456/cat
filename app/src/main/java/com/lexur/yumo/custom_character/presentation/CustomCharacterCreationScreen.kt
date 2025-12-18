@@ -132,9 +132,9 @@ fun CustomCharacterCreationScreen(
         }
     )
 
-    // Check premium status on screen load
     LaunchedEffect(Unit) {
-        billingViewModel.refreshBillingData()
+        // Only check purchase status, don't force refresh
+        // Refresh happens when dialog opens
     }
 
     // Handle save completion
@@ -166,9 +166,13 @@ fun CustomCharacterCreationScreen(
     // Handle billing errors
     LaunchedEffect(billingState.error) {
         billingState.error?.let { error ->
-            // Only show non-connection errors in snackbar
-            if (!error.contains("Product not available") &&
-                !error.contains("Unable to connect")) {
+            // Filter out connection errors that happen during normal flow
+            val shouldShowError = !error.contains("Product not available") &&
+                    !error.contains("Unable to connect") &&
+                    !error.contains("Service connection is disconnected") &&
+                    !error.contains("Billing setup failed")
+
+            if (shouldShowError) {
                 snackbarHostState.showSnackbar(
                     message = error,
                     duration = SnackbarDuration.Long
@@ -438,6 +442,8 @@ fun CustomCharacterCreationScreen(
                                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                                 )
                                             } else {
+                                                // CRITICAL FIX: Clear any stale errors before showing dialog
+                                                billingViewModel.clearError()
                                                 billingViewModel.showPremiumDialog()
                                             }
                                         },
@@ -477,6 +483,7 @@ fun CustomCharacterCreationScreen(
                                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                                 )
                                             } else {
+                                                billingViewModel.clearError()
                                                 billingViewModel.showPremiumDialog()
                                             }
                                         },
@@ -511,6 +518,7 @@ fun CustomCharacterCreationScreen(
                                             if (billingState.isPremiumOwned) {
                                                 viewModel.showEmojiPicker()
                                             } else {
+                                                billingViewModel.clearError()
                                                 billingViewModel.showPremiumDialog()
                                             }
                                         },
