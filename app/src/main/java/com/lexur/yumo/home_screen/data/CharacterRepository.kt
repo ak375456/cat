@@ -524,6 +524,22 @@ class CharacterRepository @Inject constructor(
             animationDelay = 0L
         ),
         Characters(
+            id = "santa_hat",
+            name = "Santa Hat",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.santa_hat,
+            ),
+            width = 30,
+            height = 30,
+
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L,
+            isPremium = true
+        ),
+        Characters(
             id = "choco",
             name = "Choco",
             category = CharacterCategory.HANGING,
@@ -537,7 +553,7 @@ class CharacterRepository @Inject constructor(
             xPosition = 150,
             speed = 0,
             animationDelay = 0L,
-            isPremium = true
+            isPremium = false
         ),
     )
 
