@@ -32,7 +32,8 @@ fun RopeSelectionScreen(
         R.drawable.rope_1,
         R.drawable.rope_2,
         R.drawable.rope_3,
-        R.drawable.rope_4
+        R.drawable.rope_4,
+        R.drawable.rope_5
     )
 
     Scaffold(

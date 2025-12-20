@@ -36,6 +36,76 @@ class CharacterRepository @Inject constructor(
             height = 18,
             speed = 4,
             animationDelay = 120L
+        ),Characters(
+            id = "santa_clause_walking",
+            name = "Santa",
+            category = CharacterCategory.ANIMATED,
+            frameIds = listOf(
+                R.drawable.walk_1,
+                R.drawable.walk_2,
+                R.drawable.walk_3,
+                R.drawable.walk_4,
+                R.drawable.walk_5,
+                R.drawable.walk_6,
+                R.drawable.walk_7,
+                R.drawable.walk_8,
+                R.drawable.walk_9,
+                R.drawable.walk_10,
+                R.drawable.walk_11,
+                R.drawable.walk_12,
+                R.drawable.walk_13,
+            ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L,
+            isPremium = true
+        ),
+        Characters(
+            id = "santa_claude_hanging",
+            name = "Santa Clause Hanging",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.santa_clause_hanging,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L,
+            isPremium = true
+        ),
+        Characters(
+            id = "christmas_tree_hanging",
+            name = "Christmas Tree Hanging",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.christmas_tree,
+            ),
+            width = 30,
+            height = 30,
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L,
+            isPremium = true
+        ),
+        Characters(
+            id = "elf_hanging",
+            name = "Elf Hanging",
+            category = CharacterCategory.HANGING,
+            frameIds = listOf(
+                R.drawable.elf_hanging,
+            ),
+            width = 30,
+            height = 30,
+
+            yPosition = 20,
+            xPosition = 150,
+            speed = 0,
+            animationDelay = 0L,
+            isPremium = false
         ),
         Characters(
             id = "danglo_hanging",
@@ -376,7 +446,7 @@ class CharacterRepository @Inject constructor(
             xPosition = 150,
             speed = 0,
             animationDelay = 0L,
-            isPremium = true
+            isPremium = false
         ),
         Characters(
             id = "fox_running",
