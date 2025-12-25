@@ -75,8 +75,8 @@ fun CharacterSettingsScreen(
     val useButtonControls by viewModel.useButtonControls.collectAsState()
     val atBottom by viewModel.atBottom.collectAsState()
     val enableFullScreenY by viewModel.enableFullScreenY.collectAsState()
-    val enableInLandscape by viewModel.enableInLandscape.collectAsState() // NEW
-    val maxXPosition by viewModel.maxXPosition.collectAsState() // NEW
+    val enableInLandscape by viewModel.enableInLandscape.collectAsState()
+    val maxXPosition by viewModel.maxXPosition.collectAsState()
 
     val animationSpeedPresets = listOf(50L, 80L, 100L, 140L, 200L, 300L, 500L)
     var showPresetInfo by remember { mutableStateOf(false) }
@@ -85,9 +85,16 @@ fun CharacterSettingsScreen(
 
     val isHangingCharacter = character?.isHanging == true
 
-    LaunchedEffect(characterId, isCharacterRunning) {
+    // NEW: Only set character running state on initial composition, not on recomposition
+    LaunchedEffect(characterId) {
         viewModel.loadCharacter(characterId)
-        viewModel.setCharacterRunning(isCharacterRunning)
+    }
+
+    // NEW: Separate effect that only runs once with the initial parameter
+    LaunchedEffect(Unit) {
+        if (isCharacterRunning) {
+            viewModel.setCharacterRunning(true)
+        }
     }
 
     LaunchedEffect(characterRunning) {
@@ -192,7 +199,6 @@ fun CharacterSettingsScreen(
                 }
             }
 
-            // NEW: Enable in Landscape Toggle
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(

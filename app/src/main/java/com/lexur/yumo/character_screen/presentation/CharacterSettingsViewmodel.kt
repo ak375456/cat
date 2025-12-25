@@ -36,7 +36,7 @@ class CharacterSettingsViewModel @Inject constructor(
         private const val AT_BOTTOM_SUFFIX = "_at_bottom"
         private const val ROTATION_SUFFIX = "_rotation"
         private const val ENABLE_FULL_SCREEN_Y_SUFFIX = "_enable_full_screen_y"
-        private const val ENABLE_IN_LANDSCAPE_SUFFIX = "_enable_in_landscape" // NEW
+        private const val ENABLE_IN_LANDSCAPE_SUFFIX = "_enable_in_landscape"
 
         private const val SLIDER_DEBOUNCE_MS = 150L
         private const val BUTTON_THROTTLE_MS = 16L
@@ -71,11 +71,9 @@ class CharacterSettingsViewModel @Inject constructor(
     private val _enableFullScreenY = MutableStateFlow(false)
     val enableFullScreenY: StateFlow<Boolean> = _enableFullScreenY
 
-    // NEW: Enable in landscape state
     private val _enableInLandscape = MutableStateFlow(true)
     val enableInLandscape: StateFlow<Boolean> = _enableInLandscape
 
-    // NEW: Max X position based on screen width
     private val _maxXPosition = MutableStateFlow(1080)
     val maxXPosition: StateFlow<Int> = _maxXPosition
 
@@ -95,11 +93,13 @@ class CharacterSettingsViewModel @Inject constructor(
 
     private val positionUpdateChannel = Channel<Pair<Int, Int>>(Channel.CONFLATED)
 
+    // NEW: Track if character has been loaded to prevent reloading on rotation
+    private var isCharacterLoaded = false
+
     init {
         _motionSensingEnabled.value = sharedPreferences.getBoolean(MOTION_SENSING_KEY, true)
         _useButtonControls.value = sharedPreferences.getBoolean(USE_BUTTON_CONTROLS_KEY, false)
 
-        // Get current screen width from overlay manager
         _maxXPosition.value = overlayManager.getCurrentScreenWidth()
 
         viewModelScope.launch {
@@ -114,6 +114,11 @@ class CharacterSettingsViewModel @Inject constructor(
     }
 
     fun loadCharacter(characterId: String) {
+        // NEW: Only load if not already loaded (prevents reload on rotation)
+        if (isCharacterLoaded && _character.value?.id == characterId) {
+            return
+        }
+
         viewModelScope.launch {
             val loadedCharacter = characterRepository.getCharacterById(characterId)
             _character.value = loadedCharacter
@@ -150,11 +155,13 @@ class CharacterSettingsViewModel @Inject constructor(
                     characterId + ENABLE_FULL_SCREEN_Y_SUFFIX,
                     false
                 )
-                // NEW: Load landscape setting
                 _enableInLandscape.value = sharedPreferences.getBoolean(
                     characterId + ENABLE_IN_LANDSCAPE_SUFFIX,
                     character.enableInLandscape
                 )
+
+                // NEW: Mark as loaded
+                isCharacterLoaded = true
             }
         }
     }
@@ -169,13 +176,16 @@ class CharacterSettingsViewModel @Inject constructor(
             putBoolean(characterId + AT_BOTTOM_SUFFIX, _atBottom.value)
             putFloat(characterId + ROTATION_SUFFIX, _rotation.value)
             putBoolean(characterId + ENABLE_FULL_SCREEN_Y_SUFFIX, _enableFullScreenY.value)
-            // NEW: Save landscape setting
             putBoolean(characterId + ENABLE_IN_LANDSCAPE_SUFFIX, _enableInLandscape.value)
         }
     }
 
     fun setCharacterRunning(isRunning: Boolean) {
-        _isCharacterRunning.value = isRunning
+        // Only update if character is already loaded, or if we're setting it to true
+        // This prevents the parameter from overriding the actual running state on rotation
+        if (isCharacterLoaded || isRunning) {
+            _isCharacterRunning.value = isRunning
+        }
     }
 
     fun setMotionSensingEnabled(enabled: Boolean) {
@@ -211,7 +221,6 @@ class CharacterSettingsViewModel @Inject constructor(
         }
     }
 
-    // NEW: Toggle landscape visibility
     fun setEnableInLandscape(enabled: Boolean) {
         _enableInLandscape.value = enabled
         updateLiveCharacterImmediate()
@@ -284,7 +293,7 @@ class CharacterSettingsViewModel @Inject constructor(
                     xPosition = _xPosition.value,
                     atBottom = _atBottom.value,
                     rotation = _rotation.value,
-                    enableInLandscape = _enableInLandscape.value // NEW
+                    enableInLandscape = _enableInLandscape.value
                 )
 
                 sendLiveUpdateToService(updated)
@@ -314,7 +323,7 @@ class CharacterSettingsViewModel @Inject constructor(
                     xPosition = _xPosition.value,
                     atBottom = _atBottom.value,
                     rotation = _rotation.value,
-                    enableInLandscape = _enableInLandscape.value // NEW
+                    enableInLandscape = _enableInLandscape.value
                 )
 
                 if (_isCharacterRunning.value) {
@@ -336,7 +345,7 @@ class CharacterSettingsViewModel @Inject constructor(
                     xPosition = _xPosition.value,
                     atBottom = _atBottom.value,
                     rotation = _rotation.value,
-                    enableInLandscape = _enableInLandscape.value // NEW
+                    enableInLandscape = _enableInLandscape.value
                 )
                 overlayManager.addCharacter(testCharacter)
                 _isCharacterRunning.value = true
@@ -365,7 +374,7 @@ class CharacterSettingsViewModel @Inject constructor(
                     remove(character.id + AT_BOTTOM_SUFFIX)
                     remove(character.id + ROTATION_SUFFIX)
                     remove(character.id + ENABLE_FULL_SCREEN_Y_SUFFIX)
-                    remove(character.id + ENABLE_IN_LANDSCAPE_SUFFIX) // NEW
+                    remove(character.id + ENABLE_IN_LANDSCAPE_SUFFIX)
                 }
 
                 val defaultCharacter = characterRepository.getDefaultCharacter(character.id)
@@ -378,7 +387,7 @@ class CharacterSettingsViewModel @Inject constructor(
                     _atBottom.value = default.atBottom
                     _rotation.value = default.rotation
                     _enableFullScreenY.value = false
-                    _enableInLandscape.value = default.enableInLandscape // NEW
+                    _enableInLandscape.value = default.enableInLandscape
 
                     if (_isCharacterRunning.value) {
                         sendLiveUpdateToService(default)
@@ -391,5 +400,7 @@ class CharacterSettingsViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         positionUpdateChannel.close()
+        // NEW: Reset loaded flag when ViewModel is destroyed
+        isCharacterLoaded = false
     }
 }
