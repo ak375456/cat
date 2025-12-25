@@ -28,24 +28,20 @@ class CharacterSettingsViewModel @Inject constructor(
         private const val MOTION_SENSING_KEY = "motion_sensing_enabled"
         private const val USE_BUTTON_CONTROLS_KEY = "use_button_controls"
 
-        // Keys for character-specific settings
         private const val SPEED_SUFFIX = "_speed"
         private const val SIZE_SUFFIX = "_size"
         private const val ANIMATION_DELAY_SUFFIX = "_animation_delay"
         private const val Y_POSITION_SUFFIX = "_y_position"
         private const val X_POSITION_SUFFIX = "_x_position"
-        private const val AT_BOTTOM_SUFFIX = "_at_bottom" // New
-        private const val ROTATION_SUFFIX = "_rotation" // New
-        private const val ENABLE_FULL_SCREEN_Y_SUFFIX = "_enable_full_screen_y" // New
+        private const val AT_BOTTOM_SUFFIX = "_at_bottom"
+        private const val ROTATION_SUFFIX = "_rotation"
+        private const val ENABLE_FULL_SCREEN_Y_SUFFIX = "_enable_full_screen_y"
+        private const val ENABLE_IN_LANDSCAPE_SUFFIX = "_enable_in_landscape" // NEW
 
-        // Debounce delay for slider updates (milliseconds)
         private const val SLIDER_DEBOUNCE_MS = 150L
-        // No debounce for button controls - but we'll use a channel for throttling
-        private const val BUTTON_THROTTLE_MS = 16L // ~60fps
+        private const val BUTTON_THROTTLE_MS = 16L
 
-        // Max position values for button controls
-        private const val MAX_X_POSITION = 3000 // Increased range
-        private const val MAX_Y_POSITION = 3000 // Increased range
+        private const val MAX_Y_POSITION = 3000
     }
 
     private val _character = MutableStateFlow<Characters?>(null)
@@ -66,16 +62,22 @@ class CharacterSettingsViewModel @Inject constructor(
     private val _xPosition = MutableStateFlow(0)
     val xPosition: StateFlow<Int> = _xPosition
 
-    // New states
     private val _atBottom = MutableStateFlow(false)
     val atBottom: StateFlow<Boolean> = _atBottom
 
     private val _rotation = MutableStateFlow(0f)
     val rotation: StateFlow<Float> = _rotation
 
-    private val _enableFullScreenY = MutableStateFlow(false) // New
-    val enableFullScreenY: StateFlow<Boolean> = _enableFullScreenY // New
-    // End new states
+    private val _enableFullScreenY = MutableStateFlow(false)
+    val enableFullScreenY: StateFlow<Boolean> = _enableFullScreenY
+
+    // NEW: Enable in landscape state
+    private val _enableInLandscape = MutableStateFlow(true)
+    val enableInLandscape: StateFlow<Boolean> = _enableInLandscape
+
+    // NEW: Max X position based on screen width
+    private val _maxXPosition = MutableStateFlow(1080)
+    val maxXPosition: StateFlow<Int> = _maxXPosition
 
     private val _isCharacterRunning = MutableStateFlow(false)
     val isCharacterRunning: StateFlow<Boolean> = _isCharacterRunning
@@ -86,21 +88,20 @@ class CharacterSettingsViewModel @Inject constructor(
     private val _useButtonControls = MutableStateFlow(false)
     val useButtonControls: StateFlow<Boolean> = _useButtonControls
 
-    // Debouncing jobs for different update types
     private var speedUpdateJob: Job? = null
     private var sizeUpdateJob: Job? = null
     private var animationUpdateJob: Job? = null
     private var positionUpdateJob: Job? = null
 
-    // Channel for button position updates
     private val positionUpdateChannel = Channel<Pair<Int, Int>>(Channel.CONFLATED)
 
     init {
-        // Load global preferences
         _motionSensingEnabled.value = sharedPreferences.getBoolean(MOTION_SENSING_KEY, true)
         _useButtonControls.value = sharedPreferences.getBoolean(USE_BUTTON_CONTROLS_KEY, false)
 
-        // Setup position update flow with throttling
+        // Get current screen width from overlay manager
+        _maxXPosition.value = overlayManager.getCurrentScreenWidth()
+
         viewModelScope.launch {
             positionUpdateChannel.consumeAsFlow()
                 .collect { (x, y) ->
@@ -137,7 +138,6 @@ class CharacterSettingsViewModel @Inject constructor(
                     characterId + X_POSITION_SUFFIX,
                     character.xPosition
                 )
-                // Load new states
                 _atBottom.value = sharedPreferences.getBoolean(
                     characterId + AT_BOTTOM_SUFFIX,
                     character.atBottom
@@ -146,9 +146,14 @@ class CharacterSettingsViewModel @Inject constructor(
                     characterId + ROTATION_SUFFIX,
                     character.rotation
                 )
-                _enableFullScreenY.value = sharedPreferences.getBoolean( // New
+                _enableFullScreenY.value = sharedPreferences.getBoolean(
                     characterId + ENABLE_FULL_SCREEN_Y_SUFFIX,
                     false
+                )
+                // NEW: Load landscape setting
+                _enableInLandscape.value = sharedPreferences.getBoolean(
+                    characterId + ENABLE_IN_LANDSCAPE_SUFFIX,
+                    character.enableInLandscape
                 )
             }
         }
@@ -161,10 +166,11 @@ class CharacterSettingsViewModel @Inject constructor(
             putLong(characterId + ANIMATION_DELAY_SUFFIX, _animationDelay.value)
             putInt(characterId + Y_POSITION_SUFFIX, _yPosition.value)
             putInt(characterId + X_POSITION_SUFFIX, _xPosition.value)
-            // Save new states
             putBoolean(characterId + AT_BOTTOM_SUFFIX, _atBottom.value)
             putFloat(characterId + ROTATION_SUFFIX, _rotation.value)
-            putBoolean(characterId + ENABLE_FULL_SCREEN_Y_SUFFIX, _enableFullScreenY.value) // New
+            putBoolean(characterId + ENABLE_FULL_SCREEN_Y_SUFFIX, _enableFullScreenY.value)
+            // NEW: Save landscape setting
+            putBoolean(characterId + ENABLE_IN_LANDSCAPE_SUFFIX, _enableInLandscape.value)
         }
     }
 
@@ -187,28 +193,29 @@ class CharacterSettingsViewModel @Inject constructor(
         }
     }
 
-    // New function to handle bottom toggle
     fun setAtBottom(isAtBottom: Boolean, isHanging: Boolean) {
         _atBottom.value = isAtBottom
         if (isHanging) {
             _rotation.value = if (isAtBottom) 180f else 0f
         } else {
-            _rotation.value = 0f // Non-hanging characters don't rotate
+            _rotation.value = 0f
         }
-        // Trigger a live update immediately
         updateLiveCharacterImmediate()
     }
 
-    // New function to handle full screen Y toggle
     fun setEnableFullScreenY(enabled: Boolean) {
         _enableFullScreenY.value = enabled
-        // If disabling, clamp Y position back to the normal range
         if (!enabled && _yPosition.value > 300) {
             _yPosition.value = 300
             updateLiveCharacterImmediate()
         }
     }
 
+    // NEW: Toggle landscape visibility
+    fun setEnableInLandscape(enabled: Boolean) {
+        _enableInLandscape.value = enabled
+        updateLiveCharacterImmediate()
+    }
 
     fun updateSpeed(newSpeed: Int) {
         _speed.value = newSpeed
@@ -246,10 +253,9 @@ class CharacterSettingsViewModel @Inject constructor(
     }
 
     fun movePosition(deltaX: Int, deltaY: Int) {
-        val newX = (_xPosition.value + deltaX).coerceIn(0, MAX_X_POSITION) // Updated range
-        val newY = (_yPosition.value + deltaY).coerceIn(0, MAX_Y_POSITION) // Updated range
+        val newX = (_xPosition.value + deltaX).coerceIn(0, _maxXPosition.value)
+        val newY = (_yPosition.value + deltaY).coerceIn(0, MAX_Y_POSITION)
 
-        // Use channel for throttled updates
         positionUpdateChannel.trySend(newX to newY)
     }
 
@@ -276,8 +282,9 @@ class CharacterSettingsViewModel @Inject constructor(
                     animationDelay = _animationDelay.value,
                     yPosition = _yPosition.value,
                     xPosition = _xPosition.value,
-                    atBottom = _atBottom.value, // New
-                    rotation = _rotation.value  // New
+                    atBottom = _atBottom.value,
+                    rotation = _rotation.value,
+                    enableInLandscape = _enableInLandscape.value // NEW
                 )
 
                 sendLiveUpdateToService(updated)
@@ -305,8 +312,9 @@ class CharacterSettingsViewModel @Inject constructor(
                     animationDelay = _animationDelay.value,
                     yPosition = _yPosition.value,
                     xPosition = _xPosition.value,
-                    atBottom = _atBottom.value, // New
-                    rotation = _rotation.value  // New
+                    atBottom = _atBottom.value,
+                    rotation = _rotation.value,
+                    enableInLandscape = _enableInLandscape.value // NEW
                 )
 
                 if (_isCharacterRunning.value) {
@@ -326,8 +334,9 @@ class CharacterSettingsViewModel @Inject constructor(
                     animationDelay = _animationDelay.value,
                     yPosition = _yPosition.value,
                     xPosition = _xPosition.value,
-                    atBottom = _atBottom.value, // New
-                    rotation = _rotation.value  // New
+                    atBottom = _atBottom.value,
+                    rotation = _rotation.value,
+                    enableInLandscape = _enableInLandscape.value // NEW
                 )
                 overlayManager.addCharacter(testCharacter)
                 _isCharacterRunning.value = true
@@ -353,9 +362,10 @@ class CharacterSettingsViewModel @Inject constructor(
                     remove(character.id + ANIMATION_DELAY_SUFFIX)
                     remove(character.id + Y_POSITION_SUFFIX)
                     remove(character.id + X_POSITION_SUFFIX)
-                    remove(character.id + AT_BOTTOM_SUFFIX) // New
-                    remove(character.id + ROTATION_SUFFIX) // New
-                    remove(character.id + ENABLE_FULL_SCREEN_Y_SUFFIX) // New
+                    remove(character.id + AT_BOTTOM_SUFFIX)
+                    remove(character.id + ROTATION_SUFFIX)
+                    remove(character.id + ENABLE_FULL_SCREEN_Y_SUFFIX)
+                    remove(character.id + ENABLE_IN_LANDSCAPE_SUFFIX) // NEW
                 }
 
                 val defaultCharacter = characterRepository.getDefaultCharacter(character.id)
@@ -365,12 +375,12 @@ class CharacterSettingsViewModel @Inject constructor(
                     _animationDelay.value = default.animationDelay
                     _yPosition.value = default.yPosition
                     _xPosition.value = default.xPosition
-                    _atBottom.value = default.atBottom // New
-                    _rotation.value = default.rotation // New
-                    _enableFullScreenY.value = false // New: Reset manually
+                    _atBottom.value = default.atBottom
+                    _rotation.value = default.rotation
+                    _enableFullScreenY.value = false
+                    _enableInLandscape.value = default.enableInLandscape // NEW
 
                     if (_isCharacterRunning.value) {
-                        // Pass the full default object
                         sendLiveUpdateToService(default)
                     }
                 }

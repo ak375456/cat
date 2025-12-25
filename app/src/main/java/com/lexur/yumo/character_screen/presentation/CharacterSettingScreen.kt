@@ -54,25 +54,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material.icons.filled.Close
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Vibrate
-import com.lexur.yumo.ui.theme.Background
-import com.lexur.yumo.ui.theme.ButtonPrimary
-import com.lexur.yumo.ui.theme.Container
-import com.lexur.yumo.ui.theme.Error
-import com.lexur.yumo.ui.theme.IconOnPrimary
-import com.lexur.yumo.ui.theme.IconPrimary
-import com.lexur.yumo.ui.theme.IconSecondary
-import com.lexur.yumo.ui.theme.OnBackground
-import com.lexur.yumo.ui.theme.OnButtonPrimary
-import com.lexur.yumo.ui.theme.OnContainer
-import com.lexur.yumo.ui.theme.OnSecondary
-import com.lexur.yumo.ui.theme.OnSurfaceVariant
-import com.lexur.yumo.ui.theme.OnTopBar
-import com.lexur.yumo.ui.theme.OutlineSecondary
-import com.lexur.yumo.ui.theme.OutlineVariant
-import com.lexur.yumo.ui.theme.Primary
-import com.lexur.yumo.ui.theme.SecondaryVariant
-import com.lexur.yumo.ui.theme.SurfaceVariant
-import com.lexur.yumo.ui.theme.TopBarBackground
+import com.lexur.yumo.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -93,20 +75,26 @@ fun CharacterSettingsScreen(
     val useButtonControls by viewModel.useButtonControls.collectAsState()
     val atBottom by viewModel.atBottom.collectAsState()
     val enableFullScreenY by viewModel.enableFullScreenY.collectAsState()
+    val enableInLandscape by viewModel.enableInLandscape.collectAsState() // NEW
+    val maxXPosition by viewModel.maxXPosition.collectAsState() // NEW
 
-    // UI state
     val animationSpeedPresets = listOf(50L, 80L, 100L, 140L, 200L, 300L, 500L)
     var showPresetInfo by remember { mutableStateOf(false) }
     var showMotionInfo by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Check if character is hanging (static)
     val isHangingCharacter = character?.isHanging == true
 
-    // Load character on startup and set running state
     LaunchedEffect(characterId, isCharacterRunning) {
         viewModel.loadCharacter(characterId)
         viewModel.setCharacterRunning(isCharacterRunning)
+    }
+
+    LaunchedEffect(characterRunning) {
+        if (characterRunning && !enableInLandscape) {
+            // Show a message if character is disabled in landscape
+            // You could add a snackbar here if needed
+        }
     }
 
     Scaffold(
@@ -144,7 +132,6 @@ fun CharacterSettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Live Updates Info Card
             if (characterRunning) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -175,7 +162,6 @@ fun CharacterSettingsScreen(
                 }
             }
 
-            // Character Type Info Card
             if (isHangingCharacter) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -206,7 +192,51 @@ fun CharacterSettingsScreen(
                 }
             }
 
-            // Motion Sensing Control (only for hanging characters)
+            // NEW: Enable in Landscape Toggle
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (enableInLandscape)
+                        Primary.copy(alpha = 0.1f)
+                    else
+                        SurfaceVariant.copy(alpha = 0.3f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Show in Landscape Mode",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                            color = OnBackground
+                        )
+                        Text(
+                            text = if (enableInLandscape)
+                                "Character will be visible when device is rotated"
+                            else
+                                "Character will hide when device is rotated to landscape",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OnBackground.copy(alpha = 0.7f)
+                        )
+                    }
+                    Switch(
+                        checked = enableInLandscape,
+                        onCheckedChange = { viewModel.setEnableInLandscape(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Primary,
+                            checkedTrackColor = Container,
+                            uncheckedThumbColor = IconSecondary,
+                            uncheckedTrackColor = SurfaceVariant
+                        )
+                    )
+                }
+            }
+
             if (isHangingCharacter) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -277,7 +307,6 @@ fun CharacterSettingsScreen(
                             )
                         }
 
-                        // Motion sensitivity info when enabled
                         if (motionSensingEnabled && characterRunning) {
                             Text(
                                 text = "Try tilting your device left/right to see the character swing!",
@@ -290,7 +319,6 @@ fun CharacterSettingsScreen(
                 }
             }
 
-            // Test Controls (only show when character is NOT running)
             if (!characterRunning) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -340,7 +368,6 @@ fun CharacterSettingsScreen(
                     }
                 }
             } else {
-                // Stop Test Button
                 OutlinedButton(
                     onClick = {
                         viewModel.stopCharacterTest()
@@ -362,7 +389,6 @@ fun CharacterSettingsScreen(
                 }
             }
 
-            // Size Control (Single slider for both width and height)
             Text(
                 text = "Character Size",
                 style = MaterialTheme.typography.titleSmall,
@@ -387,14 +413,12 @@ fun CharacterSettingsScreen(
                 )
             )
 
-            // Position Settings Title
             Text(
                 text = "Position Settings ${if (characterRunning) "(Live Updates)" else ""}",
                 style = MaterialTheme.typography.titleSmall,
                 color = if (characterRunning) Primary else Primary.copy(alpha = 0.9f)
             )
 
-            // Position at Bottom Toggle
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -439,7 +463,6 @@ fun CharacterSettingsScreen(
                 }
             }
 
-            // Full Screen Y Position Toggle
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -481,8 +504,6 @@ fun CharacterSettingsScreen(
                 }
             }
 
-
-            // Position Control Mode Toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -505,21 +526,17 @@ fun CharacterSettingsScreen(
                 )
             }
 
-
             if (useButtonControls) {
-                // Button Controls
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Display current position
                     Text(
                         text = "Position: X=${xPosition}px, Y=${yPosition}px",
                         style = MaterialTheme.typography.bodyMedium,
                         color = OnBackground
                     )
 
-                    // Up button
                     IconButton(
                         onClick = { viewModel.movePosition(0, -1) },
                         modifier = Modifier.size(48.dp)
@@ -532,7 +549,6 @@ fun CharacterSettingsScreen(
                         )
                     }
 
-                    // Left, Right buttons row
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -549,7 +565,6 @@ fun CharacterSettingsScreen(
                             )
                         }
 
-                        // Center space
                         Text(
                             text = "1px",
                             style = MaterialTheme.typography.bodySmall,
@@ -569,7 +584,6 @@ fun CharacterSettingsScreen(
                         }
                     }
 
-                    // Down button
                     IconButton(
                         onClick = { viewModel.movePosition(0, 1) },
                         modifier = Modifier.size(48.dp)
@@ -585,14 +599,14 @@ fun CharacterSettingsScreen(
             } else {
                 if (isHangingCharacter) {
                     Text(
-                        text = "Horizontal Position: $xPosition px from left",
+                        text = "Horizontal Position: $xPosition px from left (Max: ${maxXPosition}px)",
                         style = MaterialTheme.typography.bodyLarge,
                         color = OnBackground
                     )
                     Slider(
                         value = xPosition.toFloat(),
                         onValueChange = { viewModel.updateXPosition(it.toInt()) },
-                        valueRange = 0f..1080f,
+                        valueRange = 0f..maxXPosition.toFloat(),
                         colors = SliderDefaults.colors(
                             thumbColor = Primary,
                             activeTrackColor = Primary.copy(alpha = 0.7f),
@@ -601,7 +615,6 @@ fun CharacterSettingsScreen(
                     )
                 }
 
-                // Vertical Position Slider - for both types
                 Text(
                     text = "Vertical Position: $yPosition px from ${if (atBottom) "bottom" else "top"}",
                     style = MaterialTheme.typography.bodyLarge,
@@ -619,7 +632,6 @@ fun CharacterSettingsScreen(
                 )
             }
 
-            // Speed control (disabled for hanging characters)
             Text(
                 text = if (isHangingCharacter)
                     "Movement Speed: Static (no movement)"
@@ -643,7 +655,6 @@ fun CharacterSettingsScreen(
                 )
             )
 
-            // Animation Speed Control
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -683,7 +694,6 @@ fun CharacterSettingsScreen(
                 )
             }
 
-            // Preset chips (disabled for hanging characters)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -710,7 +720,6 @@ fun CharacterSettingsScreen(
                 }
             }
 
-            // Save button
             Button(
                 onClick = {
                     viewModel.saveSettings()
@@ -727,7 +736,6 @@ fun CharacterSettingsScreen(
                 Text("Save Settings", style = MaterialTheme.typography.labelLarge)
             }
 
-            // Reset to defaults button
             OutlinedButton(
                 onClick = {
                     viewModel.resetToDefaults()
