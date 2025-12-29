@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
@@ -62,6 +63,10 @@ import com.lexur.yumo.ui.theme.InputBackground
 import com.lexur.yumo.ui.theme.InputBorder
 import com.lexur.yumo.ui.theme.InputBorderFocused
 import java.util.UUID
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.BugReport
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,7 +74,7 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
     feedbackViewModel: FeedbackViewModel = hiltViewModel(),
-    adMobManager: com.lexur.yumo.ads.AdMobManager
+    adMobManager: com.lexur.yumo.ads.AdMobManager,
 ) {
 
     val context = LocalContext.current
@@ -590,6 +595,15 @@ fun SettingsScreen(
                         }
                     }
                 },
+                onShowTestUMPForm = {
+                    // For testing: Reset consent and show UMP form
+                    val activity = context as? android.app.Activity
+                    activity?.let {
+                        adMobManager.requestConsentInformation(it) { success ->
+                            // Consent form shown for testing
+                        }
+                    }
+                },
                 modifier = Modifier.padding(16.dp)
             )
         }
@@ -600,7 +614,7 @@ fun SettingsScreen(
 private fun PermissionStatusRow(
     permissionName: String,
     isGranted: Boolean,
-    icon: ImageVector
+    icon: ImageVector,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -655,7 +669,7 @@ private fun checkNotificationPermission(context: Context): Boolean {
 
 private fun requestOverlayPermission(
     context: Context,
-    launcher: ActivityResultLauncher<Intent>
+    launcher: ActivityResultLauncher<Intent>,
 ) {
     val intent = Intent(
         Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -683,28 +697,25 @@ private fun openAppSettings(context: Context) {
 fun PrivacySettingsSection(
     canShowPrivacyOptions: Boolean,
     onPrivacySettingsClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onShowTestUMPForm: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = CardBackground
         )
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Privacy & Ads",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontWeight = FontWeight.SemiBold,
+                color = OnCard,
+                modifier = Modifier.padding(bottom = 16.dp)
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            HorizontalDivider()
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             // Ad Personalization Option
             Row(
@@ -713,63 +724,158 @@ fun PrivacySettingsSection(
                     .clickable(enabled = canShowPrivacyOptions) {
                         onPrivacySettingsClick()
                     }
-                    .padding(vertical = 12.dp),
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.PrivacyTip,
-                    contentDescription = "Privacy Settings",
-                    tint = if (canShowPrivacyOptions)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Ad Personalization",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (canShowPrivacyOptions)
-                            MaterialTheme.colorScheme.onSurface
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PrivacyTip,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = if (canShowPrivacyOptions) Primary else IconSecondary.copy(alpha = 0.5f)
                     )
-                    Text(
-                        text = if (canShowPrivacyOptions)
-                            "Manage how your data is used for ads"
-                        else
-                            "No personalized ads in your region",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Ad Personalization",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (canShowPrivacyOptions) OnSurface else OnSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = if (canShowPrivacyOptions)
+                                "Manage how your data is used for ads"
+                            else
+                                "No personalized ads in your region",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OnSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                if (canShowPrivacyOptions) {
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = IconSecondary
                     )
                 }
             }
 
-            // Information about GDPR compliance
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                thickness = DividerDefaults.Thickness,
+                color = DividerDefaults.color
+            )
+
+            // Privacy Policy Link
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            data = "https://ak375456.github.io/app-privacy-policy/".toUri()
+                        }
+                        context.startActivity(intent)
+                    }
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Description,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = IconSecondary
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Privacy Policy",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = OnSurface
+                        )
+                        Text(
+                            text = "View our complete privacy policy",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OnSurfaceVariant
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = IconSecondary
+                )
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                thickness = DividerDefaults.Thickness,
+                color = DividerDefaults.color
+            )
+
+            // Information Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
+                    containerColor = Primary.copy(alpha = 0.1f)
+                ),
+                border = BorderStroke(1.dp, Primary.copy(alpha = 0.2f))
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = Primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "About Ad Privacy",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = Primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "About Ad Privacy",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "We respect your privacy and comply with GDPR and other privacy regulations. " +
-                                "You can control how your data is used for ad personalization. " +
-                                "Premium users enjoy an ad-free experience.",
+                        text = "We respect your privacy and comply with GDPR and other privacy regulations. You can control how your data is used for ad personalization.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                        color = OnSurfaceVariant,
+                        lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.2f
                     )
+                }
+            }
+
+            // Test UMP Form Button (Development Only)
+            if (false) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = onShowTestUMPForm,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = OnSurface
+                    ),
+                    border = BorderStroke(1.dp, OutlinePrimary)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.BugReport,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Test UMP Form (Debug)")
                 }
             }
         }

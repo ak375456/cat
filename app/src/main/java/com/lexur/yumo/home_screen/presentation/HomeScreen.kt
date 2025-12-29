@@ -176,7 +176,6 @@ fun HomeScreen(
             if (!isPremiumUser) {
                 AdaptiveBannerAdView(
                     modifier = Modifier.fillMaxWidth(),
-                    adUnitId = "ca-app-pub-3026156143814055/7990692071"
                 )
             }
         }
