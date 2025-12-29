@@ -46,6 +46,9 @@
                 android:value="overlay" />
         </service>
 
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3026156143814055~9566561842"/>
     </application>
 
 </manifest>

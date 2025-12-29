@@ -1,6 +1,5 @@
 package com.lexur.yumo
 
-import com.lexur.yumo.character_screen.presentation.CharacterSettingsScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,29 +10,46 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.lexur.yumo.ads.AdMobManager
+import com.lexur.yumo.character_screen.presentation.CharacterSettingsScreen
 import com.lexur.yumo.custom_character.presentation.CustomCharacterCreationScreen
+import com.lexur.yumo.home_screen.presentation.HomeScreen
 import com.lexur.yumo.navigation.Screen
 import com.lexur.yumo.navigation.SettingsScreen
-import com.lexur.yumo.home_screen.presentation.HomeScreen
 import com.lexur.yumo.ui.theme.CatTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var adMobManager: AdMobManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         installSplashScreen()
-        setContent {
 
+        // Request consent information (GDPR)
+        adMobManager.requestConsentInformation(
+            activity = this,
+            onConsentGathered = { success ->
+                setupUI()
+            }
+        )
+    }
+
+    private fun setupUI() {
+        setContent {
             CatTheme {
-                NavigationGraph()
+                NavigationGraph(adMobManager = adMobManager)
             }
         }
     }
 }
 
 @Composable
-fun NavigationGraph() {
+fun NavigationGraph(adMobManager: AdMobManager) {
     val navController = rememberNavController()
 
     NavHost(
@@ -55,7 +71,8 @@ fun NavigationGraph() {
 
         composable(Screen.Settings.route) {
             SettingsScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                adMobManager = adMobManager
             )
         }
 
@@ -72,7 +89,7 @@ fun NavigationGraph() {
 
         composable(Screen.CustomCharacterCreation.route) {
             CustomCharacterCreationScreen(
-                navController = navController,
+                navController = navController
             )
         }
     }

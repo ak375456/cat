@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -66,11 +68,13 @@ import java.util.UUID
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
-    feedbackViewModel: FeedbackViewModel = hiltViewModel()
+    feedbackViewModel: FeedbackViewModel = hiltViewModel(),
+    adMobManager: com.lexur.yumo.ads.AdMobManager
 ) {
 
     val context = LocalContext.current
     val showPermissionDialog by viewModel.showPermissionDialog.collectAsState()
+    val canShowPrivacy = adMobManager.canShowPrivacyOptions()
 
     // Permission states
     var hasOverlayPermission by remember { mutableStateOf(checkOverlayPermission(context)) }
@@ -576,6 +580,18 @@ fun SettingsScreen(
                     }
                 }
             }
+            PrivacySettingsSection(
+                canShowPrivacyOptions = canShowPrivacy,
+                onPrivacySettingsClick = {
+                    val activity = context as? android.app.Activity
+                    activity?.let {
+                        adMobManager.showPrivacyOptionsForm(it) {
+                            // Privacy form dismissed
+                        }
+                    }
+                },
+                modifier = Modifier.padding(16.dp)
+            )
         }
     }
 }
@@ -661,4 +677,101 @@ private fun openAppSettings(context: Context) {
         data = Uri.fromParts("package", context.packageName, null)
     }
     context.startActivity(intent)
+}
+
+@Composable
+fun PrivacySettingsSection(
+    canShowPrivacyOptions: Boolean,
+    onPrivacySettingsClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Privacy & Ads",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            HorizontalDivider()
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Ad Personalization Option
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = canShowPrivacyOptions) {
+                        onPrivacySettingsClick()
+                    }
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PrivacyTip,
+                    contentDescription = "Privacy Settings",
+                    tint = if (canShowPrivacyOptions)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Ad Personalization",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (canShowPrivacyOptions)
+                            MaterialTheme.colorScheme.onSurface
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                    Text(
+                        text = if (canShowPrivacyOptions)
+                            "Manage how your data is used for ads"
+                        else
+                            "No personalized ads in your region",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Information about GDPR compliance
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "About Ad Privacy",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "We respect your privacy and comply with GDPR and other privacy regulations. " +
+                                "You can control how your data is used for ad personalization. " +
+                                "Premium users enjoy an ad-free experience.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        }
+    }
 }

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.lexur.yumo.ads.composables.AdaptiveBannerAdView
 import com.lexur.yumo.billing.BillingViewModel
 import com.lexur.yumo.billing.PremiumFeatureDialog
 import com.lexur.yumo.componenets.PermissionExplanationDialog
@@ -168,6 +169,14 @@ fun HomeScreen(
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add custom character",
+                )
+            }
+        },
+        bottomBar = {
+            if (!isPremiumUser) {
+                AdaptiveBannerAdView(
+                    modifier = Modifier.fillMaxWidth(),
+                    adUnitId = "ca-app-pub-3026156143814055/7990692071"
                 )
             }
         }
