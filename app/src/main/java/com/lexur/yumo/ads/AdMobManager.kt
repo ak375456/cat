@@ -23,7 +23,7 @@ class AdMobManager(private val context: Context) {
         private const val TAG = "AdMobManager"
 
         // Replace with your actual Ad Unit IDs from AdMob console
-        const val BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/6300978111" // Test ID
+        const val BANNER_AD_UNIT_ID = "ca-app-pub-3026156143814055/7990692071" // Test ID
         const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712" // Test ID
 
         // For production, use:
