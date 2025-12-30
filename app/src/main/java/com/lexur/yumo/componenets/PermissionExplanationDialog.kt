@@ -1,5 +1,3 @@
-// Updated PermissionExplanationDialog.kt with privacy policy link
-
 package com.lexur.yumo.componenets
 
 import androidx.compose.foundation.layout.*
@@ -28,14 +26,9 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Shield
 import com.composables.icons.lucide.User
 import com.composables.icons.lucide.View
-import com.lexur.yumo.ui.theme.ButtonPrimary
-import com.lexur.yumo.ui.theme.Container
-import com.lexur.yumo.ui.theme.DialogBackground
-import com.lexur.yumo.ui.theme.IconSecondary
-import com.lexur.yumo.ui.theme.OnButtonPrimary
-import com.lexur.yumo.ui.theme.OnContainer
-import com.lexur.yumo.ui.theme.OnDialog
-import com.lexur.yumo.ui.theme.Primary
+import com.lexur.yumo.ui.theme.buttonPrimary
+import com.lexur.yumo.ui.theme.containerColor
+import com.lexur.yumo.ui.theme.iconSecondary
 
 @Composable
 fun PermissionExplanationDialog(
@@ -58,7 +51,7 @@ fun PermissionExplanationDialog(
                     .padding(16.dp),
                 shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(
-                    containerColor = DialogBackground // Using custom dialog background
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             ) {
                 Column(
@@ -72,7 +65,7 @@ fun PermissionExplanationDialog(
                         imageVector = Lucide.Cat,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
-                        tint = Primary // Using custom primary color
+                        tint = MaterialTheme.colorScheme.primary
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -82,7 +75,7 @@ fun PermissionExplanationDialog(
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
-                        color = OnDialog // Using custom dialog text color
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -91,7 +84,7 @@ fun PermissionExplanationDialog(
                         text = "To bring your cute characters to life on your status bar, we need a few permissions:",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
-                        color = OnDialog.copy(alpha = 0.8f) // Using custom dialog text with transparency
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -125,7 +118,7 @@ fun PermissionExplanationDialog(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = Container.copy(alpha = 0.6f) // Using custom container color
+                            containerColor = MaterialTheme.colorScheme.containerColor.copy(alpha = 0.6f)
                         )
                     ) {
                         Row(
@@ -135,7 +128,7 @@ fun PermissionExplanationDialog(
                             Icon(
                                 imageVector = Lucide.User,
                                 contentDescription = null,
-                                tint = Primary, // Using custom primary color
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
@@ -144,12 +137,12 @@ fun PermissionExplanationDialog(
                                     text = "Your Privacy is Safe",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Primary // Using custom primary color
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
                                     text = "We comply with Google Play policies and do not collect, store, or share any personal data from your device.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = OnContainer // Using custom text on container color
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -159,6 +152,8 @@ fun PermissionExplanationDialog(
 
                     // Privacy Policy Link
                     val uriHandler = LocalUriHandler.current
+                    val primaryColor = MaterialTheme.colorScheme.primary
+
                     val privacyPolicyText = buildAnnotatedString {
                         append("We respect your privacy and do not collect any type of data. Our app is designed with Google privacy policy. ")
                         pushStringAnnotation(
@@ -167,7 +162,7 @@ fun PermissionExplanationDialog(
                         )
                         withStyle(
                             style = SpanStyle(
-                                color = Primary,
+                                color = primaryColor,
                                 textDecoration = TextDecoration.Underline
                             )
                         ) {
@@ -179,7 +174,7 @@ fun PermissionExplanationDialog(
                     ClickableText(
                         text = privacyPolicyText,
                         style = MaterialTheme.typography.bodySmall.copy(
-                            color = OnDialog.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                             textAlign = TextAlign.Center
                         ),
                         modifier = Modifier.fillMaxWidth(),
@@ -205,7 +200,7 @@ fun PermissionExplanationDialog(
                             onClick = onDontShowAgain,
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.textButtonColors(
-                                contentColor = IconSecondary // Using custom secondary icon color
+                                contentColor = MaterialTheme.colorScheme.iconSecondary
                             )
                         ) {
                             Text("Don't show again")
@@ -215,8 +210,8 @@ fun PermissionExplanationDialog(
                             onClick = onContinue,
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = ButtonPrimary, // Using custom button color
-                                contentColor = OnButtonPrimary // Using custom button text color
+                                containerColor = MaterialTheme.colorScheme.buttonPrimary,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         ) {
                             Text("Continue")
@@ -242,7 +237,7 @@ private fun PermissionExplanationItem(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = Primary // Using custom primary color
+            tint = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -250,13 +245,13 @@ private fun PermissionExplanationItem(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium,
-                color = OnDialog // Using custom dialog text color
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
-                color = OnDialog.copy(alpha = 0.7f) // Using custom dialog text with transparency
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
         }
     }

@@ -18,7 +18,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.lexur.yumo.ui.theme.*
 
 @Composable
 fun PremiumFeatureDialog(
@@ -29,7 +28,7 @@ fun PremiumFeatureDialog(
     isLoading: Boolean = false,
     productPrice: String = "",
     error: String? = null,
-    premiumCharacterCount: Int = 0 // NEW PARAMETER
+    premiumCharacterCount: Int = 0
 ) {
     if (!showDialog) return
 
@@ -43,7 +42,7 @@ fun PremiumFeatureDialog(
                 .fillMaxHeight(0.85f),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
-                containerColor = DialogBackground
+                containerColor = MaterialTheme.colorScheme.surface
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
@@ -57,8 +56,8 @@ fun PremiumFeatureDialog(
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    Primary,
-                                    ButtonPrimary
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.primaryContainer
                                 )
                             )
                         )
@@ -71,7 +70,7 @@ fun PremiumFeatureDialog(
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
-                            tint = OnPrimary,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -79,7 +78,7 @@ fun PremiumFeatureDialog(
                             text = "Unlock Premium Features",
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = OnPrimary
+                                color = MaterialTheme.colorScheme.onPrimary
                             ),
                             textAlign = TextAlign.Center
                         )
@@ -97,21 +96,21 @@ fun PremiumFeatureDialog(
                     Text(
                         text = "Never feel alone. Keep a photo of a loved one or a custom companion hanging from your status bar, always there with you.",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = OnDialog,
+                        color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 8.dp),
-                        color = Divider
+                        color = MaterialTheme.colorScheme.outlineVariant
                     )
 
                     // Error card with retry option
                     if (error != null) {
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = Error.copy(alpha = 0.1f)
+                                containerColor = MaterialTheme.colorScheme.errorContainer
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -126,13 +125,13 @@ fun PremiumFeatureDialog(
                                     Icon(
                                         imageVector = Icons.Default.Warning,
                                         contentDescription = null,
-                                        tint = OnError,
+                                        tint = MaterialTheme.colorScheme.onErrorContainer,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Text(
                                         text = error,
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = OnError,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
@@ -141,7 +140,7 @@ fun PremiumFeatureDialog(
                                     onClick = onRetry,
                                     enabled = !isLoading,
                                     colors = ButtonDefaults.textButtonColors(
-                                        contentColor = OnError
+                                        contentColor = MaterialTheme.colorScheme.onErrorContainer
                                     )
                                 ) {
                                     Icon(
@@ -163,14 +162,14 @@ fun PremiumFeatureDialog(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = OnDialog
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     // PROMINENT FEATURE: Unlock all characters
                     if (premiumCharacterCount > 0) {
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = Primary.copy(alpha = 0.15f)
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -184,7 +183,7 @@ fun PremiumFeatureDialog(
                                 Icon(
                                     imageVector = Icons.Default.Star,
                                     contentDescription = null,
-                                    tint = Primary,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(32.dp)
                                 )
                                 Column(
@@ -196,12 +195,12 @@ fun PremiumFeatureDialog(
                                         style = MaterialTheme.typography.titleSmall.copy(
                                             fontWeight = FontWeight.Bold
                                         ),
-                                        color = Primary
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                     Text(
                                         text = "Get instant access to all premium animated and hanging characters",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = OnBackground.copy(alpha = 0.8f)
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                     )
                                 }
                             }
@@ -256,7 +255,7 @@ fun PremiumFeatureDialog(
                         text = "Your support helps keep this app growing with new features and improvements!",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
-                        color = OnContainerVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -264,7 +263,7 @@ fun PremiumFeatureDialog(
                 // Bottom action buttons
                 Surface(
                     tonalElevation = 3.dp,
-                    color = DialogSurface,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -278,11 +277,14 @@ fun PremiumFeatureDialog(
                             modifier = Modifier.weight(1f),
                             enabled = !isLoading,
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = OnButtonSecondary
+                                contentColor = MaterialTheme.colorScheme.onSurface
                             ),
                             border = ButtonDefaults.outlinedButtonBorder.copy(
                                 brush = Brush.linearGradient(
-                                    colors = listOf(OutlinePrimary, OutlinePrimary)
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.outline,
+                                        MaterialTheme.colorScheme.outline
+                                    )
                                 )
                             )
                         ) {
@@ -294,17 +296,17 @@ fun PremiumFeatureDialog(
                             modifier = Modifier.weight(1f),
                             enabled = !isLoading,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Primary,
-                                contentColor = OnButtonPrimary,
-                                disabledContainerColor = Disabled,
-                                disabledContentColor = OnDisabled
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                             )
                         ) {
                             if (isLoading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
                                     strokeWidth = 2.dp,
-                                    color = OnButtonPrimary
+                                    color = MaterialTheme.colorScheme.onPrimary
                                 )
                             } else {
                                 Row(
@@ -343,7 +345,7 @@ private fun PremiumFeatureItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Primary,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(24.dp)
         )
         Column(
@@ -355,12 +357,12 @@ private fun PremiumFeatureItem(
                 style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = OnCard
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = OnSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

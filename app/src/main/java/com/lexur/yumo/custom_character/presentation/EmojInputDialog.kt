@@ -1,9 +1,7 @@
 package com.lexur.yumo.custom_character.presentation
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
@@ -11,7 +9,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,7 +47,7 @@ fun EmojiInputDialog(
                 .padding(16.dp),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
-                containerColor = DialogBackground
+                containerColor = MaterialTheme.colorScheme.surface
             ),
             elevation = CardDefaults.cardElevation(8.dp)
         ) {
@@ -70,7 +67,7 @@ fun EmojiInputDialog(
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = OnDialog
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     IconButton(
                         onClick = onDismiss,
@@ -79,7 +76,7 @@ fun EmojiInputDialog(
                         Icon(
                             Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = IconSecondary
+                            tint = MaterialTheme.colorScheme.iconSecondary
                         )
                     }
                 }
@@ -88,7 +85,7 @@ fun EmojiInputDialog(
                 Text(
                     "Tap the input field below and select a single emoji from your keyboard",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = OnContainerVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
 
@@ -119,17 +116,20 @@ fun EmojiInputDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = InputBackground,
-                        unfocusedContainerColor = InputBackground,
-                        focusedBorderColor = if (emojiInput.isNotBlank() && isValid) Primary else InputBorderFocused,
-                        unfocusedBorderColor = InputBorder,
-                        focusedLabelColor = Primary,
-                        unfocusedLabelColor = InputPlaceholder,
-                        cursorColor = Primary,
-                        focusedTextColor = InputText,
-                        unfocusedTextColor = InputText,
-                        errorBorderColor = Error,
-                        errorLabelColor = Error
+                        focusedContainerColor = MaterialTheme.colorScheme.inputBackground,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.inputBackground,
+                        focusedBorderColor = if (emojiInput.isNotBlank() && isValid)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.inputBorderFocused,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.inputBorder,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        errorBorderColor = MaterialTheme.colorScheme.error,
+                        errorLabelColor = MaterialTheme.colorScheme.error
                     ),
                     textStyle = MaterialTheme.typography.headlineMedium.copy(
                         textAlign = TextAlign.Center
@@ -142,7 +142,10 @@ fun EmojiInputDialog(
                     Text(
                         text = validationMessage,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isValid) Primary else Error,
+                        color = if (isValid)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.error,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -152,7 +155,7 @@ fun EmojiInputDialog(
                     Text(
                         text = errorMessage,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Error,
+                        color = MaterialTheme.colorScheme.error,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -169,10 +172,12 @@ fun EmojiInputDialog(
                             .height(48.dp),
                         shape = RoundedCornerShape(24.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = ButtonSecondary,
-                            contentColor = OnButtonSecondary
+                            contentColor = MaterialTheme.colorScheme.onSurface
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, OutlinePrimary)
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.5.dp,
+                            MaterialTheme.colorScheme.outline
+                        )
                     ) {
                         Text(
                             "Cancel",
@@ -194,10 +199,10 @@ fun EmojiInputDialog(
                             .height(48.dp),
                         shape = RoundedCornerShape(24.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = ButtonPrimary,
-                            contentColor = OnButtonPrimary,
-                            disabledContainerColor = Disabled,
-                            disabledContentColor = OnDisabled
+                            containerColor = MaterialTheme.colorScheme.buttonPrimary,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                         ),
                         elevation = ButtonDefaults.buttonElevation(
                             defaultElevation = 0.dp,
@@ -218,7 +223,7 @@ fun EmojiInputDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Container.copy(alpha = 0.3f)
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                     )
                 ) {
                     Column(
@@ -230,18 +235,18 @@ fun EmojiInputDialog(
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = OnContainerVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             "😊 🎉 🔥 ❤️ 👍 🌟 🎈 🦄 🌈 ⭐",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = OnContainerVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             "✓ Single emojis work\n✓ Emojis with skin tones work (👍🏽)\n✓ Combined emojis work (👨‍👩‍👧)\n✗ Multiple emojis don't work\n✗ Text + emoji doesn't work",
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnContainerVariant.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                         )
                     }
                 }

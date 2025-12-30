@@ -300,7 +300,7 @@ fun CustomCharacterCreationScreen(
 
             else -> {
                 Scaffold(
-                    containerColor = Background,
+                    containerColor = MaterialTheme.colorScheme.background,
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     topBar = {
                         if (uiState.selectedImageUri != null) {
@@ -311,13 +311,13 @@ fun CustomCharacterCreationScreen(
                                         style = MaterialTheme.typography.titleLarge.copy(
                                             fontWeight = FontWeight.Medium
                                         ),
-                                        color = OnTopBar
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 },
                                 colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = TopBarBackground,
-                                    titleContentColor = OnTopBar,
-                                    actionIconContentColor = IconPrimary
+                                    containerColor = MaterialTheme.colorScheme.mainColor,
+                                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                                    actionIconContentColor = MaterialTheme.colorScheme.iconPrimary
                                 ),
                                 actions = {
                                     IconButton(onClick = { viewModel.toggleBackgroundRemovalMode() }) {
@@ -325,9 +325,9 @@ fun CustomCharacterCreationScreen(
                                             Icons.Default.Brush,
                                             contentDescription = "Toggle background removal mode",
                                             tint = if (uiState.isBackgroundRemovalMode && !uiState.isPanningMode)
-                                                Primary
+                                                MaterialTheme.colorScheme.primary
                                             else
-                                                IconPrimary
+                                                MaterialTheme.colorScheme.iconPrimary
                                         )
                                     }
                                     if (uiState.isBackgroundRemovalMode) {
@@ -336,9 +336,9 @@ fun CustomCharacterCreationScreen(
                                                 Icons.Default.PanTool,
                                                 contentDescription = "Toggle pan mode",
                                                 tint = if (uiState.isPanningMode)
-                                                    Primary
+                                                    MaterialTheme.colorScheme.primary
                                                 else
-                                                    IconPrimary
+                                                    MaterialTheme.colorScheme.iconPrimary
                                             )
                                         }
                                     }
@@ -350,9 +350,9 @@ fun CustomCharacterCreationScreen(
                                             Icons.AutoMirrored.Filled.Undo,
                                             contentDescription = "Undo",
                                             tint = if (uiState.strokeHistory.isNotEmpty() && !uiState.isPanningMode)
-                                                IconPrimary
+                                                MaterialTheme.colorScheme.iconPrimary
                                             else
-                                                IconDisabled
+                                                MaterialTheme.colorScheme.iconSecondary.copy(alpha = 0.4f)
                                         )
                                     }
                                     IconButton(onClick = {
@@ -362,7 +362,7 @@ fun CustomCharacterCreationScreen(
                                         Icon(
                                             Icons.Default.Done,
                                             contentDescription = "Done",
-                                            tint = IconPrimary
+                                            tint = MaterialTheme.colorScheme.iconPrimary
                                         )
                                     }
                                 }
@@ -392,7 +392,7 @@ fun CustomCharacterCreationScreen(
                                             fontWeight = FontWeight.SemiBold,
                                             letterSpacing = (-0.5).sp
                                         ),
-                                        color = OnBackground,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                         textAlign = TextAlign.Center
                                     )
 
@@ -408,10 +408,10 @@ fun CustomCharacterCreationScreen(
                                             .padding(vertical = 16.dp),
                                         shape = RoundedCornerShape(16.dp),
                                         colors = CardDefaults.cardColors(
-                                            containerColor = Container
+                                            containerColor = MaterialTheme.colorScheme.containerHigh
                                         ),
                                         elevation = CardDefaults.cardElevation(0.dp),
-                                        border = BorderStroke(1.dp, OutlineVariant)
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                                     ) {
                                         Row(
                                             modifier = Modifier.padding(16.dp),
@@ -420,14 +420,14 @@ fun CustomCharacterCreationScreen(
                                             Icon(
                                                 imageVector = Icons.Default.Lock,
                                                 contentDescription = null,
-                                                tint = IconSecondary,
+                                                tint = MaterialTheme.colorScheme.iconSecondary,
                                                 modifier = Modifier.size(20.dp)
                                             )
                                             Spacer(modifier = Modifier.width(12.dp))
                                             Text(
                                                 "Custom characters are stored locally on your device. We never store or share your images.",
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = OnContainerVariant,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 lineHeight = 12.sp
                                             )
                                         }
@@ -452,8 +452,8 @@ fun CustomCharacterCreationScreen(
                                             .height(56.dp),
                                         shape = RoundedCornerShape(28.dp),
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = ButtonPrimary,
-                                            contentColor = OnButtonPrimary
+                                            containerColor = MaterialTheme.colorScheme.buttonPrimary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                         ),
                                         elevation = ButtonDefaults.buttonElevation(
                                             defaultElevation = 0.dp,
@@ -749,14 +749,14 @@ fun CustomCharacterCreationScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(OnBackground.copy(alpha = 0.7f))
+                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
                     .clickable(enabled = false, onClick = {}),
                 contentAlignment = Alignment.Center
             ) {
                 Card(
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = CardBackground
+                        containerColor = MaterialTheme.colorScheme.cardBackground
                     ),
                     elevation = CardDefaults.cardElevation(8.dp)
                 ) {
@@ -766,13 +766,13 @@ fun CustomCharacterCreationScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         CircularProgressIndicator(
-                            color = Primary,
+                            color = MaterialTheme.colorScheme.primary,
                             strokeWidth = 3.dp
                         )
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
                             text = "Saving Character...",
-                            color = OnCard,
+                            color = MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontWeight = FontWeight.Medium
                             )
@@ -817,10 +817,10 @@ private fun TutorialStepCard(step: TutorialStep) {
             .padding(horizontal = 8.dp), // Spacing between pages
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = CardBackground
+            containerColor = MaterialTheme.colorScheme.cardBackground
         ),
         elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, OutlineVariant)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -843,14 +843,14 @@ private fun TutorialStepCard(step: TutorialStep) {
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = OnCard,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = step.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = OnContainerVariant,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
         }
@@ -866,7 +866,10 @@ private fun PagerIndicator(pagerState: PagerState) {
         modifier = Modifier.fillMaxWidth()
     ) {
         repeat(pagerState.pageCount) { iteration ->
-            val color = if (pagerState.currentPage == iteration) Primary else OutlineSecondary
+            val color = if (pagerState.currentPage == iteration)
+                MaterialTheme.colorScheme.primary
+            else
+                MaterialTheme.colorScheme.outline
             Box(
                 modifier = Modifier
                     .padding(4.dp)
@@ -889,7 +892,7 @@ fun NameCharacterDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DialogBackground,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(24.dp),
         title = {
             Text(
@@ -897,7 +900,7 @@ fun NameCharacterDialog(
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = OnDialog
+                color = MaterialTheme.colorScheme.onSurface
             )
         },
         text = {
@@ -908,7 +911,7 @@ fun NameCharacterDialog(
                 Text(
                     "Give your character a unique name",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = OnContainerVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
@@ -924,15 +927,15 @@ fun NameCharacterDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = InputBackground,
-                        unfocusedContainerColor = InputBackground,
-                        focusedBorderColor = InputBorderFocused,
-                        unfocusedBorderColor = InputBorder,
-                        focusedLabelColor = Primary,
-                        unfocusedLabelColor = InputPlaceholder,
-                        cursorColor = Primary,
-                        focusedTextColor = InputText,
-                        unfocusedTextColor = InputText
+                        focusedContainerColor = MaterialTheme.colorScheme.inputBackground,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.inputBackground,
+                        focusedBorderColor = MaterialTheme.colorScheme.inputBorderFocused,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.inputBorder,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
             }
@@ -943,10 +946,10 @@ fun NameCharacterDialog(
                 enabled = name.isNotBlank(),
                 shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ButtonPrimary,
-                    contentColor = OnButtonPrimary,
-                    disabledContainerColor = Disabled,
-                    disabledContentColor = OnDisabled
+                    containerColor = MaterialTheme.colorScheme.buttonPrimary,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                 ),
                 elevation = ButtonDefaults.buttonElevation(
                     defaultElevation = 0.dp,
@@ -967,7 +970,7 @@ fun NameCharacterDialog(
                 onClick = onDismiss,
                 shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = OnButtonSecondary
+                    contentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 modifier = Modifier.height(44.dp)
             ) {
