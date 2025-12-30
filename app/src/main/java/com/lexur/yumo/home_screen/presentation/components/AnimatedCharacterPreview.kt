@@ -32,7 +32,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.lexur.yumo.home_screen.data.model.CharacterCategory
 import com.lexur.yumo.home_screen.data.model.Characters
-import com.lexur.yumo.ui.theme.*
+import com.lexur.yumo.ui.theme.buttonPrimary
+import com.lexur.yumo.ui.theme.cardBackground
 import kotlinx.coroutines.delay
 
 @Composable
@@ -80,7 +81,9 @@ fun AnimatedCharacterPreview(
                 )
             ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.cardBackground
+        ),
     ) {
         Box(
             modifier = Modifier.fillMaxWidth()
@@ -131,18 +134,18 @@ fun AnimatedCharacterPreview(
                             fontWeight = FontWeight.Bold
                         ),
                         textAlign = TextAlign.Center,
-                        color = OnCard
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     if (!character?.category?.displayName.isNullOrBlank()) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = SecondaryVariant.copy(alpha = 0.6f)
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
                         ) {
                             Text(
                                 text = character.category.displayName,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = OnSecondary,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
@@ -158,14 +161,15 @@ fun AnimatedCharacterPreview(
                         Box(
                             modifier = Modifier
                                 .size(8.dp)
-                                .background(Primary)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
                         )
                         Text(
                             text = "Running",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = Primary
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -185,10 +189,12 @@ fun AnimatedCharacterPreview(
                         if (isCharacterRunning) {
                             Button(
                                 onClick = onStopCharacter,
-                                modifier = Modifier.fillMaxWidth(0.5f).height(48.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth(0.5f)
+                                    .height(48.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Error,
-                                    contentColor = OnError
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                    contentColor = MaterialTheme.colorScheme.onError
                                 ),
                                 shape = RoundedCornerShape(14.dp)
                             ) {
@@ -209,11 +215,13 @@ fun AnimatedCharacterPreview(
                                     }
                                 },
                                 enabled = canUseCharacter && character != null,
-                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
                                 shape = RoundedCornerShape(14.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = ButtonPrimary,
-                                    contentColor = OnButtonPrimary
+                                    containerColor = MaterialTheme.colorScheme.buttonPrimary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             ) {
                                 Icon(
@@ -234,11 +242,13 @@ fun AnimatedCharacterPreview(
                                 }
                             },
                             enabled = character != null,
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = SurfaceVariant,
-                                contentColor = OnCard
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurface
                             )
                         ) {
                             Icon(
@@ -259,7 +269,7 @@ fun AnimatedCharacterPreview(
                         .padding(8.dp)
                         .size(24.dp)
                         .background(
-                            color = Primary,
+                            color = MaterialTheme.colorScheme.primary,
                             shape = CircleShape
                         ),
                     contentAlignment = Alignment.Center
@@ -267,7 +277,7 @@ fun AnimatedCharacterPreview(
                     Icon(
                         imageVector = Icons.Default.Star,
                         contentDescription = "Premium",
-                        tint = OnPrimary,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(14.dp)
                     )
                 }
@@ -286,7 +296,7 @@ fun AnimatedCharacterPreview(
                     Icon(
                         Icons.Default.Info,
                         contentDescription = "Hanging Character Info",
-                        tint = Primary,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
                 }

@@ -14,10 +14,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -51,10 +52,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.material.icons.filled.Close
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Vibrate
-import com.lexur.yumo.ui.theme.*
+import com.lexur.yumo.ui.theme.buttonPrimary
+import com.lexur.yumo.ui.theme.containerColor
+import com.lexur.yumo.ui.theme.iconPrimary
+import com.lexur.yumo.ui.theme.iconSecondary
+import com.lexur.yumo.ui.theme.inputBackground
+import com.lexur.yumo.ui.theme.mainColor
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -85,12 +90,10 @@ fun CharacterSettingsScreen(
 
     val isHangingCharacter = character?.isHanging == true
 
-    // NEW: Only set character running state on initial composition, not on recomposition
     LaunchedEffect(characterId) {
         viewModel.loadCharacter(characterId)
     }
 
-    // NEW: Separate effect that only runs once with the initial parameter
     LaunchedEffect(Unit) {
         if (isCharacterRunning) {
             viewModel.setCharacterRunning(true)
@@ -100,19 +103,18 @@ fun CharacterSettingsScreen(
     LaunchedEffect(characterRunning) {
         if (characterRunning && !enableInLandscape) {
             // Show a message if character is disabled in landscape
-            // You could add a snackbar here if needed
         }
     }
 
     Scaffold(
-        containerColor = Background,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "${character?.name} Settings",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = OnTopBar
+                        color = MaterialTheme.colorScheme.onTertiary
                     )
                 },
                 navigationIcon = {
@@ -120,12 +122,12 @@ fun CharacterSettingsScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = IconOnPrimary
+                            tint = MaterialTheme.colorScheme.onTertiary
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = TopBarBackground
+                    containerColor = MaterialTheme.colorScheme.tertiary
                 )
             )
         },
@@ -143,7 +145,7 @@ fun CharacterSettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = Container.copy(alpha = 0.4f)
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f)
                     )
                 ) {
                     Row(
@@ -153,7 +155,7 @@ fun CharacterSettingsScreen(
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
                             contentDescription = null,
-                            tint = Primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
@@ -162,7 +164,7 @@ fun CharacterSettingsScreen(
                             else
                                 "Character is running - changes will be applied instantly!",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Primary,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
@@ -173,7 +175,7 @@ fun CharacterSettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = Container.copy(alpha = 0.3f)
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.3f)
                     )
                 ) {
                     Row(
@@ -184,7 +186,7 @@ fun CharacterSettingsScreen(
                             Text(
                                 text = "Static Hanging Character",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                color = OnBackground
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
                                 text = if (motionSensingEnabled)
@@ -192,7 +194,7 @@ fun CharacterSettingsScreen(
                                 else
                                     "This character stays perfectly still",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = OnBackground.copy(alpha = 0.7f)
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                             )
                         }
                     }
@@ -203,9 +205,9 @@ fun CharacterSettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = if (enableInLandscape)
-                        Primary.copy(alpha = 0.1f)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                     else
-                        SurfaceVariant.copy(alpha = 0.3f)
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 )
             ) {
                 Row(
@@ -219,7 +221,7 @@ fun CharacterSettingsScreen(
                         Text(
                             text = "Show in Landscape Mode",
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                            color = OnBackground
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = if (enableInLandscape)
@@ -227,17 +229,17 @@ fun CharacterSettingsScreen(
                             else
                                 "Character will hide when device is rotated to landscape",
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnBackground.copy(alpha = 0.7f)
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                         )
                     }
                     Switch(
                         checked = enableInLandscape,
                         onCheckedChange = { viewModel.setEnableInLandscape(it) },
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = Primary,
-                            checkedTrackColor = Container,
-                            uncheckedThumbColor = IconSecondary,
-                            uncheckedTrackColor = SurfaceVariant
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.surfaceContainer,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.iconSecondary,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     )
                 }
@@ -248,9 +250,9 @@ fun CharacterSettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = if (motionSensingEnabled)
-                            Primary.copy(alpha = 0.1f)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         else
-                            SurfaceVariant.copy(alpha = 0.3f)
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -263,13 +265,15 @@ fun CharacterSettingsScreen(
                                 Icon(
                                     imageVector = Lucide.Vibrate,
                                     contentDescription = null,
-                                    tint = if (motionSensingEnabled) Primary else OnSurfaceVariant,
+                                    tint = if (motionSensingEnabled)
+                                        MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
                                     text = "Motion Sensing",
                                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                                    color = OnBackground,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     modifier = Modifier.padding(start = 8.dp)
                                 )
                                 IconButton(
@@ -279,7 +283,7 @@ fun CharacterSettingsScreen(
                                     Icon(
                                         imageVector = Icons.Default.Info,
                                         contentDescription = "Motion Info",
-                                        tint = IconSecondary,
+                                        tint = MaterialTheme.colorScheme.iconSecondary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -288,10 +292,10 @@ fun CharacterSettingsScreen(
                                 checked = motionSensingEnabled,
                                 onCheckedChange = { viewModel.setMotionSensingEnabled(it) },
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Primary,
-                                    checkedTrackColor = Container,
-                                    uncheckedThumbColor = IconSecondary,
-                                    uncheckedTrackColor = SurfaceVariant
+                                    checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                    checkedTrackColor = MaterialTheme.colorScheme.surfaceContainer,
+                                    uncheckedThumbColor = MaterialTheme.colorScheme.iconSecondary,
+                                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
                             )
                         }
@@ -308,7 +312,7 @@ fun CharacterSettingsScreen(
                                             "No movement or tilting"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
-                                color = OnBackground.copy(alpha = 0.8f),
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                         }
@@ -317,7 +321,7 @@ fun CharacterSettingsScreen(
                             Text(
                                 text = "Try tilting your device left/right to see the character swing!",
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                                color = Primary,
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                         }
@@ -329,14 +333,15 @@ fun CharacterSettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = SecondaryVariant.copy(alpha = 0.4f)
+                        // Approximation for SecondaryVariant in Dark Mode: using secondaryContainer
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Test Your Settings",
                             style = MaterialTheme.typography.titleSmall,
-                            color = OnSecondary
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Text(
                             text = if (isHangingCharacter) {
@@ -346,7 +351,7 @@ fun CharacterSettingsScreen(
                                 "Start the character to see changes in real-time"
                             },
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnSecondary.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                         Button(
@@ -357,8 +362,8 @@ fun CharacterSettingsScreen(
                             enabled = character != null,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = ButtonPrimary,
-                                contentColor = OnButtonPrimary
+                                containerColor = MaterialTheme.colorScheme.buttonPrimary,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         ) {
                             Icon(
@@ -380,7 +385,7 @@ fun CharacterSettingsScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Error
+                        contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
                     Icon(
@@ -398,13 +403,13 @@ fun CharacterSettingsScreen(
             Text(
                 text = "Character Size",
                 style = MaterialTheme.typography.titleSmall,
-                color = Primary.copy(alpha = 0.9f)
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
             )
 
             Text(
                 text = "Size: ${size}px",
                 style = MaterialTheme.typography.bodyLarge,
-                color = OnBackground
+                color = MaterialTheme.colorScheme.onBackground
             )
             Slider(
                 value = size.toFloat(),
@@ -413,25 +418,27 @@ fun CharacterSettingsScreen(
                 },
                 valueRange = 10f..100f,
                 colors = SliderDefaults.colors(
-                    thumbColor = Primary,
-                    activeTrackColor = Primary.copy(alpha = 0.7f),
-                    inactiveTrackColor = OutlineVariant
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                    inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant
                 )
             )
 
             Text(
                 text = "Position Settings ${if (characterRunning) "(Live Updates)" else ""}",
                 style = MaterialTheme.typography.titleSmall,
-                color = if (characterRunning) Primary else Primary.copy(alpha = 0.9f)
+                color = if (characterRunning)
+                    MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
             )
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = if (atBottom)
-                        Primary.copy(alpha = 0.1f)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                     else
-                        SurfaceVariant.copy(alpha = 0.3f)
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 )
             ) {
                 Row(
@@ -445,7 +452,7 @@ fun CharacterSettingsScreen(
                         Text(
                             text = "Position at Bottom",
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                            color = OnBackground
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = if (isHangingCharacter)
@@ -453,17 +460,17 @@ fun CharacterSettingsScreen(
                             else
                                 "Walks along the bottom of the screen",
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnBackground.copy(alpha = 0.7f)
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                         )
                     }
                     Switch(
                         checked = atBottom,
                         onCheckedChange = { viewModel.setAtBottom(it, isHangingCharacter) },
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = Primary,
-                            checkedTrackColor = Container,
-                            uncheckedThumbColor = IconSecondary,
-                            uncheckedTrackColor = SurfaceVariant
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.containerColor,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.iconSecondary,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     )
                 }
@@ -473,9 +480,9 @@ fun CharacterSettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = if (enableFullScreenY)
-                        Primary.copy(alpha = 0.1f)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                     else
-                        SurfaceVariant.copy(alpha = 0.3f)
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 )
             ) {
                 Row(
@@ -489,22 +496,22 @@ fun CharacterSettingsScreen(
                         Text(
                             text = "Enable Full Screen Y-Position",
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                            color = OnBackground
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = "Allows placing the character anywhere vertically on screen.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnBackground.copy(alpha = 0.7f)
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                         )
                     }
                     Switch(
                         checked = enableFullScreenY,
                         onCheckedChange = { viewModel.setEnableFullScreenY(it) },
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = Primary,
-                            checkedTrackColor = Container,
-                            uncheckedThumbColor = IconSecondary,
-                            uncheckedTrackColor = SurfaceVariant
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.containerColor,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.iconSecondary,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     )
                 }
@@ -518,16 +525,16 @@ fun CharacterSettingsScreen(
                 Text(
                     text = "Use Button Controls",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = OnBackground
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Switch(
                     checked = useButtonControls,
                     onCheckedChange = { viewModel.setUseButtonControls(it) },
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Primary,
-                        checkedTrackColor = Container,
-                        uncheckedThumbColor = IconSecondary,
-                        uncheckedTrackColor = SurfaceVariant
+                        checkedThumbColor = MaterialTheme.colorScheme.primary,
+                        checkedTrackColor = MaterialTheme.colorScheme.containerColor,
+                        uncheckedThumbColor = MaterialTheme.colorScheme.iconSecondary,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 )
             }
@@ -540,7 +547,7 @@ fun CharacterSettingsScreen(
                     Text(
                         text = "Position: X=${xPosition}px, Y=${yPosition}px",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = OnBackground
+                        color = MaterialTheme.colorScheme.onBackground
                     )
 
                     IconButton(
@@ -550,7 +557,7 @@ fun CharacterSettingsScreen(
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowUp,
                             contentDescription = "Move Up",
-                            tint = Primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(32.dp)
                         )
                     }
@@ -566,7 +573,7 @@ fun CharacterSettingsScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                 contentDescription = "Move Left",
-                                tint = Primary,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
@@ -574,7 +581,7 @@ fun CharacterSettingsScreen(
                         Text(
                             text = "1px",
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnBackground.copy(alpha = 0.7f)
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                         )
 
                         IconButton(
@@ -584,7 +591,7 @@ fun CharacterSettingsScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = "Move Right",
-                                tint = Primary,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
@@ -597,7 +604,7 @@ fun CharacterSettingsScreen(
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = "Move Down",
-                            tint = Primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(32.dp)
                         )
                     }
@@ -607,16 +614,16 @@ fun CharacterSettingsScreen(
                     Text(
                         text = "Horizontal Position: $xPosition px from left (Max: ${maxXPosition}px)",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = OnBackground
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Slider(
                         value = xPosition.toFloat(),
                         onValueChange = { viewModel.updateXPosition(it.toInt()) },
                         valueRange = 0f..maxXPosition.toFloat(),
                         colors = SliderDefaults.colors(
-                            thumbColor = Primary,
-                            activeTrackColor = Primary.copy(alpha = 0.7f),
-                            inactiveTrackColor = OutlineVariant
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant
                         )
                     )
                 }
@@ -624,16 +631,16 @@ fun CharacterSettingsScreen(
                 Text(
                     text = "Vertical Position: $yPosition px from ${if (atBottom) "bottom" else "top"}",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = OnBackground
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Slider(
                     value = yPosition.toFloat(),
                     onValueChange = { viewModel.updateYPosition(it.toInt()) },
                     valueRange = if (enableFullScreenY) 0f..3000f else 0f..300f,
                     colors = SliderDefaults.colors(
-                        thumbColor = Primary,
-                        activeTrackColor = Primary.copy(alpha = 0.7f),
-                        inactiveTrackColor = OutlineVariant
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant
                     )
                 )
             }
@@ -645,9 +652,9 @@ fun CharacterSettingsScreen(
                     "Movement Speed: $speed px/frame",
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (isHangingCharacter)
-                    OnBackground.copy(alpha = 0.5f)
+                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 else
-                    OnBackground
+                    MaterialTheme.colorScheme.onBackground
             )
             Slider(
                 value = speed.toFloat(),
@@ -655,9 +662,9 @@ fun CharacterSettingsScreen(
                 valueRange = 1f..10f,
                 enabled = !isHangingCharacter,
                 colors = SliderDefaults.colors(
-                    thumbColor = Primary,
-                    activeTrackColor = Primary.copy(alpha = 0.7f),
-                    inactiveTrackColor = OutlineVariant
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                    inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant
                 )
             )
 
@@ -673,9 +680,9 @@ fun CharacterSettingsScreen(
                         "Animation Speed: ${animationDelay}ms",
                     style = MaterialTheme.typography.bodyLarge,
                     color = if (isHangingCharacter)
-                        OnBackground.copy(alpha = 0.5f)
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     else
-                        OnBackground
+                        MaterialTheme.colorScheme.onBackground
                 )
                 IconButton(
                     onClick = { showPresetInfo = !showPresetInfo },
@@ -684,7 +691,7 @@ fun CharacterSettingsScreen(
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = "Info",
-                        tint = IconSecondary,
+                        tint = MaterialTheme.colorScheme.iconSecondary,
                     )
                 }
             }
@@ -696,7 +703,7 @@ fun CharacterSettingsScreen(
                     else
                         "Lower values = faster animation (more battery usage)",
                     style = MaterialTheme.typography.labelSmall,
-                    color = OnBackground.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                 )
             }
 
@@ -711,14 +718,14 @@ fun CharacterSettingsScreen(
                         enabled = !isHangingCharacter,
                         label = { Text("${preset}ms") },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Container,
-                            selectedLabelColor = OnContainer,
-                            containerColor = SurfaceVariant,
-                            labelColor = OnSurfaceVariant
+                            selectedContainerColor = MaterialTheme.colorScheme.containerColor,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSurface,
+                            containerColor = MaterialTheme.colorScheme.inputBackground,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         border = FilterChipDefaults.filterChipBorder(
-                            selectedBorderColor = Primary,
-                            borderColor = OutlineSecondary,
+                            selectedBorderColor = MaterialTheme.colorScheme.primary,
+                            borderColor = MaterialTheme.colorScheme.outline,
                             selected = animationDelay == preset,
                             enabled = !isHangingCharacter
                         )
@@ -735,8 +742,8 @@ fun CharacterSettingsScreen(
                     .fillMaxWidth()
                     .padding(top = 8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ButtonPrimary,
-                    contentColor = OnButtonPrimary
+                    containerColor = MaterialTheme.colorScheme.buttonPrimary,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             ) {
                 Text("Save Settings", style = MaterialTheme.typography.labelLarge)
@@ -748,7 +755,7 @@ fun CharacterSettingsScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = IconPrimary
+                    contentColor = MaterialTheme.colorScheme.iconPrimary
                 )
             ) {
                 Text("Reset to Defaults")

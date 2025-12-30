@@ -29,7 +29,8 @@ import com.lexur.yumo.componenets.PermissionExplanationDialog
 import com.lexur.yumo.home_screen.presentation.components.AnimatedCharacterPreview
 import com.lexur.yumo.home_screen.presentation.components.CategoryFilterSection
 import com.lexur.yumo.home_screen.presentation.components.EnhancedPermissionWarningCard
-import com.lexur.yumo.ui.theme.*
+import com.lexur.yumo.ui.theme.buttonPrimary
+import com.lexur.yumo.ui.theme.mainColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,7 +132,7 @@ fun HomeScreen(
     }
 
     Scaffold(
-        containerColor = Background,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
@@ -140,7 +141,7 @@ fun HomeScreen(
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = OnTopBar
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 },
                 actions = {
@@ -150,12 +151,12 @@ fun HomeScreen(
                         Icon(
                             Icons.Default.Settings,
                             contentDescription = "Settings",
-                            tint = IconOnPrimary
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = TopBarBackground
+                    containerColor = MaterialTheme.colorScheme.mainColor
                 )
             )
         },
@@ -164,11 +165,12 @@ fun HomeScreen(
                 onClick = {
                     navController.navigate("custom_character_creation")
                 },
-                containerColor = ButtonPrimary
+                containerColor = MaterialTheme.colorScheme.buttonPrimary
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add custom character",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         },

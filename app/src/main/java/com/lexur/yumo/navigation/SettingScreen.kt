@@ -10,63 +10,57 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.lexur.yumo.componenets.PermissionExplanationDialog
-import com.lexur.yumo.home_screen.presentation.HomeViewModel
-import com.lexur.yumo.ui.theme.Background
-import com.lexur.yumo.ui.theme.ButtonPrimary
-import com.lexur.yumo.ui.theme.CardBackground
-import com.lexur.yumo.ui.theme.ContainerHigh
-import com.lexur.yumo.ui.theme.Error
-import com.lexur.yumo.ui.theme.IconSecondary
-import com.lexur.yumo.ui.theme.OnButtonPrimary
-import com.lexur.yumo.ui.theme.OnCard
-import com.lexur.yumo.ui.theme.OnContainer
-import com.lexur.yumo.ui.theme.OnSurface
-import com.lexur.yumo.ui.theme.OnSurfaceVariant
-import com.lexur.yumo.ui.theme.OnTopBar
-import com.lexur.yumo.ui.theme.OutlinePrimary
-import com.lexur.yumo.ui.theme.Primary
-import com.lexur.yumo.ui.theme.Success
-import com.lexur.yumo.ui.theme.TopBarBackground
 import com.composables.icons.lucide.Cat
 import com.composables.icons.lucide.CircleStop
 import com.composables.icons.lucide.Cross
+import com.composables.icons.lucide.Heart
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Smartphone
 import com.composables.icons.lucide.User
 import com.composables.icons.lucide.View
-import com.composables.icons.lucide.Heart
-import com.composables.icons.lucide.Smartphone
+import com.lexur.yumo.componenets.PermissionExplanationDialog
+import com.lexur.yumo.home_screen.presentation.HomeViewModel
 import com.lexur.yumo.navigation.presentation.FeedbackViewModel
-import com.lexur.yumo.ui.theme.InputBackground
-import com.lexur.yumo.ui.theme.InputBorder
-import com.lexur.yumo.ui.theme.InputBorderFocused
+import com.lexur.yumo.ui.theme.buttonPrimary
+import com.lexur.yumo.ui.theme.cardBackground
+import com.lexur.yumo.ui.theme.containerHigh
+import com.lexur.yumo.ui.theme.iconSecondary
+import com.lexur.yumo.ui.theme.inputBackground
+import com.lexur.yumo.ui.theme.inputBorder
+import com.lexur.yumo.ui.theme.inputBorderFocused
+import com.lexur.yumo.ui.theme.mainColor
+import com.lexur.yumo.ui.theme.success
+import com.lexur.yumo.util.ThemeViewModel
 import java.util.UUID
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.BugReport
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,9 +68,9 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
     feedbackViewModel: FeedbackViewModel = hiltViewModel(),
+    themeViewModel: ThemeViewModel = hiltViewModel(),
     adMobManager: com.lexur.yumo.ads.AdMobManager,
 ) {
-
     val context = LocalContext.current
     val showPermissionDialog by viewModel.showPermissionDialog.collectAsState()
     val canShowPrivacy = adMobManager.canShowPrivacyOptions()
@@ -106,21 +100,26 @@ fun SettingsScreen(
     )
 
     Scaffold(
-        containerColor = Background,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Settings", color = OnTopBar) },
+                title = {
+                    Text(
+                        "Settings",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = OnTopBar
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = TopBarBackground
+                    containerColor = MaterialTheme.colorScheme.mainColor
                 )
             )
         }
@@ -133,13 +132,13 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
+            // Permission Status Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = if (hasOverlayPermission && hasNotificationPermission)
-                        ContainerHigh
-                    else Error.copy(alpha = 0.2f)
+                        MaterialTheme.colorScheme.containerHigh
+                    else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
                 )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -153,8 +152,8 @@ fun SettingsScreen(
                             else Icons.Default.Warning,
                             contentDescription = null,
                             tint = if (hasOverlayPermission && hasNotificationPermission)
-                                Success
-                            else Error,
+                                MaterialTheme.colorScheme.success
+                            else MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -162,7 +161,7 @@ fun SettingsScreen(
                             text = "Permission Status",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = OnContainer
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
 
@@ -183,7 +182,7 @@ fun SettingsScreen(
                         Text(
                             text = "⚠️ Some permissions are missing. Your characters may not work properly without all required permissions.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Error
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
                 }
@@ -193,7 +192,7 @@ fun SettingsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = CardBackground
+                    containerColor = MaterialTheme.colorScheme.cardBackground
                 )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -201,7 +200,7 @@ fun SettingsScreen(
                         text = "Permission Management",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = OnCard,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
@@ -211,8 +210,8 @@ fun SettingsScreen(
                             onClick = { requestOverlayPermission(context, overlayPermissionLauncher) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = ButtonPrimary,
-                                contentColor = OnButtonPrimary
+                                containerColor = MaterialTheme.colorScheme.buttonPrimary,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         ) {
                             Icon(
@@ -229,9 +228,9 @@ fun SettingsScreen(
                             onClick = { openOverlaySettings(context) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = OnSurface
+                                contentColor = MaterialTheme.colorScheme.onSurface
                             ),
-                            border = BorderStroke(1.dp, OutlinePrimary)
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
@@ -252,8 +251,8 @@ fun SettingsScreen(
                             },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = ButtonPrimary,
-                                contentColor = OnButtonPrimary
+                                containerColor = MaterialTheme.colorScheme.buttonPrimary,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         ) {
                             Icon(
@@ -272,9 +271,9 @@ fun SettingsScreen(
                         onClick = { openAppSettings(context) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = OnSurface
+                            contentColor = MaterialTheme.colorScheme.onSurface
                         ),
-                        border = BorderStroke(1.dp, OutlinePrimary)
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -292,7 +291,7 @@ fun SettingsScreen(
                         onClick = { viewModel.showPermissionDialogManually() },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.textButtonColors(
-                            contentColor = Primary
+                            contentColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
                         Icon(
@@ -306,33 +305,213 @@ fun SettingsScreen(
                 }
             }
 
+            // Appearance Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.cardBackground
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Appearance",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    // Use System Theme Toggle
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Brightness4,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.iconSecondary
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Use System Theme",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Follow device theme settings",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(
+                            checked = themeViewModel.useSystemTheme.collectAsState().value,
+                            onCheckedChange = { themeViewModel.toggleSystemTheme(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
+                    }
+
+                    // Show dark mode toggle only when not using system theme
+                    AnimatedVisibility(
+                        visible = !themeViewModel.useSystemTheme.collectAsState().value,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Column {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                thickness = DividerDefaults.Thickness,
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = if (themeViewModel.isDarkMode.collectAsState().value)
+                                            Icons.Default.DarkMode
+                                        else
+                                            Icons.Default.LightMode,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.iconSecondary
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = "Dark Mode",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = if (themeViewModel.isDarkMode.collectAsState().value)
+                                                "Currently using dark theme"
+                                            else
+                                                "Currently using light theme",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Switch(
+                                    checked = themeViewModel.isDarkMode.collectAsState().value,
+                                    onCheckedChange = { themeViewModel.toggleDarkMode(it) },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        uncheckedTrackColor = MaterialTheme.colorScheme.outline
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    // Theme Preview Card
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Palette,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Theme Colors",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                ColorSwatch(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    label = "Primary"
+                                )
+                                ColorSwatch(
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    label = "Secondary"
+                                )
+                                ColorSwatch(
+                                    color = MaterialTheme.colorScheme.surface,
+                                    label = "Surface"
+                                )
+                                ColorSwatch(
+                                    color = MaterialTheme.colorScheme.background,
+                                    label = "Background"
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Character Request Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = CardBackground)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.cardBackground
+                )
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp), // Added padding
+                    modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(bottom = 4.dp)
                     ) {
-                        // Icon(..) // Removed spacer, icon added for alignment if needed
                         Text(
                             text = "Request Your Favorite Character",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = OnCard
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = Primary.copy(alpha = 0.1f)
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         ),
-                        border = BorderStroke(1.dp, Primary.copy(alpha = 0.2f))
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                     ) {
                         Column(
                             modifier = Modifier.padding(12.dp),
@@ -342,7 +521,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Default.Info,
                                     contentDescription = null,
-                                    tint = Primary,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -350,14 +529,14 @@ fun SettingsScreen(
                                     text = "How Yumo Characters Work",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Medium,
-                                    color = Primary
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                             Text(
                                 text = "• Characters walk along your status bar\n" +
                                         "• They can hang from camera notch, WiFi, or battery icons\n",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = OnSurfaceVariant,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.2f
                             )
                         }
@@ -382,16 +561,16 @@ fun SettingsScreen(
                         minLines = 2,
                         maxLines = 4,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = InputBackground,
-                            unfocusedContainerColor = InputBackground,
-                            disabledContainerColor = InputBackground,
-                            cursorColor = Primary,
-                            focusedBorderColor = InputBorderFocused,
-                            unfocusedBorderColor = InputBorder,
-                            focusedLabelColor = Primary,
-                            unfocusedLabelColor = OnSurfaceVariant,
-                            focusedTextColor = OnSurface,
-                            unfocusedTextColor = OnSurface,
+                            focusedContainerColor = MaterialTheme.colorScheme.inputBackground,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.inputBackground,
+                            disabledContainerColor = MaterialTheme.colorScheme.inputBackground,
+                            cursorColor = MaterialTheme.colorScheme.primary,
+                            focusedBorderColor = MaterialTheme.colorScheme.inputBorderFocused,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.inputBorder,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                         ),
                     )
 
@@ -402,15 +581,15 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !feedbackViewModel.isSubmitting && feedbackViewModel.characterRequestText.isNotBlank(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = ButtonPrimary,
-                            contentColor = OnButtonPrimary
+                            containerColor = MaterialTheme.colorScheme.buttonPrimary,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     ) {
                         if (feedbackViewModel.isSubmitting) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
                                 strokeWidth = 2.dp,
-                                color = OnButtonPrimary
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Spacer(Modifier.width(8.dp))
                             Text("Submitting Request...")
@@ -429,13 +608,13 @@ fun SettingsScreen(
                         if (success) {
                             Text(
                                 "✅ Character request submitted! We'll review it soon.",
-                                color = Success,
+                                color = MaterialTheme.colorScheme.success,
                                 style = MaterialTheme.typography.bodySmall
                             )
                         } else {
                             Text(
                                 "❌ Failed to submit request. Please try again.",
-                                color = Error,
+                                color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -443,10 +622,11 @@ fun SettingsScreen(
                 }
             }
 
+            // App Controls Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = CardBackground
+                    containerColor = MaterialTheme.colorScheme.cardBackground
                 )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -454,12 +634,9 @@ fun SettingsScreen(
                         text = "App Controls",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = OnCard,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
-
-                    // --- New Setting for Landscape Mode ---
-                    // Replace the existing landscape mode Row with this improved version:
 
                     Row(
                         modifier = Modifier
@@ -470,46 +647,45 @@ fun SettingsScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f) // Add weight to prevent overflow
+                            modifier = Modifier.weight(1f)
                         ) {
                             Icon(
                                 imageVector = Lucide.Smartphone,
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
-                                tint = IconSecondary
+                                tint = MaterialTheme.colorScheme.iconSecondary
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
                                     text = "Enable in Landscape",
                                     style = MaterialTheme.typography.bodyLarge,
-                                    color = OnSurface
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "Allow characters to run when device is rotated",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = OnSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.width(8.dp)) // Add spacing before switch
+                        Spacer(modifier = Modifier.width(8.dp))
                         Switch(
                             checked = enableInLandscape,
                             onCheckedChange = { viewModel.setEnableInLandscape(it) },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = OnButtonPrimary,
-                                checkedTrackColor = ButtonPrimary,
-                                uncheckedThumbColor = OnSurfaceVariant,
-                                uncheckedTrackColor = OutlinePrimary
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.outline
                             )
                         )
                     }
-                    // --- End of New Setting ---
 
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 8.dp),
                         thickness = DividerDefaults.Thickness,
-                        color = DividerDefaults.color
+                        color = MaterialTheme.colorScheme.outlineVariant
                     )
 
                     OutlinedButton(
@@ -518,9 +694,9 @@ fun SettingsScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Error
+                            contentColor = MaterialTheme.colorScheme.error
                         ),
-                        border = BorderStroke(1.dp, Error)
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
                     ) {
                         Icon(
                             imageVector = Lucide.CircleStop,
@@ -537,7 +713,7 @@ fun SettingsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = CardBackground
+                    containerColor = MaterialTheme.colorScheme.cardBackground
                 )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -548,7 +724,7 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Lucide.Cat,
                             contentDescription = null,
-                            tint = Primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -556,13 +732,13 @@ fun SettingsScreen(
                             text = "About Yumo",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = OnCard
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     Text(
                         text = "Yumo brings cute animated characters to your status bar that walk around while you use other apps. We prioritize your privacy and comply with all Google Play policies.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = OnSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -573,18 +749,20 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Lucide.User,
                             contentDescription = null,
-                            tint = Primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Privacy-focused • No data collection • Google Play compliant",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Primary
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             }
+
+            // Privacy Settings Section
             PrivacySettingsSection(
                 canShowPrivacyOptions = canShowPrivacy,
                 onPrivacySettingsClick = {
@@ -599,12 +777,11 @@ fun SettingsScreen(
                     // For testing: Reset consent and show UMP form
                     val activity = context as? android.app.Activity
                     activity?.let {
-                        adMobManager.requestConsentInformation(it) { success ->
+                        adMobManager.requestConsentInformation(it) { _ ->
                             // Consent form shown for testing
                         }
                     }
-                },
-                modifier = Modifier.padding(16.dp)
+                }
             )
         }
     }
@@ -626,13 +803,13 @@ private fun PermissionStatusRow(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = IconSecondary
+                tint = MaterialTheme.colorScheme.iconSecondary
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = permissionName,
                 style = MaterialTheme.typography.bodyMedium,
-                color = OnSurface
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -640,13 +817,13 @@ private fun PermissionStatusRow(
                 imageVector = if (isGranted) Icons.Default.CheckCircle else Lucide.Cross,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = if (isGranted) Success else Error
+                tint = if (isGranted) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.error
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = if (isGranted) "Granted" else "Required",
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isGranted) Success else Error
+                color = if (isGranted) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.error
             )
         }
     }
@@ -701,11 +878,10 @@ fun PrivacySettingsSection(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = CardBackground
+            containerColor = MaterialTheme.colorScheme.cardBackground
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -713,7 +889,7 @@ fun PrivacySettingsSection(
                 text = "Privacy & Ads",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = OnCard,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
@@ -736,14 +912,18 @@ fun PrivacySettingsSection(
                         imageVector = Icons.Default.PrivacyTip,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
-                        tint = if (canShowPrivacyOptions) Primary else IconSecondary.copy(alpha = 0.5f)
+                        tint = if (canShowPrivacyOptions)
+                            MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.iconSecondary.copy(alpha = 0.5f)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
                             text = "Ad Personalization",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = if (canShowPrivacyOptions) OnSurface else OnSurfaceVariant.copy(alpha = 0.5f)
+                            color = if (canShowPrivacyOptions)
+                                MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                         Text(
                             text = if (canShowPrivacyOptions)
@@ -751,7 +931,7 @@ fun PrivacySettingsSection(
                             else
                                 "No personalized ads in your region",
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -761,7 +941,7 @@ fun PrivacySettingsSection(
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = null,
-                        tint = IconSecondary
+                        tint = MaterialTheme.colorScheme.iconSecondary
                     )
                 }
             }
@@ -769,7 +949,7 @@ fun PrivacySettingsSection(
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 8.dp),
                 thickness = DividerDefaults.Thickness,
-                color = DividerDefaults.color
+                color = MaterialTheme.colorScheme.outlineVariant
             )
 
             // Privacy Policy Link
@@ -794,19 +974,19 @@ fun PrivacySettingsSection(
                         imageVector = Icons.Default.Description,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
-                        tint = IconSecondary
+                        tint = MaterialTheme.colorScheme.iconSecondary
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
                             text = "Privacy Policy",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = OnSurface
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "View our complete privacy policy",
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -814,30 +994,30 @@ fun PrivacySettingsSection(
                     imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = IconSecondary
+                    tint = MaterialTheme.colorScheme.iconSecondary
                 )
             }
 
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 8.dp),
                 thickness = DividerDefaults.Thickness,
-                color = DividerDefaults.color
+                color = MaterialTheme.colorScheme.outlineVariant
             )
 
             // Information Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = Primary.copy(alpha = 0.1f)
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                 ),
-                border = BorderStroke(1.dp, Primary.copy(alpha = 0.2f))
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Info,
                             contentDescription = null,
-                            tint = Primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -845,14 +1025,14 @@ fun PrivacySettingsSection(
                             text = "About Ad Privacy",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Medium,
-                            color = Primary
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "We respect your privacy and comply with GDPR and other privacy regulations. You can control how your data is used for ad personalization.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = OnSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.2f
                     )
                 }
@@ -865,9 +1045,9 @@ fun PrivacySettingsSection(
                     onClick = onShowTestUMPForm,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = OnSurface
+                        contentColor = MaterialTheme.colorScheme.onSurface
                     ),
-                    border = BorderStroke(1.dp, OutlinePrimary)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Icon(
                         imageVector = Icons.Default.BugReport,
@@ -879,5 +1059,29 @@ fun PrivacySettingsSection(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ColorSwatch(
+    color: Color,
+    label: String
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Surface(
+            modifier = Modifier.size(32.dp),
+            color = color,
+            shape = CircleShape,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+        ) {}
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 9.sp
+        )
     }
 }

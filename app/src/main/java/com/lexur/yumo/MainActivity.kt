@@ -3,7 +3,11 @@ package com.lexur.yumo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -17,6 +21,7 @@ import com.lexur.yumo.home_screen.presentation.HomeScreen
 import com.lexur.yumo.navigation.Screen
 import com.lexur.yumo.navigation.SettingsScreen
 import com.lexur.yumo.ui.theme.CatTheme
+import com.lexur.yumo.util.ThemeViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -25,6 +30,7 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var adMobManager: AdMobManager
+    private val themeViewModel: ThemeViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,7 +47,15 @@ class MainActivity : ComponentActivity() {
 
     private fun setupUI() {
         setContent {
-            CatTheme {
+            val useSystemTheme by themeViewModel.useSystemTheme.collectAsState()
+            val isDarkMode by themeViewModel.isDarkMode.collectAsState()
+            val systemDarkMode = isSystemInDarkTheme()
+            val shouldUseDarkMode = if (useSystemTheme) {
+                systemDarkMode
+            } else {
+                isDarkMode
+            }
+            CatTheme(darkTheme = shouldUseDarkMode) {
                 NavigationGraph(adMobManager = adMobManager)
             }
         }

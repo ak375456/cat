@@ -20,18 +20,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.composables.icons.lucide.Camera
-import com.composables.icons.lucide.Lucide
-import com.lexur.yumo.ui.theme.ButtonPrimary
-import com.lexur.yumo.ui.theme.CardBackground
-import com.lexur.yumo.ui.theme.OnButtonPrimary
-import com.lexur.yumo.ui.theme.OnCard
-import com.lexur.yumo.ui.theme.Primary
-import com.lexur.yumo.ui.theme.SecondaryVariant
+import com.lexur.yumo.ui.theme.buttonPrimary
+import com.lexur.yumo.ui.theme.cardBackground
 
 @Composable
 fun HangingCharacterInfoDialog(
@@ -50,7 +43,7 @@ fun HangingCharacterInfoDialog(
                     Icon(
                         Icons.Default.Info,
                         contentDescription = null,
-                        tint = Primary,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
@@ -58,7 +51,7 @@ fun HangingCharacterInfoDialog(
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = OnCard
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             },
@@ -69,7 +62,7 @@ fun HangingCharacterInfoDialog(
                     Text(
                         text = "$characterName is a hanging character that can be positioned at various locations on your screen.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = OnCard.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
 
                     Text(
@@ -77,7 +70,7 @@ fun HangingCharacterInfoDialog(
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = OnCard
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Column(
@@ -106,14 +99,14 @@ fun HangingCharacterInfoDialog(
 
                     Card(
                         colors = CardDefaults.cardColors(
-                            containerColor = SecondaryVariant.copy(alpha = 0.2f)
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
                             text = "💡 Tip: You can adjust the exact position in character settings after starting the character.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnCard.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             modifier = Modifier.padding(12.dp),
                             textAlign = TextAlign.Center
                         )
@@ -124,15 +117,15 @@ fun HangingCharacterInfoDialog(
                 Button(
                     onClick = onDismiss,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = ButtonPrimary,
-                        contentColor = OnButtonPrimary
+                        containerColor = MaterialTheme.colorScheme.buttonPrimary,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Got it!")
                 }
             },
-            containerColor = CardBackground,
+            containerColor = MaterialTheme.colorScheme.cardBackground,
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -156,12 +149,12 @@ private fun HangingLocationItem(
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.Medium
                 ),
-                color = OnCard
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
-                color = OnCard.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
         }
     }

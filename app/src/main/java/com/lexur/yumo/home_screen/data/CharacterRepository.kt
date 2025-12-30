@@ -36,7 +36,26 @@ class CharacterRepository @Inject constructor(
             height = 18,
             speed = 4,
             animationDelay = 120L
-        ),Characters(
+        ),
+        Characters(
+            id = "dragon_flying",
+            name = "Dragon",
+            category = CharacterCategory.ANIMATED,
+            frameIds = listOf(
+                R.drawable.dragon_01,
+                R.drawable.dragon_02,
+                R.drawable.dragon_03,
+                R.drawable.dragon_04,
+                R.drawable.dragon_05,
+                R.drawable.dragon_06,
+            ),
+            width = 18,
+            height = 18,
+            speed = 4,
+            animationDelay = 120L,
+            isPremium = false
+        ),
+        Characters(
             id = "santa_clause_walking",
             name = "Santa",
             category = CharacterCategory.ANIMATED,

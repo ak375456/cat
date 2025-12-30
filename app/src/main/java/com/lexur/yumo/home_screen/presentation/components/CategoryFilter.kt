@@ -1,5 +1,3 @@
-// Updated CategoryFilterSection.kt with new color palette
-
 package com.lexur.yumo.home_screen.presentation.components
 
 import androidx.compose.foundation.layout.Arrangement
@@ -28,14 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.lexur.yumo.home_screen.data.model.CharacterCategory
-import com.lexur.yumo.ui.theme.Container
-import com.lexur.yumo.ui.theme.IconPrimary
-import com.lexur.yumo.ui.theme.OnBackground
-import com.lexur.yumo.ui.theme.OnContainer
-import com.lexur.yumo.ui.theme.OnSurface
-import com.lexur.yumo.ui.theme.OutlineSecondary
-import com.lexur.yumo.ui.theme.Primary
-import com.lexur.yumo.ui.theme.Surface
+import com.lexur.yumo.ui.theme.containerColor
+import com.lexur.yumo.ui.theme.iconPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,7 +48,7 @@ fun CategoryFilterSection(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = OnBackground // Using custom text color on background
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             if (selectedCategory != null) {
@@ -68,13 +60,13 @@ fun CategoryFilterSection(
                         Icons.Default.Clear,
                         contentDescription = "Clear filter",
                         modifier = Modifier.size(16.dp),
-                        tint = IconPrimary // Using custom icon color
+                        tint = MaterialTheme.colorScheme.iconPrimary
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         "Clear",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Primary // Using custom primary color for text
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -116,14 +108,14 @@ private fun CategoryChip(
         },
         selected = isSelected,
         colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = Container, // Using custom selected container color
-            selectedLabelColor = OnContainer, // Using custom selected text color
-            containerColor = Surface, // Using custom surface color
-            labelColor = OnSurface // Using custom text on surface color
+            selectedContainerColor = MaterialTheme.colorScheme.containerColor,
+            selectedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            containerColor = MaterialTheme.colorScheme.surface,
+            labelColor = MaterialTheme.colorScheme.onSurface
         ),
         border = FilterChipDefaults.filterChipBorder(
-            selectedBorderColor = Primary, // Using custom primary color for selected border
-            borderColor = OutlineSecondary.copy(alpha = 0.5f), // Using custom outline color
+            selectedBorderColor = MaterialTheme.colorScheme.primary,
+            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
             selectedBorderWidth = 1.dp,
             borderWidth = 1.dp,
             enabled = true,

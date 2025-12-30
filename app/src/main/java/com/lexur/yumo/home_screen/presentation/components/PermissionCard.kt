@@ -1,5 +1,3 @@
-// Updated EnhancedPermissionWarningCard.kt with new color palette
-
 package com.lexur.yumo.home_screen.presentation.components
 
 import androidx.compose.animation.animateContentSize
@@ -39,22 +37,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lexur.yumo.ui.theme.Error
-import com.lexur.yumo.ui.theme.OnBackground
-import com.lexur.yumo.ui.theme.OnError
 
 @Composable
 fun EnhancedPermissionWarningCard(
     onNavigateToSettings: () -> Unit
 ) {
-    val infiniteTransition = rememberInfiniteTransition()
+    val infiniteTransition = rememberInfiniteTransition(label = "permission_pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(1500, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
-        )
+        ),
+        label = "pulse_alpha"
     )
 
     Card(
@@ -62,11 +58,11 @@ fun EnhancedPermissionWarningCard(
             .fillMaxWidth()
             .animateContentSize(),
         colors = CardDefaults.cardColors(
-            containerColor = Error.copy(alpha = 0.08f) // Using custom error color with transparency
+            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)
         ),
         border = BorderStroke(
             1.dp,
-            Error.copy(alpha = pulseAlpha * 0.5f) // Using custom error color with animated alpha
+            MaterialTheme.colorScheme.error.copy(alpha = pulseAlpha * 0.5f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -80,7 +76,7 @@ fun EnhancedPermissionWarningCard(
                 modifier = Modifier
                     .size(48.dp)
                     .alpha(pulseAlpha),
-                tint = Error // Using custom error color
+                tint = MaterialTheme.colorScheme.error
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -90,7 +86,7 @@ fun EnhancedPermissionWarningCard(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = Error, // Using custom error color
+                color = MaterialTheme.colorScheme.error,
                 textAlign = TextAlign.Center
             )
 
@@ -99,7 +95,7 @@ fun EnhancedPermissionWarningCard(
             Text(
                 text = "Grant overlay and notification permissions to bring your characters to life",
                 style = MaterialTheme.typography.bodyMedium,
-                color = OnBackground.copy(alpha = 0.7f), // Using custom text color with transparency
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,
                 lineHeight = 20.sp
             )
@@ -112,8 +108,8 @@ fun EnhancedPermissionWarningCard(
                     .fillMaxWidth()
                     .height(48.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Error, // Using custom error color
-                    contentColor = OnError // Using custom text on error color
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
