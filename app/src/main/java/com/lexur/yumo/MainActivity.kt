@@ -1,6 +1,7 @@
 package com.lexur.yumo
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -9,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -23,7 +25,10 @@ import com.lexur.yumo.navigation.SettingsScreen
 import com.lexur.yumo.ui.theme.CatTheme
 import com.lexur.yumo.util.ThemeViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
+import kotlin.coroutines.resume
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -36,13 +41,31 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         installSplashScreen()
 
-        // Request consent information (GDPR)
-        adMobManager.requestConsentInformation(
-            activity = this,
-            onConsentGathered = { success ->
-                setupUI()
+        // Setup UI immediately (don't wait for consent)
+        setupUI()
+
+        // Handle consent and AdMob initialization in background
+        lifecycleScope.launch {
+            try {
+                // Request consent first
+                val consentSuccess = suspendCancellableCoroutine { continuation ->
+                    adMobManager.requestConsentInformation(
+                        activity = this@MainActivity,
+                        onConsentGathered = { success ->
+                            continuation.resume(success)
+                        }
+                    )
+                }
+
+                if (consentSuccess && !isFinishing && !isDestroyed) {
+                    // Initialize AdMob after consent
+                    val initialized = adMobManager.initialize()
+                    Log.d("MainActivity", "AdMob ready: $initialized")
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "AdMob setup error", e)
             }
-        )
+        }
     }
 
     private fun setupUI() {

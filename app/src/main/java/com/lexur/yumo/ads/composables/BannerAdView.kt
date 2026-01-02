@@ -1,5 +1,6 @@
 package com.lexur.yumo.ads.composables
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
@@ -69,23 +70,34 @@ fun AdaptiveBannerAdView(
                 .fillMaxWidth()
                 .wrapContentHeight(),
             factory = { ctx ->
-                AdView(ctx).apply {
-                    // Get adaptive banner size
-                    val display = (ctx.getSystemService(android.content.Context.WINDOW_SERVICE)
-                            as android.view.WindowManager).defaultDisplay
-                    val outMetrics = android.util.DisplayMetrics()
-                    display.getMetrics(outMetrics)
-                    val widthPixels = outMetrics.widthPixels
-                    val density = outMetrics.density
-                    val adWidth = (widthPixels / density).toInt()
+                try {
+                    AdView(ctx).apply {
+                        val display = (ctx.getSystemService(android.content.Context.WINDOW_SERVICE)
+                                as android.view.WindowManager).defaultDisplay
+                        val outMetrics = android.util.DisplayMetrics()
+                        display.getMetrics(outMetrics)
+                        val widthPixels = outMetrics.widthPixels
+                        val density = outMetrics.density
+                        val adWidth = (widthPixels / density).toInt()
 
-                    setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(ctx, adWidth))
-                    this.adUnitId = adUnitId
-                    loadAd(AdRequest.Builder().build())
+                        setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(ctx, adWidth))
+                        this.adUnitId = adUnitId
+                        loadAd(AdRequest.Builder().build())
+                    }
+                } catch (e: Exception) {
+                    Log.e("BannerAdView", "Failed to create AdView", e)
+                    // Return empty view if ad fails
+                    android.view.View(ctx)
                 }
             },
             update = { adView ->
-                adView.loadAd(AdRequest.Builder().build())
+                try {
+                    if (adView is AdView) {
+                        adView.loadAd(AdRequest.Builder().build())
+                    }
+                } catch (e: Exception) {
+                    Log.e("BannerAdView", "Failed to load ad", e)
+                }
             }
         )
     }

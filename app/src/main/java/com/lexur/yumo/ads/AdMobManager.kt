@@ -3,10 +3,7 @@ package com.lexur.yumo.ads
 import android.app.Activity
 import android.content.Context
 import android.util.Log
-import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.MobileAds
-import com.google.android.gms.ads.RequestConfiguration
-import com.google.android.ump.ConsentDebugSettings
 import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
@@ -19,44 +16,37 @@ class AdMobManager(private val context: Context) {
         UserMessagingPlatform.getConsentInformation(context)
     }
 
+    private var isInitialized = false
+
     companion object {
         private const val TAG = "AdMobManager"
 
         // Replace with your actual Ad Unit IDs from AdMob console
-        const val BANNER_AD_UNIT_ID = "ca-app-pub-3026156143814055/7990692071" // Test ID
-        const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712" // Test ID
-
-        // For production, use:
-        // const val BANNER_AD_UNIT_ID = "ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy"
-    }
-
-    /**
-     * Get the test device ID for GDPR testing
-     * Call this once and copy the ID from Logcat
-     */
-    fun logTestDeviceId(activity: Activity) {
-        val androidId = android.provider.Settings.Secure.getString(
-            activity.contentResolver,
-            android.provider.Settings.Secure.ANDROID_ID
-        )
-        val md5 = java.security.MessageDigest.getInstance("MD5")
-        val hashedId = md5.digest(androidId.toByteArray())
-            .joinToString("") { "%02X".format(it) }
-
-        Log.d(TAG, "════════════════════════════════════════")
-        Log.d(TAG, "📱 YOUR TEST DEVICE ID FOR GDPR:")
-        Log.d(TAG, "   $hashedId")
-        Log.d(TAG, "════════════════════════════════════════")
-        Log.d(TAG, "Copy this ID and paste it in AdMobManager.kt")
-        Log.d(TAG, "in the addTestDeviceHashedId() method")
+        const val BANNER_AD_UNIT_ID = "ca-app-pub-3026156143814055/7990692071"
+        const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
     }
 
     /**
      * Initialize AdMob SDK
      */
     suspend fun initialize(): Boolean = suspendCancellableCoroutine { continuation ->
+        if (isInitialized) {
+            continuation.resume(true)
+            return@suspendCancellableCoroutine
+        }
+
         try {
+            // Check if WebView is available first
+            try {
+                android.webkit.WebView.getCurrentWebViewPackage()
+            } catch (e: Exception) {
+                Log.e(TAG, "WebView not available", e)
+                continuation.resume(false)
+                return@suspendCancellableCoroutine
+            }
+
             MobileAds.initialize(context) { initializationStatus ->
+                isInitialized = true
                 Log.d(TAG, "AdMob initialized: ${initializationStatus.adapterStatusMap}")
                 continuation.resume(true)
             }
@@ -72,44 +62,25 @@ class AdMobManager(private val context: Context) {
      */
     fun requestConsentInformation(
         activity: Activity,
-        isDebugMode: Boolean = false,
         onConsentGathered: (Boolean) -> Unit
     ) {
-        val paramsBuilder = ConsentRequestParameters.Builder()
-
-        if (isDebugMode) {
-            val debugSettings = ConsentDebugSettings.Builder(context)
-                .setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_EEA) // Changed to EEA
-                .addTestDeviceHashedId("CC6C6F640AE8A45D2EB609B69517E48B")
-                .build()
-            paramsBuilder.setConsentDebugSettings(debugSettings)
-
-            Log.d(TAG, "Debug mode enabled - simulating EEA geography")
-        }
-
-        val params = paramsBuilder.build()
-        Log.d(TAG, "Requesting consent info update...")
+        val params = ConsentRequestParameters.Builder().build()
 
         consentInformation.requestConsentInfoUpdate(
             activity,
             params,
             {
-                Log.d(TAG, "✅ Consent info updated successfully")
+                Log.d(TAG, "Consent info updated successfully")
                 Log.d(TAG, "Consent status: ${consentInformation.consentStatus}")
-                Log.d(TAG, "Form available: ${consentInformation.isConsentFormAvailable}")
-                Log.d(TAG, "Privacy options required: ${consentInformation.privacyOptionsRequirementStatus}")
 
                 if (consentInformation.isConsentFormAvailable) {
-                    Log.d(TAG, "Loading consent form...")
                     loadConsentForm(activity, onConsentGathered)
                 } else {
-                    Log.d(TAG, "No consent form available")
                     onConsentGathered(true)
                 }
             },
             { formError ->
-                Log.e(TAG, "❌ Consent form error: ${formError.message}")
-                Log.e(TAG, "Error code: ${formError.errorCode}")
+                Log.e(TAG, "Consent form error: ${formError.message}")
                 onConsentGathered(false)
             }
         )
@@ -154,38 +125,10 @@ class AdMobManager(private val context: Context) {
     }
 
     /**
-     * Reset consent for testing purposes
-     */
-    fun resetConsentForTesting() {
-        consentInformation.reset()
-    }
-
-    /**
      * Check if user can change privacy settings
      */
     fun canShowPrivacyOptions(): Boolean {
         return consentInformation.privacyOptionsRequirementStatus ==
                 ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
-    }
-
-    /**
-     * Get consent status
-     */
-    fun getConsentStatus(): Int {
-        return consentInformation.consentStatus
-    }
-
-    /**
-     * Check if personalized ads are allowed
-     */
-    fun canShowPersonalizedAds(): Boolean {
-        return consentInformation.consentStatus == ConsentInformation.ConsentStatus.OBTAINED
-    }
-
-    /**
-     * Build ad request based on consent status
-     */
-    fun buildAdRequest(): AdRequest {
-        return AdRequest.Builder().build()
     }
 }

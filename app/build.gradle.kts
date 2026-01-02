@@ -14,10 +14,10 @@ android {
 
     defaultConfig {
         applicationId = "com.lexur.yumo"
-        minSdk = 29
+        minSdk = 31
         targetSdk = 36
-        versionCode = 30
-        versionName = "1.1.9"
+        versionCode = 31
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
